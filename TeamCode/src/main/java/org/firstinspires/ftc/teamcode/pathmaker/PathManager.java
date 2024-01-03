@@ -5,26 +5,20 @@
 // battery power is maximized for each DOF. For example, if the path only consists of
 // forward motion, the absolute power applied will be 1. However, if forward, strafe, and turn
 // are all applied, the absolute power for each DOF will be 1/3.
-// Power transitions are ramped with a maximum change of maxPowerStep each timeStep_ms.
+// Power transitions (acceleration) are ramped with a maximum change of maxPowerStep each timeStep_ms.
 // When the robot is within "reach" of the goal, the power is ramped down to 0. The reach
 // in each DOF is defined by forwardRampReach_in, strafeRampReach_in, and turnRampReach_deg,
-// respectively.
-// The path will terminate after pathTime_ms defined in PathDetails without applying
-// a ramp-down of power.
+// respectively. The robot will stop when it is within the target zone defined by
+// forwardTargetZone_in, strafeTargetZone_in, and turnTargetZone_deg.
 //
 // MIT License
 // Copyright (c) 2023 bayrobotics.org
-//
-//
-//
 //
 
 package org.firstinspires.ftc.teamcode.pathmaker;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
-// on Android, use the following import to run the pathmaker in real mode:
-// import org.firstinspires.ftc.teamcode.op.RobotPose;
 
 public class PathManager {
     static double maxPowerStep = 0.05;
