@@ -65,7 +65,7 @@ public class PathDetails {
         forwardDelay_ms = 0;
         strafeDelay_ms = 0;
         turnDelay_ms = 0;
-        PathManager.maxPowerStep = 0.1;
+        PathManager.maxPowerStepUp = 0.1;
         PathManager.inTargetZone = false;
         PathManager.forwardTargetZone_in = 1;
         PathManager.strafeTargetZone_in = 1;
@@ -87,7 +87,7 @@ public class PathDetails {
         initializePath();
         switch (path) {
             case DriverControlled:
-                PathManager.maxPowerStep = 0.1;
+                PathManager.maxPowerStepUp = 0.1;
                 parallelAction = ParallelAction.ACTION.NONE;
                 //pathTime_ms = PathManager.timeStep_ms;
                 powerScaling = 1;
@@ -105,7 +105,7 @@ public class PathDetails {
                 lastTurnGoal = turnGoal_deg;
                 break;
             case AutoBackboard:
-                PathManager.maxPowerStep = 0.1;
+                PathManager.maxPowerStepUp = 0.1;
                 parallelAction = ParallelAction.ACTION.NONE;
                 //pathTime_ms = PathManager.timeStep_ms;
                 powerScaling = 0.6;

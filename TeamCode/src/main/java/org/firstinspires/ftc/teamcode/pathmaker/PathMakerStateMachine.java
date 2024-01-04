@@ -10,6 +10,10 @@ import java.util.ArrayList;
 
 public class PathMakerStateMachine {
     public static void terminatePath() {
+        // this function needs to be extended to include other options than power down
+        // for example, with ramp-reach <= 0, the robot will not stop at the target zone
+        // but will continue to move at the maximum velocity. In this case, the robot
+        // should be programmed to move to the next target zone.
         powerDown();
     }
 

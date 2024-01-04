@@ -54,10 +54,7 @@ public class Tele_Robot1 extends LinearOpMode {
         //limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         //final ColorRangeSensor colorRangeSensor;
         int cycles = 0;
-        WebCam.init(this);
-        while (WebCam.setManualExposure(6, 250, telemetry) == null) {
-            Thread.sleep(100);
-        }
+        WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
         MyIMU.initMyIMU(this);
         PathMakerStateMachine.setDriverControlled();

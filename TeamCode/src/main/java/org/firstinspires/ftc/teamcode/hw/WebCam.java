@@ -23,11 +23,13 @@ public class WebCam {
     public static double fieldForwardPosition = 0, fieldStrafePosition = 0, fieldHeadingAngle = 0;
 
 
-    public static void init(LinearOpMode opMode){
+    public static void init(LinearOpMode opMode, Telemetry telemetry) throws InterruptedException {
         myOpMode = opMode;
         initAprilTag();
+        while (WebCam.setManualExposure(6, 250, telemetry) == null) {
+            Thread.sleep(100);
+        }
     }
-    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     /**
      * The variable to store our instance of the AprilTag processor.
      */

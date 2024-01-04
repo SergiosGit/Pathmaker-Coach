@@ -50,10 +50,7 @@ public class Auto_Robot1 extends LinearOpMode {
         //final TouchSensor limitSwitch;
         //limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         //final ColorRangeSensor colorRangeSensor;
-        WebCam.init(this);
-        while (WebCam.setManualExposure(6, 250, telemetry) == null) {
-            Thread.sleep(100);
-        }
+        WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
         MyIMU.initMyIMU(this);
         MyIMU.updateTelemetry(telemetry);

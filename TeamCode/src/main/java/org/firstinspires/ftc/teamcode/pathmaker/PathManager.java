@@ -21,7 +21,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 
 public class PathManager {
-    static double maxPowerStep = 0.05;
+    public static double maxPowerStepUp = 0.05;
+    public static double maxPowerStepDown = 0.1;
     public static long timeStep_ms = 40;
     public static long PMcycleTime_ms = 0;
     public static double forwardRampReach_in = 24;
@@ -53,15 +54,15 @@ public class PathManager {
         // calculate distance to goal for each DOF, followed by correction power
         // which is proportional to distance to goal but limited by maxPowerStep
         if (pathElapsedTime >= PathDetails.forwardDelay_ms) {
-            deltaIsShouldForward = calculateIsShould(THISDOF.FORWARD);
+            deltaIsShouldForward = PathDetails.forwardGoal_in - RobotPose.getForward_in();
             forwardPower = calculateCorrectionPower(THISDOF.FORWARD);
         }
         if (pathElapsedTime >= PathDetails.strafeDelay_ms) {
-            deltaIsShouldStrafe = calculateIsShould(THISDOF.STRAFE);
+            deltaIsShouldStrafe = PathDetails.strafeGoal_in - RobotPose.getStrafe_in();
             strafePower = calculateCorrectionPower(THISDOF.STRAFE);
         }
         if (pathElapsedTime >= PathDetails.turnDelay_ms) {
-            deltaIsShouldAngle = calculateIsShould(THISDOF.TURN);
+            deltaIsShouldAngle = PathDetails.turnGoal_deg - RobotPose.getHeadingAngle_deg();
             turnPower = calculateCorrectionPower(THISDOF.TURN);
         }
         balancePower(); // balance power so it doesn't exceed 1
@@ -144,9 +145,10 @@ public class PathManager {
             // within reach value: reduce power proportional to distance
             power = deltaIsShould / rampReach;
         }
-        // check if power is increasing too fast
-        if (Math.abs(power) > Math.abs(lastPower) + maxPowerStep) {
-            power = lastPower + signumIsShould * maxPowerStep;
+        if (Math.abs(power) > Math.abs(lastPower) + maxPowerStepUp) { // check if power is increasing too fast
+            power = lastPower + signumIsShould * maxPowerStepUp;
+        } else if (Math.abs(power) < Math.abs(lastPower) - maxPowerStepDown) { // check if power is decreasing too fast
+            power = lastPower - signumIsShould * maxPowerStepDown;
         }
         if (dof == THISDOF.FORWARD) {
             forwardPowerLast = power;
@@ -156,15 +158,5 @@ public class PathManager {
             turnPowerLast = power;
         }
         return power;
-    }
-
-    private static double calculateIsShould(THISDOF dof) {
-        if (dof == THISDOF.FORWARD) {
-            return PathDetails.forwardGoal_in - RobotPose.getForward_in();
-        } else if (dof == THISDOF.STRAFE) {
-            return PathDetails.strafeGoal_in - RobotPose.getStrafe_in();
-        } else {
-            return PathDetails.turnGoal_deg - RobotPose.getHeadingAngle_deg();
-        }
     }
 }
