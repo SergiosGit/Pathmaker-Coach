@@ -40,8 +40,8 @@ public class Auto_Robot1 extends LinearOpMode {
 
 
 
-    static FtcDashboard dashboard = FtcDashboard.getInstance();
-    static Telemetry telemetry = dashboard.getTelemetry();
+    //static FtcDashboard dashboard = FtcDashboard.getInstance();
+    //static Telemetry telemetry = dashboard.getTelemetry();
     DriveTrain driveTrain = new DriveTrain(this);
 
     @Override
@@ -60,13 +60,12 @@ public class Auto_Robot1 extends LinearOpMode {
         int cycles = 0;
         int TEST_CYCLES = 10;
         PathMakerStateMachine.initAuto();
+        telemetry.addData("thisPathNumber", thisPathNumber);
         telemetry.update();
         waitForStart();
 
         while (opModeIsActive()) {
             if (isStopRequested()) return;
-
-            telemetry.addData("thisPathNumber", thisPathNumber);
             if (thisPathNumber == -1) {
                 WheelPowerManager.setDrivePower(driveTrain, thisForwardPower, thisStrafePower, thisTurnPower, thisHeadingDrive);
                 sleep(runTest_ms);
@@ -81,23 +80,21 @@ public class Auto_Robot1 extends LinearOpMode {
                 if (cycles > TEST_CYCLES) {
                     double t1 = timer.milliseconds() / cycles;
                     timer.reset();
+                    telemetry.addData("State", PathMakerStateMachine.state);
+                    telemetry.addData("aprilTagDetectionOn", PathMakerStateMachine.aprilTagDetectionOn);
+                    telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
+                    telemetry.addData(("number of detected tags"), WebCam.currentDetections==null?0:WebCam.currentDetections.size());
+                    telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
                     telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
-                    telemetry.addLine(String.format("Path Goals forward/strafe/turn %.1f / %.1f / %.1f (in/deg)",
+                    telemetry.addLine(String.format("Path Goals f/s/t %.1f / %.1f / %.1f (in/deg)",
                             PathDetails.forwardGoal_in,
                             PathDetails.strafeGoal_in,
                             PathDetails.turnGoal_deg));
-                    telemetry.addLine(String.format("RoboPose forward/strafe/turn %.1f / %.1f / %.1f (in/deg)",
+                    telemetry.addLine(String.format("RoboPose f/s/t %.1f / %.1f / %.1f (in/deg)",
                             RobotPose.getForward_in(),
                             RobotPose.getStrafe_in(),
                             RobotPose.getHeadingAngle_deg()));
-                    telemetry.addLine(String.format("forward/strafe/turn velocities %.1f / %.1f / %.1f (in/deg)",
-                            RobotPose.getForwardVelocity_inPerSec(),
-                            RobotPose.getStrafeVelocity_inPerSec(),
-                            RobotPose.getHeadingVelocity_degPerSec()));
-                    telemetry.addLine(String.format("pathTime %.0f", PathDetails.pathTime_ms));
-                    telemetry.addLine(String.format("elapsedTime %.0f", PathDetails.elapsedTime_ms.seconds()));
-                    telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
-
+                    MyIMU.updateTelemetry(telemetry);
                     telemetry.update();
                     cycles = 0;
                 }

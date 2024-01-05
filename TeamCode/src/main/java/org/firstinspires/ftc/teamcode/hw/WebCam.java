@@ -110,7 +110,7 @@ public class WebCam {
 
     public static void telemetryAprilTag(Telemetry telemetry) {
         boolean found = detectionAprilTag(583);
-        telemetry.addData("AprilTag 583", found);
+        telemetry.addData("AprilTag found", found);
         telemetry.addData("# AprilTags Detected", currentDetections.size());
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {

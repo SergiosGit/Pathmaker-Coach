@@ -18,18 +18,17 @@ public class PathMakerStateMachine {
     }
 
     enum GameMode {
-        TELEOP,
-        AUTONOMOUS
+        TELEOP, AUTONOMOUS
     }   // end enum GameMode
     enum State {
-        INIT, IDLE, DONE,
-        DRIVER_CONTROL,
+        INIT, IDLE, DONE, DRIVER_CONTROL,
         AUTO_BACKBOARD, AUTO_START_PATH, AUTO_NEXT_PATH, AUTO_BACKBOARD_ExecutePath, AUTO_ExecutePath
     }   // end enum State
 
     public static State state;
     static GameMode mode;
-
+    public static boolean aprilTagDetectionOn = false;
+    public static int currentPath = -1;
     public static double gamepadForward = 0, gamepadStrafe = 0, gamepadTurn = 0;
     public PathMakerStateMachine() {
         state = State.INIT;
@@ -85,7 +84,8 @@ public class PathMakerStateMachine {
     private static int nextPath;
     public static void initAuto() {
         state = State.AUTO_START_PATH;
-        nextPath = 0;
+        currentPath = nextPath = 0;
+        aprilTagDetectionOn = false;
         mode = GameMode.AUTONOMOUS;
         autoPathList = new ArrayList<PathDetails.Path>();
         autoPathList.add(PathDetails.Path.P1);
@@ -94,7 +94,13 @@ public class PathMakerStateMachine {
         autoPathList.add(PathDetails.Path.P4);
     }   // end method initAuto
     public static void updateAuto() throws InterruptedException {
-
+        // process events
+        if (aprilTagDetectionOn && WebCam.detectionAprilTag(1) ) {
+            state = State.AUTO_BACKBOARD;
+            aprilTagDetectionOn = false;
+            WebCam.currentDetections = null;
+        }
+        // process state
         switch (state) {
             case AUTO_START_PATH:
                 PathDetails.setPath(autoPathList.get(nextPath));
@@ -105,7 +111,7 @@ public class PathMakerStateMachine {
                     state = State.AUTO_NEXT_PATH;
                 } else if (PathManager.inTargetZone) {
                     state = State.AUTO_NEXT_PATH;
-                } else if (PathDetails.elapsedTime_ms.milliseconds()>300 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms)
+                } else if (PathDetails.elapsedTime_ms.milliseconds()>300 && RobotPose.isRobotAtRest()) { // robot at rest after first moving (300 ms)
                     state = State.AUTO_NEXT_PATH;
                 } else {
                     PathManager.moveRobot();
@@ -121,7 +127,20 @@ public class PathMakerStateMachine {
                 break;
             case AUTO_BACKBOARD:
                 PathDetails.setPath(PathDetails.Path.AutoBackboard);
-                PathManager.moveRobot();
+                state = State.AUTO_BACKBOARD_ExecutePath;
+                break;
+            case AUTO_BACKBOARD_ExecutePath:
+                if (PathDetails.elapsedTime_ms.milliseconds() > PathDetails.pathTime_ms) {
+                    state = State.DONE;
+                } else if (PathManager.inTargetZone) {
+                    RobotPose.setRobotPose(0, 0, 0, 1);
+                    currentPath = nextPath = 0;
+                    state = State.AUTO_START_PATH;
+                } else if (PathDetails.elapsedTime_ms.milliseconds()>300 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms)
+                    state = State.AUTO_START_PATH;
+                } else {
+                    PathManager.moveRobot();
+                }
                 break;
             case DONE:
                 powerDown();
@@ -142,6 +161,7 @@ public class PathMakerStateMachine {
         if (nextPath >= autoPathList.size()) {
             nextPath = -1;
         }
+        currentPath = nextPath;
     }   // end method setNextPath
 
     public enum ParallelAction {

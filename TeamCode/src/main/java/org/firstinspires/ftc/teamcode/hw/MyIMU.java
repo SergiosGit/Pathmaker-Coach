@@ -69,10 +69,10 @@ public class MyIMU {
                 orientation.getYaw(AngleUnit.DEGREES),
                 orientation.getPitch(AngleUnit.DEGREES),
                 orientation.getRoll(AngleUnit.DEGREES)));
-        telemetry.addLine(String.format("IMU Yaw/Pitch/Roll velocities: %.2f %.2f %.2f deg/sec",
-                angularVelocity.zRotationRate,
-                angularVelocity.xRotationRate,
-                angularVelocity.yRotationRate));
+//        telemetry.addLine(String.format("IMU Yaw/Pitch/Roll velocities: %.2f %.2f %.2f deg/sec",
+//                angularVelocity.zRotationRate,
+//                angularVelocity.xRotationRate,
+//                angularVelocity.yRotationRate));
         telemetry.addData("thisAngle_deg", thisAngle_deg);
     }
     public double getAngle_deg()

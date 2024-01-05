@@ -34,7 +34,6 @@ import org.firstinspires.ftc.teamcode.op.RobotPose;
 
 @Config
 public class PathDetails {
-    public static ParallelAction.ACTION parallelAction;
     // Note: the offsets defined below are used by the PathManager and are useful to set an offset
     // from an arbitrary origin when using the FTC Dashboard. The default (offset=0) defines the
     // robot centric coordinate system at the beginning of the path.
@@ -56,7 +55,6 @@ public class PathDetails {
     public static void initializePath() {
         // initialize
         pathTime_ms = 9E9;
-        parallelAction = ParallelAction.ACTION.NONE;
         elapsedTime_ms.reset();
         powerScaling = 1;
         forwardGoal_in = 0;
@@ -65,6 +63,7 @@ public class PathDetails {
         forwardDelay_ms = 0;
         strafeDelay_ms = 0;
         turnDelay_ms = 0;
+        PathMakerStateMachine.aprilTagDetectionOn = false;
         PathManager.maxPowerStepUp = 0.1;
         PathManager.inTargetZone = false;
         PathManager.forwardTargetZone_in = 1;
@@ -88,7 +87,6 @@ public class PathDetails {
         switch (path) {
             case DriverControlled:
                 PathManager.maxPowerStepUp = 0.1;
-                parallelAction = ParallelAction.ACTION.NONE;
                 //pathTime_ms = PathManager.timeStep_ms;
                 powerScaling = 1;
                 // need to update with actual robot position
@@ -106,7 +104,6 @@ public class PathDetails {
                 break;
             case AutoBackboard:
                 PathManager.maxPowerStepUp = 0.1;
-                parallelAction = ParallelAction.ACTION.NONE;
                 //pathTime_ms = PathManager.timeStep_ms;
                 powerScaling = 0.6;
                 // need to update with actual robot position
@@ -129,27 +126,28 @@ public class PathDetails {
                 break;
             case P1:
                 powerScaling = 0.6;
-                forwardGoal_in = 12;
-                strafeGoal_in = 0;
-                turnGoal_deg = 90;
+                forwardGoal_in = 0;
+                strafeGoal_in = 12;
+                turnGoal_deg = 0;
                 break;
             case P2:
                 powerScaling = 0.6;
-                forwardGoal_in = 12;
+                forwardGoal_in = -12;
                 strafeGoal_in = 12;
-                turnGoal_deg = 180;
+                turnGoal_deg = 0;
                 break;
             case P3:
                 powerScaling = 0.6;
-                forwardGoal_in = 0;
-                strafeGoal_in = 12;
-                turnGoal_deg = 270;
+                forwardGoal_in = -12;
+                strafeGoal_in = 0;
+                turnGoal_deg = 0;
                 break;
             case P4:
+                PathMakerStateMachine.aprilTagDetectionOn = true;
                 powerScaling = 0.6;
                 forwardGoal_in = 0;
                 strafeGoal_in = 0;
-                turnGoal_deg = 360;
+                turnGoal_deg = 0;
                 break;
             case DONE:
                 break;

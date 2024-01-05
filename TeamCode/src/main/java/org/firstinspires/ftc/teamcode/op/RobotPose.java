@@ -32,7 +32,6 @@ import org.firstinspires.ftc.teamcode.hw.DriveTrain;
 import org.firstinspires.ftc.teamcode.hw.MyIMU;
 import static org.firstinspires.ftc.teamcode.hw.DriveTrain.getEncoderValues;
 
-import org.firstinspires.ftc.teamcode.pathmaker.ParallelAction;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
 import org.firstinspires.ftc.teamcode.pathmaker.RobotPoseSimulation;
@@ -87,7 +86,7 @@ public class RobotPose {
         imuAngle_deg = imu.thisAngle_deg; // initialized after call getAngle_rad()
         poseTelemetry = telemetry;
         poseDriveTrain = driveTrain;
-        headingAngle_rad = PathDetails.turnOffset_deg / 180. * Math.PI;
+        headingAngle_rad = 0; // PathDetails.turnOffset_deg / 180. * Math.PI;
         lastHeadingAngle_rad = 0;
         headingAngle_deg = 0;
         lastHeadingAngle_deg = 0;
@@ -95,16 +94,14 @@ public class RobotPose {
         lastForward_in = 0;
         strafe_in = 0;
         lastStrafe_in = 0;
-        pathForward_in = PathDetails.forwardOffset_in;
-        pathStrafe_in = PathDetails.strafeOffset_in;
+        pathForward_in = 0; // PathDetails.forwardOffset_in;
+        pathStrafe_in = 0; // PathDetails.strafeOffset_in;
         currentAuxPosition = 0;
         currentRightPosition = 0;
         currentLeftPosition = 0;
         previousAuxPosition = 0;
         previousRightPosition = 0;
         previousLeftPosition = 0;
-        //ParallelAction.setOpMode(opMode); DO this at root level
-        ParallelAction.init();
         PathDetails.turnGoal_deg = 0;
         PathDetails.forwardGoal_in = 0;
         PathDetails.strafeGoal_in = 0;
@@ -250,5 +247,17 @@ public class RobotPose {
         return (Math.abs(getForwardVelocity_inPerSec()) < 0.1 &&
                 Math.abs(getStrafeVelocity_inPerSec()) < 0.1 &&
                 Math.abs(getHeadingVelocity_degPerSec()) < 0.1);
+    }
+
+    public static void setRobotPose(double forward_in, double strafe_in, double headingAngle_deg, int tagID) {
+        // set robot pose in the coordinate system defined at the beginning of the path
+        RobotPose.forward_in = 0;
+        RobotPose.strafe_in = 0;
+        RobotPose.headingAngle_deg = 0;
+        RobotPose.headingAngle_rad = 0;
+        // need to update offset depending on tagID
+        PathDetails.forwardOffset_in = 0;
+        PathDetails.strafeOffset_in = 0;
+        PathDetails.turnOffset_deg = 0;
     }
 }
