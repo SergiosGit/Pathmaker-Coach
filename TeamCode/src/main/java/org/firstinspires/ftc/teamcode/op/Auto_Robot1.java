@@ -11,13 +11,11 @@
 //
 package org.firstinspires.ftc.teamcode.op;
 
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hw.MyIMU;
 import org.firstinspires.ftc.teamcode.hw.WebCam;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
@@ -62,6 +60,7 @@ public class Auto_Robot1 extends LinearOpMode {
         PathMakerStateMachine.initAuto();
         telemetry.addData("thisPathNumber", thisPathNumber);
         telemetry.update();
+        RobotPose.rebase(-12, 0, 0, 1); // start in front of tag 1
         waitForStart();
 
         while (opModeIsActive()) {
@@ -82,8 +81,8 @@ public class Auto_Robot1 extends LinearOpMode {
                     timer.reset();
                     telemetry.addData("State", PathMakerStateMachine.state);
                     telemetry.addData("aprilTagDetectionOn", PathMakerStateMachine.aprilTagDetectionOn);
-                    telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
-                    telemetry.addData(("number of detected tags"), WebCam.currentDetections==null?0:WebCam.currentDetections.size());
+                    telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
+                    //telemetry.addData(("number of detected tags"), WebCam.currentDetections==null?0:WebCam.currentDetections.size());
                     telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
                     telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                     telemetry.addLine(String.format("Path Goals f/s/t %.1f / %.1f / %.1f (in/deg)",
@@ -95,6 +94,7 @@ public class Auto_Robot1 extends LinearOpMode {
                             RobotPose.getStrafe_in(),
                             RobotPose.getHeadingAngle_deg()));
                     MyIMU.updateTelemetry(telemetry);
+                    WebCam.telemetryAprilTag(telemetry);
                     telemetry.update();
                     cycles = 0;
                 }

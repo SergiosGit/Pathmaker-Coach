@@ -133,7 +133,6 @@ public class PathMakerStateMachine {
                 if (PathDetails.elapsedTime_ms.milliseconds() > PathDetails.pathTime_ms) {
                     state = State.DONE;
                 } else if (PathManager.inTargetZone) {
-                    RobotPose.setRobotPose(0, 0, 0, 1);
                     currentPath = nextPath = 0;
                     state = State.AUTO_START_PATH;
                 } else if (PathDetails.elapsedTime_ms.milliseconds()>300 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms)

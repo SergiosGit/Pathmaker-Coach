@@ -30,7 +30,7 @@ public class DriveTrain {
     public DriveTrain(LinearOpMode opMode){
         myOpMode = opMode;
     }
-    public void init(){
+    public void init() throws InterruptedException {
         // For bulk read make sure to use DcMotorEx when instantiating motors.
         frontLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"fl");
         backLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"bl");
@@ -52,10 +52,11 @@ public class DriveTrain {
 
     }
 
-    public DcMotorEx initMotor(DcMotorEx motor){
+    public DcMotorEx initMotor(DcMotorEx motor) throws InterruptedException {
         motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         //motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        Thread.sleep(100);
         motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         return motor;
     }

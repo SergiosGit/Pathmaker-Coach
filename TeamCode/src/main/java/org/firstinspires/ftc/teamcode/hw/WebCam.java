@@ -21,7 +21,7 @@ public class WebCam {
     public static List<AprilTagDetection> currentDetections = null;
     public static double distanceToTarget = 0, offsetToTarget = 0, angleToTarget = 0;
     public static double fieldForwardPosition = 0, fieldStrafePosition = 0, fieldHeadingAngle = 0;
-
+    public static int targetID = 0;
 
     public static void init(LinearOpMode opMode, Telemetry telemetry) throws InterruptedException {
         myOpMode = opMode;
@@ -95,6 +95,7 @@ public class WebCam {
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null) {
                 if (detection.id == ID) {
+                    targetID = ID;
                     distanceToTarget = detection.ftcPose.range;
                     angleToTarget = -detection.ftcPose.yaw; // when robot is looking directly at target (bearing = 0)
                     offsetToTarget = detection.ftcPose.x;

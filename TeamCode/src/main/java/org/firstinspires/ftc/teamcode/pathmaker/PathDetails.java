@@ -108,14 +108,17 @@ public class PathDetails {
                 powerScaling = 0.6;
                 // need to update with actual robot position
                 double distanceToTarget = WebCam.distanceToTarget;
-                double distanceTargetToGoal = 12;
-                double x = -distanceToTarget * Math.sin(Math.toRadians(WebCam.angleToTarget));
-                double y = distanceToTarget * Math.cos(Math.toRadians(WebCam.angleToTarget));
-                forwardGoal_in = (y-distanceTargetToGoal) + RobotPose.getForward_in();
-                strafeGoal_in = x + RobotPose.getStrafe_in();
-                if (Math.abs(WebCam.angleToTarget) < 5)
+                double a = WebCam.angleToTarget; // yaw angle
+                double x = distanceToTarget * Math.sin(Math.toRadians(a));
+                double y = -distanceToTarget * Math.cos(Math.toRadians(a));
+                RobotPose.rebase(y, x, a, WebCam.targetID);
+                double tagXYA [] = RobotPose.tagOffset(WebCam.targetID);
+                forwardGoal_in = tagXYA[0] - 12; // 12 is the distance from the camera to the front of the robot
+                strafeGoal_in = tagXYA[1];
+                if (Math.abs(a) < 5) {
                     strafeGoal_in += WebCam.offsetToTarget;
-                turnGoal_deg = WebCam.angleToTarget + RobotPose.getHeadingAngle_deg();
+                }
+                turnGoal_deg = tagXYA[2] + a;
                 forwardDelay_ms = 0;
                 strafeDelay_ms = 0;
                 turnDelay_ms = 0;
@@ -126,27 +129,27 @@ public class PathDetails {
                 break;
             case P1:
                 powerScaling = 0.6;
-                forwardGoal_in = 0;
-                strafeGoal_in = 12;
+                forwardGoal_in = 60;
+                strafeGoal_in = -30;
                 turnGoal_deg = 0;
                 break;
             case P2:
                 powerScaling = 0.6;
-                forwardGoal_in = -12;
-                strafeGoal_in = 12;
+                forwardGoal_in = 50;
+                strafeGoal_in = -30;
                 turnGoal_deg = 0;
                 break;
             case P3:
                 powerScaling = 0.6;
-                forwardGoal_in = -12;
-                strafeGoal_in = 0;
+                forwardGoal_in = 50;
+                strafeGoal_in = -42;
                 turnGoal_deg = 0;
                 break;
             case P4:
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 powerScaling = 0.6;
-                forwardGoal_in = 0;
-                strafeGoal_in = 0;
+                forwardGoal_in = 60;
+                strafeGoal_in = -42;
                 turnGoal_deg = 0;
                 break;
             case DONE:

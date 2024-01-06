@@ -34,11 +34,6 @@ import static org.firstinspires.ftc.teamcode.hw.DriveTrain.getEncoderValues;
 
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
-import org.firstinspires.ftc.teamcode.pathmaker.RobotPoseSimulation;
-
-import static org.firstinspires.ftc.teamcode.hw.MyIMU.initMyIMU;
-import static org.firstinspires.ftc.teamcode.pathmaker.GameSetup.RobotModel;
-import static org.firstinspires.ftc.teamcode.pathmaker.GameSetup.robotModel;
 
 public class RobotPose {
     private static double headingAngle_rad = 0, lastHeadingAngle_rad = 0;
@@ -72,13 +67,15 @@ public class RobotPose {
     private static Telemetry poseTelemetry;
     private static DriveTrain poseDriveTrain;
     private static MyIMU imu = new MyIMU(null);
-    public static boolean deadWheelOdometry = false;
+    public static enum ODOMETRY {DEADWHEEL, XYPLUSIMU};
+    public static ODOMETRY odometry;
     public static int[] encoderValues = new int[4];
     public static double[] motorCurrents = new double[4];
     public static double[] motorVelocities = new double[4];
 
-    public static void initializePose(LinearOpMode opMode, DriveTrain driveTrain, Telemetry telemetry){
+    public static void initializePose(LinearOpMode opMode, DriveTrain driveTrain, Telemetry telemetry) throws InterruptedException {
         driveTrain.init();
+        odometry = ODOMETRY.XYPLUSIMU;
         imu.setOpMode(opMode);
         imu.initMyIMU(opMode);
         imu.resetAngle();
@@ -106,15 +103,18 @@ public class RobotPose {
         PathDetails.forwardGoal_in = 0;
         PathDetails.strafeGoal_in = 0;
         PathDetails.lastTurnGoal = 0;
-        if (deadWheelOdometry) {
+        if (odometry == ODOMETRY.DEADWHEEL) {
             L = 32.9438; // distance between left and right encoders in cm - LATERAL DISTANCE
             B = 11.724; // distance between midpoints of left and right encoders and encoder aux
             R = 1.9; // odometry wheel radius in cm
             N = 8192; // REV encoders tic per revolution
-        } else {
+        } else if (odometry == ODOMETRY.XYPLUSIMU) {
             R = 4.8; // Mecanum wheel radius in cm (OD=96mm)
             N = 537.7; // 312 RPM motor encoder tics per revolution (PPR)
             cm_per_tick_strafe = 73.2/1477; // measured with coach chassis
+        } else {
+            R = 1;
+            N = 1;
         }
         cm_per_tick = (2.0 * Math.PI * R)/N;
     }
@@ -154,7 +154,7 @@ public class RobotPose {
         motorCurrents = DriveTrain.getMotorCurrents();
         motorVelocities = DriveTrain.getMotorVelocities();
 
-        if (deadWheelOdometry) {
+        if (odometry == ODOMETRY.DEADWHEEL) {
             currentRightPosition = encoderValues[0];
             currentLeftPosition = encoderValues[2];
             currentAuxPosition = encoderValues[1];
@@ -169,7 +169,7 @@ public class RobotPose {
             dx = cm_per_tick * (-dn3 + (dn2 - dn1) * B / L);
             lastHeadingAngle_rad = headingAngle_rad;
             headingAngle_rad += dtheta;
-        } else {
+        } else if (odometry == ODOMETRY.XYPLUSIMU){
             lastHeadingAngle_rad = headingAngle_rad;
             headingAngle_rad = imu.getAngle_rad();
             // dy is the average of all 4 encoders
@@ -179,6 +179,12 @@ public class RobotPose {
             dy = (currentForwardTics - previousForwardTics) * cm_per_tick;
             previousStrafeTics = currentStrafeTics;
             previousForwardTics = currentForwardTics;
+        } else {
+            dx = 0;
+            dy = 0;
+            forward_in = 0;
+            strafe_in = 0;
+            headingAngle_rad = 0;
         }
         dx_in = dx / 2.54;
         dy_in = dy / 2.54;
@@ -249,15 +255,20 @@ public class RobotPose {
                 Math.abs(getHeadingVelocity_degPerSec()) < 0.1);
     }
 
-    public static void setRobotPose(double forward_in, double strafe_in, double headingAngle_deg, int tagID) {
-        // set robot pose in the coordinate system defined at the beginning of the path
-        RobotPose.forward_in = 0;
-        RobotPose.strafe_in = 0;
-        RobotPose.headingAngle_deg = 0;
-        RobotPose.headingAngle_rad = 0;
-        // need to update offset depending on tagID
-        PathDetails.forwardOffset_in = 0;
-        PathDetails.strafeOffset_in = 0;
-        PathDetails.turnOffset_deg = 0;
+    public static void rebase(double tagY, double tagX, double tagAngle, int tagID) {
+        // rebase robot pose based on tag identification
+        double tagXYA [] = tagOffset(tagID);
+        pathForward_in = forward_in = lastForward_in = tagXYA[0] + tagY;
+        pathStrafe_in = strafe_in = lastStrafe_in = tagXYA[1] + tagX;
+        headingAngle_deg = lastHeadingAngle_deg = tagXYA[2] + tagAngle;
+    }
+
+    public static double [] tagOffset(int tagID) {
+        // rebase robot pose based on tag identification
+        tagID =  Math.max(Math.min(tagID, 10), 0);
+        double [] YOffset_in = {0,  72,  72,  72, 72, 72, 72,    0,  0,   0,     0};
+        double [] XOffset_in =  {0, -42, -36, -30, 30, 36, 42, 44.5, 36, -36, -44.5};
+        double [] AOffset_deg = {0,   0,   0,   0,  0,  0,  0,    0,  0,   0,     0};
+        return new double[]{YOffset_in[tagID], XOffset_in[tagID], AOffset_deg[tagID]};
     }
 }
