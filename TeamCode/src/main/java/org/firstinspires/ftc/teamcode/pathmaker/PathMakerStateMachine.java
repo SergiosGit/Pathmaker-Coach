@@ -9,6 +9,8 @@ import org.firstinspires.ftc.teamcode.op.RobotPose;
 import java.util.ArrayList;
 
 public class PathMakerStateMachine {
+
+
     public static void terminatePath() {
         // this function needs to be extended to include other options than power down
         // for example, with ramp-reach <= 0, the robot will not stop at the target zone
@@ -28,6 +30,7 @@ public class PathMakerStateMachine {
     public static State state;
     static GameMode mode;
     public static boolean aprilTagDetectionOn = false;
+    public static int aprilTagDetectionID = 0;
     public static int currentPath = -1;
     public static double gamepadForward = 0, gamepadStrafe = 0, gamepadTurn = 0;
     public PathMakerStateMachine() {
@@ -42,7 +45,7 @@ public class PathMakerStateMachine {
     }
 
     public static void updateTele(Gamepad gamepad) throws InterruptedException {
-        if (WebCam.detectionAprilTag(583) && gamepad.left_bumper) {
+        if (WebCam.detectionAprilTag(aprilTagDetectionID) && gamepad.left_bumper) {
             state = State.AUTO_BACKBOARD;
         } else if (state == State.AUTO_BACKBOARD_ExecutePath) {
             state = State.AUTO_BACKBOARD_ExecutePath;
@@ -91,14 +94,21 @@ public class PathMakerStateMachine {
         autoPathList.add(PathDetails.Path.P1);
         autoPathList.add(PathDetails.Path.P2);
         autoPathList.add(PathDetails.Path.P3);
-        autoPathList.add(PathDetails.Path.P4);
+        autoPathList.add(PathDetails.Path.BACKBOARD);
     }   // end method initAuto
     public static void updateAuto() throws InterruptedException {
         // process events
-        if (aprilTagDetectionOn && WebCam.detectionAprilTag(1) ) {
+        // if we are looking for an AprilTag, check if we found one
+        // ( the camera was chosen in setPath() )
+        if (aprilTagDetectionOn && WebCam.detectionAprilTag(aprilTagDetectionID) ) {
             state = State.AUTO_BACKBOARD;
             aprilTagDetectionOn = false;
             WebCam.currentDetections = null;
+        } else if (aprilTagDetectionOn) {
+            // if we are looking for an AprilTag but did not find one, do nothing
+            state = State.IDLE;
+        } else {
+            state = State.IDLE;
         }
         // process state
         switch (state) {
@@ -133,13 +143,15 @@ public class PathMakerStateMachine {
                 if (PathDetails.elapsedTime_ms.milliseconds() > PathDetails.pathTime_ms) {
                     state = State.DONE;
                 } else if (PathManager.inTargetZone) {
-                    currentPath = nextPath = 0;
+                    currentPath = nextPath = 0; // reset path, this will start the whole thing over
                     state = State.AUTO_START_PATH;
                 } else if (PathDetails.elapsedTime_ms.milliseconds()>300 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms)
                     state = State.AUTO_START_PATH;
                 } else {
                     PathManager.moveRobot();
                 }
+                break;
+            case IDLE:
                 break;
             case DONE:
                 powerDown();

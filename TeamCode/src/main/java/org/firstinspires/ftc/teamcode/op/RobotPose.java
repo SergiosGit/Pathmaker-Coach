@@ -266,9 +266,9 @@ public class RobotPose {
     public static double [] tagOffset(int tagID) {
         // rebase robot pose based on tag identification
         tagID =  Math.max(Math.min(tagID, 10), 0);
-        double [] YOffset_in = {0,  72,  72,  72, 72, 72, 72,    0,  0,   0,     0};
-        double [] XOffset_in =  {0, -42, -36, -30, 30, 36, 42, 44.5, 36, -36, -44.5};
-        double [] AOffset_deg = {0,   0,   0,   0,  0,  0,  0,    0,  0,   0,     0};
+        double [] YOffset_in = {0, 62, 62, 62,62,62,62,-72.5,-72.5,-72.5,-72.5};
+        double [] XOffset_in = {0,-42,-36,-30,30,36,42, 44.5,   36,  -36,-44.5};
+        double [] AOffset_deg ={0,  0,  0,  0, 0, 0, 0,    0,    0,    0,    0};
         return new double[]{YOffset_in[tagID], XOffset_in[tagID], AOffset_deg[tagID]};
     }
 }

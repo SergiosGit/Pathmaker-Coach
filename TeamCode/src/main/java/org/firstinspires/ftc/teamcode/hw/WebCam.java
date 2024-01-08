@@ -2,7 +2,9 @@ package org.firstinspires.ftc.teamcode.hw;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
@@ -22,6 +24,9 @@ public class WebCam {
     public static double distanceToTarget = 0, offsetToTarget = 0, angleToTarget = 0;
     public static double fieldForwardPosition = 0, fieldStrafePosition = 0, fieldHeadingAngle = 0;
     public static int targetID = 0;
+    public static enum WEBCAM {WEBCAM1, WEBCAM2};
+    private static WebcamName webcam1;
+    private static WebcamName webcam2;
 
     public static void init(LinearOpMode opMode, Telemetry telemetry) throws InterruptedException {
         myOpMode = opMode;
@@ -47,9 +52,14 @@ public class WebCam {
         // Note: Decimation can be changed on-the-fly to adapt during a match.
         aprilTag.setDecimation(2);
 
+        webcam1 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1");
+        webcam2 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 2");
+        CameraName switchableCamera = ClassFactory.getInstance()
+                .getCameraManager().nameForSwitchableCamera(webcam1, webcam2);
+
         // Create the vision portal by using a builder.
         visionPortal = new VisionPortal.Builder()
-                .setCamera(myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1"))
+                .setCamera(switchableCamera)
                 .addProcessor(aprilTag)
                 .build();
     }   // end method initAprilTag()
@@ -89,7 +99,25 @@ public class WebCam {
         telemetry.update();
         return 1;
     }
-
+    public static boolean streamWebcam(WEBCAM webcam) {
+        // Start streaming
+        visionPortal.resumeStreaming();
+        if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
+            if (webcam == WEBCAM.WEBCAM1) {
+                visionPortal.setActiveCamera(webcam1);
+                return true;
+            } else if (webcam == WEBCAM.WEBCAM2){
+                visionPortal.setActiveCamera(webcam2);
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+    public static void stopWebcam() {
+        visionPortal.stopStreaming();
+    }
     public static boolean detectionAprilTag(int ID) {
         currentDetections = aprilTag.getDetections();
         for (AprilTagDetection detection : currentDetections) {

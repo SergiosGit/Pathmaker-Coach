@@ -60,7 +60,7 @@ public class Auto_Robot1 extends LinearOpMode {
         PathMakerStateMachine.initAuto();
         telemetry.addData("thisPathNumber", thisPathNumber);
         telemetry.update();
-        RobotPose.rebase(-12, 0, 0, 1); // start in front of tag 1
+        RobotPose.rebase(-12, 0, 0, 2); // start in front of tag 2, Y/X are relative to tag 2
         waitForStart();
 
         while (opModeIsActive()) {

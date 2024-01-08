@@ -75,14 +75,15 @@ public class PathDetails {
         PathManager.forwardMinVelocity_inPerSec = 2;
         PathManager.strafeMinVelocity_inPerSec = 2;
         PathManager.turnMinVelocity_degPerSec = 4;
+        WebCam.stopWebcam();
     }
     public enum Path {
-        P1, P2, P3, P4,
+        P1, P2, P3, BACKBOARD,
         DriverControlled,
-        AutoBackboard, DONE
+        AutoBackboard, PIXELSTACKS, DONE
     }   // end enum Event
 
-    public static void setPath(Path path) {
+    public static void setPath(Path path) throws InterruptedException {
         initializePath();
         switch (path) {
             case DriverControlled:
@@ -145,13 +146,25 @@ public class PathDetails {
                 strafeGoal_in = -42;
                 turnGoal_deg = 0;
                 break;
-            case P4:
+            case BACKBOARD:
+                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM1);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
+                PathMakerStateMachine.aprilTagDetectionID = 2;
+                powerScaling = 0.6;
+                forwardGoal_in = 50;
+                strafeGoal_in = -42;
+                turnGoal_deg = 0;
+                break;
+            case PIXELSTACKS:
+                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM2);
+                PathMakerStateMachine.aprilTagDetectionOn = true;
+                PathMakerStateMachine.aprilTagDetectionID = 10;
                 powerScaling = 0.6;
                 forwardGoal_in = 60;
                 strafeGoal_in = -42;
                 turnGoal_deg = 0;
                 break;
+
             case DONE:
                 break;
         }
