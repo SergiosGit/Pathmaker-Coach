@@ -56,11 +56,11 @@ public class Auto_Robot1 extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
         int cycles = 0;
-        int TEST_CYCLES = 10;
+        int TEST_CYCLES = 4;
         PathMakerStateMachine.initAuto();
         telemetry.addData("thisPathNumber", thisPathNumber);
         telemetry.update();
-        RobotPose.rebase(-12, 0, 0, 2); // start in front of tag 2, Y/X are relative to tag 2
+        //RobotPose.rebaseRelativeToTag(-24, 0, 0, 2);
         waitForStart();
 
         while (opModeIsActive()) {
@@ -81,18 +81,20 @@ public class Auto_Robot1 extends LinearOpMode {
                     timer.reset();
                     telemetry.addData("State", PathMakerStateMachine.state);
                     telemetry.addData("aprilTagDetectionOn", PathMakerStateMachine.aprilTagDetectionOn);
+                    telemetry.addData("aprilTagDetectionID", PathMakerStateMachine.aprilTagDetectionID);
+                    telemetry.addData("tagOffset", RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID));
                     telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
-                    //telemetry.addData(("number of detected tags"), WebCam.currentDetections==null?0:WebCam.currentDetections.size());
+                    telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
                     telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
                     telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                     telemetry.addLine(String.format("Path Goals f/s/t %.1f / %.1f / %.1f (in/deg)",
-                            PathDetails.forwardGoal_in,
-                            PathDetails.strafeGoal_in,
-                            PathDetails.turnGoal_deg));
+                            PathDetails.yFieldGoal_in,
+                            PathDetails.xFieldGoal_in,
+                            PathDetails.aFieldGoal_deg));
                     telemetry.addLine(String.format("RoboPose f/s/t %.1f / %.1f / %.1f (in/deg)",
-                            RobotPose.getForward_in(),
-                            RobotPose.getStrafe_in(),
-                            RobotPose.getHeadingAngle_deg()));
+                            RobotPose.getFieldY_in(),
+                            RobotPose.getFieldX_in(),
+                            RobotPose.getFieldA_deg()));
                     MyIMU.updateTelemetry(telemetry);
                     WebCam.telemetryAprilTag(telemetry);
                     telemetry.update();

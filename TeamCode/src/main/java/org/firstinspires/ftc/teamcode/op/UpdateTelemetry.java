@@ -23,9 +23,9 @@ public class UpdateTelemetry {
             telemetry.addData("Sim strafe", RobotPoseSimulation.strafe);
             telemetry.addData("Sim angle", RobotPoseSimulation.angle);
         } else {
-            telemetry.addData("forward_in", RobotPose.getForward_in());
-            telemetry.addData("strafe_in", RobotPose.getStrafe_in());
-            telemetry.addData("headingAngle_deg", RobotPose.getHeadingAngle_deg());
+            telemetry.addData("forward_in", RobotPose.getFieldY_in());
+            telemetry.addData("strafe_in", RobotPose.getFieldX_in());
+            telemetry.addData("headingAngle_deg", RobotPose.getFieldA_deg());
         }
         telemetry.addData("forwardPower", PathManager.forwardPower);
         telemetry.addData("strafePower", PathManager.strafePower);

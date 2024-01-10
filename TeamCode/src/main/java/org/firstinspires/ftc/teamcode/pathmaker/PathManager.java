@@ -53,16 +53,16 @@ public class PathManager {
         timer.reset();
         // calculate distance to goal for each DOF, followed by correction power
         // which is proportional to distance to goal but limited by maxPowerStep
-        if (pathElapsedTime >= PathDetails.forwardDelay_ms) {
-            deltaIsShouldForward = PathDetails.forwardGoal_in - RobotPose.getForward_in();
+        if (pathElapsedTime >= PathDetails.yFieldDelay_ms) {
+            deltaIsShouldForward = PathDetails.yFieldGoal_in - RobotPose.getFieldY_in();
             forwardPower = calculateCorrectionPower(THISDOF.FORWARD);
         }
-        if (pathElapsedTime >= PathDetails.strafeDelay_ms) {
-            deltaIsShouldStrafe = PathDetails.strafeGoal_in - RobotPose.getStrafe_in();
+        if (pathElapsedTime >= PathDetails.xFieldDelay_ms) {
+            deltaIsShouldStrafe = PathDetails.xFieldGoal_in - RobotPose.getFieldX_in();
             strafePower = calculateCorrectionPower(THISDOF.STRAFE);
         }
-        if (pathElapsedTime >= PathDetails.turnDelay_ms) {
-            deltaIsShouldAngle = PathDetails.turnGoal_deg - RobotPose.getHeadingAngle_deg();
+        if (pathElapsedTime >= PathDetails.turnFieldDelay_ms) {
+            deltaIsShouldAngle = PathDetails.aFieldGoal_deg - RobotPose.getFieldA_deg();
             turnPower = calculateCorrectionPower(THISDOF.TURN);
         }
         balancePower(); // balance power so it doesn't exceed 1

@@ -72,13 +72,13 @@ public class Tele_Robot1 extends LinearOpMode {
                 telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
                 telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                 telemetry.addLine(String.format("forward/strafe/turn goal %.1f / %.1f / %.1f (in/deg)",
-                        PathDetails.forwardGoal_in,
-                        PathDetails.strafeGoal_in,
-                        PathDetails.turnGoal_deg));
+                        PathDetails.yFieldGoal_in,
+                        PathDetails.xFieldGoal_in,
+                        PathDetails.aFieldGoal_deg));
                 telemetry.addLine(String.format("RoboPose forward/strafe/turn %.1f / %.1f / %.1f (in/deg)",
-                        RobotPose.getForward_in(),
-                        RobotPose.getStrafe_in(),
-                        RobotPose.getHeadingAngle_deg()));
+                        RobotPose.getFieldY_in(),
+                        RobotPose.getFieldX_in(),
+                        RobotPose.getFieldA_deg()));
                 telemetry.addLine(String.format("fl/bl/br/fr motor current %.1f / %.1f / %.1f / %.1f (A)",
                         RobotPose.motorCurrents[0],
                         RobotPose.motorCurrents[1],

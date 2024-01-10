@@ -37,9 +37,9 @@ import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
 
 public class RobotPose {
     private static double headingAngle_rad = 0, lastHeadingAngle_rad = 0;
-    private static double headingAngle_deg = 0, lastHeadingAngle_deg = 0;
+    private static double poseA_deg = 0, lastHeadingAngle_deg = 0;
     private static double forward_in = 0, lastForward_in = 0, strafe_in = 0, lastStrafe_in = 0;
-    private static double pathForward_in = 0, pathStrafe_in = 0;
+    private static double poseY_in = 0, poseX_in = 0;
     private static double imuAngle_rad = 0, lastImuAngle_rad = 0;
     private static double imuAngle_deg = 0, lastImuAngle_deg = 0;
 
@@ -85,23 +85,23 @@ public class RobotPose {
         poseDriveTrain = driveTrain;
         headingAngle_rad = 0; // PathDetails.turnOffset_deg / 180. * Math.PI;
         lastHeadingAngle_rad = 0;
-        headingAngle_deg = 0;
+        poseA_deg = 0;
         lastHeadingAngle_deg = 0;
         forward_in = 0;
         lastForward_in = 0;
         strafe_in = 0;
         lastStrafe_in = 0;
-        pathForward_in = 0; // PathDetails.forwardOffset_in;
-        pathStrafe_in = 0; // PathDetails.strafeOffset_in;
+        poseY_in = 0; // PathDetails.forwardOffset_in;
+        poseX_in = 0; // PathDetails.strafeOffset_in;
         currentAuxPosition = 0;
         currentRightPosition = 0;
         currentLeftPosition = 0;
         previousAuxPosition = 0;
         previousRightPosition = 0;
         previousLeftPosition = 0;
-        PathDetails.turnGoal_deg = 0;
-        PathDetails.forwardGoal_in = 0;
-        PathDetails.strafeGoal_in = 0;
+        PathDetails.aFieldGoal_deg = 0;
+        PathDetails.yFieldGoal_in = 0;
+        PathDetails.xFieldGoal_in = 0;
         PathDetails.lastTurnGoal = 0;
         if (odometry == ODOMETRY.DEADWHEEL) {
             L = 32.9438; // distance between left and right encoders in cm - LATERAL DISTANCE
@@ -205,30 +205,30 @@ public class RobotPose {
         double deltaPathStrafe_in = strafe_in - lastStrafe_in;
         double sin = Math.sin(headingAngle_rad);
         double cos = Math.cos(headingAngle_rad);
-        pathForward_in += deltaPathForward_in * cos - deltaPathStrafe_in * sin;
-        pathStrafe_in += deltaPathStrafe_in * cos + deltaPathForward_in * sin;
+        poseY_in += deltaPathForward_in * cos - deltaPathStrafe_in * sin;
+        poseX_in += deltaPathStrafe_in * cos + deltaPathForward_in * sin;
     }
     public static double getHeadingAngle_rad(){
         // call readPose first (but only once for all encoders, imu)
         return headingAngle_rad;
     }
-    public static double getHeadingAngle_deg(){
+    public static double getFieldA_deg(){
         return headingAngle_rad / Math.PI * 180;
     }
     public static double getIMUAngle_rad() {
         return imuAngle_rad;
     }
-    public static double getForward_in(){
+    public static double getFieldY_in(){
         // call readPose first (but only once for all encoders, imu)
         // get actual forward position of the robot in the coordinate system
         // defined at the beginning of the path.
-        return pathForward_in;
+        return poseY_in;
     }
-    public static double getStrafe_in(){
+    public static double getFieldX_in(){
         // call readPose first (but only once for all encoders, imu)
         // get actual strafe (lateral) position of the robot in the
         // coordinate system defined at the beginning of the path
-        return pathStrafe_in;
+        return poseX_in;
     }
     public static double getForwardVelocity_inPerSec(){
         // call readPose first (but only once for all encoders, imu)
@@ -246,7 +246,7 @@ public class RobotPose {
         // call readPose first (but only once for all encoders, imu)
         // get actual heading velocity of the robot in the
         // coordinate system defined at the beginning of the path
-        return (headingAngle_deg - lastHeadingAngle_deg) / PathManager.timeStep_ms * 1000;
+        return (poseA_deg - lastHeadingAngle_deg) / PathManager.timeStep_ms * 1000;
     }
 
     public static boolean isRobotAtRest() {
@@ -255,12 +255,12 @@ public class RobotPose {
                 Math.abs(getHeadingVelocity_degPerSec()) < 0.1);
     }
 
-    public static void rebase(double tagY, double tagX, double tagAngle, int tagID) {
+    public static void rebaseRelativeToTag(double tagY, double tagX, double tagAngle, int tagID) {
         // rebase robot pose based on tag identification
         double tagXYA [] = tagOffset(tagID);
-        pathForward_in = forward_in = lastForward_in = tagXYA[0] + tagY;
-        pathStrafe_in = strafe_in = lastStrafe_in = tagXYA[1] + tagX;
-        headingAngle_deg = lastHeadingAngle_deg = tagXYA[2] + tagAngle;
+        poseY_in = tagXYA[0] + tagY;
+        poseX_in = tagXYA[1] + tagX;
+        poseA_deg = tagXYA[2] + tagAngle;
     }
 
     public static double [] tagOffset(int tagID) {

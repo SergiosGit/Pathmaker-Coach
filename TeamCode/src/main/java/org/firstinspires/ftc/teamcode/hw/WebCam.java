@@ -20,13 +20,15 @@ public class WebCam {
     private static LinearOpMode myOpMode = null;   // gain access to methods in the calling OpMode.
     private static VisionPortal visionPortal;
 
-    public static List<AprilTagDetection> currentDetections = null;
+    public static List<AprilTagDetection> currentDetections = null, lastCurrentDetections = null;
     public static double distanceToTarget = 0, offsetToTarget = 0, angleToTarget = 0;
-    public static double fieldForwardPosition = 0, fieldStrafePosition = 0, fieldHeadingAngle = 0;
+    public static double fieldY_in = 0, fieldX_in = 0, fieldA_deg = 0;
     public static int targetID = 0;
     public static enum WEBCAM {WEBCAM1, WEBCAM2};
     private static WebcamName webcam1;
     private static WebcamName webcam2;
+    private static double distanceCalibration = 1.0;
+    private static int nTrials;
 
     public static void init(LinearOpMode opMode, Telemetry telemetry) throws InterruptedException {
         myOpMode = opMode;
@@ -69,80 +71,112 @@ public class WebCam {
          This can only be called AFTER calling initAprilTag(), and only works for Webcams;
         */
     public static Object setManualExposure(int exposureMS, int gain, Telemetry telemetry) throws InterruptedException {
-        // Wait for the camera to be open, then use the controls
 
-        if (visionPortal == null) {
-            telemetry.addData("Error", "visionPortal is null");
-            telemetry.update();
+        // make a list of webcams
+        List<WebcamName> webcamList = ClassFactory.getInstance().getCameraManager().getAllWebcams();
+        if (webcamList.size() == 0) {
+            telemetry.addData("Error", "No Webcams found");
             return null;
+        } // else loop over list of webcams and print info about each
+        for (WebcamName webcamName : webcamList) {
+            visionPortal.resumeStreaming();
+            visionPortal.setActiveCamera(webcamName);
+            telemetry.addData("Webcam", webcamName);
+            // Wait for the camera to be open, then use the controls
+            if (visionPortal == null) {
+                telemetry.addData("Error", "visionPortal is null");
+                return null;
+            }
+            // Make sure camera is streaming before we try to set the exposure controls
+            if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+                telemetry.addData("Error", "Camera is not streaming");
+                return null;
+            }
+            // Set camera controls
+            ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
+            if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
+                exposureControl.setMode(ExposureControl.Mode.Manual);
+                Thread.sleep(50);
+            }
+            exposureControl.setExposure((long) exposureMS, TimeUnit.MILLISECONDS);
+            Thread.sleep(20);
+            GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
+            // set gain and throw error if not successful
+            if (gainControl == null) {
+                telemetry.addData("Error", "gainControl is null");
+            } else {
+                gainControl.setGain(gain);
+                telemetry.addData("Camera Gain initialized", gainControl.getGain());
+            }
+            Thread.sleep(20);
+            telemetry.addData("Camera Exposure initialized (ms)", exposureControl.getExposure(TimeUnit.MILLISECONDS));
         }
-
-        // Make sure camera is streaming before we try to set the exposure controls
-        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
-            telemetry.addData("Error", "Camera is not streaming");
-            telemetry.update();
-            return null;
-        }
-
-        // Set camera controls\
-        ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
-        if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
-            exposureControl.setMode(ExposureControl.Mode.Manual);
-            Thread.sleep(50);
-        }
-        exposureControl.setExposure((long)exposureMS, TimeUnit.MILLISECONDS);
-        Thread.sleep(20);
-        GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
-        gainControl.setGain(gain);
-        Thread.sleep(20);
-        telemetry.addData("Camera Exposure initialized (ms)", exposureControl.getExposure(TimeUnit.MILLISECONDS));
-        telemetry.update();
+        visionPortal.stopStreaming();
         return 1;
     }
-    public static boolean streamWebcam(WEBCAM webcam) {
+    public static boolean streamWebcam(WEBCAM webcam) throws InterruptedException {
         // Start streaming
+        boolean success = false;
+        nTrials = 10;
         visionPortal.resumeStreaming();
-        if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
-            if (webcam == WEBCAM.WEBCAM1) {
-                visionPortal.setActiveCamera(webcam1);
-                return true;
-            } else if (webcam == WEBCAM.WEBCAM2){
-                visionPortal.setActiveCamera(webcam2);
-                return true;
-            } else {
-                return false;
+        Thread.sleep(100);
+        while (!success && nTrials-- > 0) {
+            if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
+                if (webcam == WEBCAM.WEBCAM1) {
+                    visionPortal.setActiveCamera(webcam1);
+                    distanceCalibration = 1.0;
+                } else if (webcam == WEBCAM.WEBCAM2){
+                    visionPortal.setActiveCamera(webcam2);
+                    distanceCalibration = 1.135;
+                }
             }
+            success = visionPortal.getActiveCamera().equals(webcam);
+            Thread.sleep(100);
         }
-        return false;
+        return success;
     }
     public static void stopWebcam() {
         visionPortal.stopStreaming();
     }
-    public static boolean detectionAprilTag(int ID) {
-        currentDetections = aprilTag.getDetections();
-        for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null) {
-                if (detection.id == ID) {
-                    targetID = ID;
-                    distanceToTarget = detection.ftcPose.range;
-                    angleToTarget = -detection.ftcPose.yaw; // when robot is looking directly at target (bearing = 0)
-                    offsetToTarget = detection.ftcPose.x;
-                    fieldForwardPosition = RobotPose.getForward_in();
-                    fieldStrafePosition = RobotPose.getStrafe_in();
-                    fieldHeadingAngle = RobotPose.getHeadingAngle_deg();
-                    return true;
+    public static boolean detectionAprilTag(int ID) throws InterruptedException {
+        double lastDistanceToTarget=9E9, lastAngleToTarget=9E9, lastOffsetToTarget=9E9;
+        distanceToTarget = angleToTarget = offsetToTarget = 0;
+        nTrials = 100;
+        boolean success = false;
+        while (!success && nTrials-- > 0){
+            // get two consecutive readings that are close enough
+            success = Math.abs(lastDistanceToTarget - distanceToTarget) < 0.5 &&
+                    Math.abs(lastAngleToTarget - angleToTarget) < 1 &&
+                    Math.abs(lastOffsetToTarget - offsetToTarget) < 0.5;
+            if (success) return true;
+            lastDistanceToTarget = distanceToTarget;
+            lastAngleToTarget = angleToTarget;
+            lastOffsetToTarget = offsetToTarget;
+            currentDetections = aprilTag.getDetections();
+            lastCurrentDetections = currentDetections;
+            Thread.sleep(100);
+            for (AprilTagDetection detection : currentDetections) {
+                if (detection.metadata != null) {
+                    if (detection.id == ID) {
+                        targetID = ID;
+                        distanceToTarget = detection.ftcPose.range * distanceCalibration;
+                        angleToTarget = -detection.ftcPose.yaw; // when robot is looking directly at target (bearing = 0)
+                        offsetToTarget = detection.ftcPose.x * distanceCalibration;
+                        fieldY_in = RobotPose.getFieldY_in();
+                        fieldX_in = RobotPose.getFieldX_in();
+                        fieldA_deg = RobotPose.getFieldA_deg();
+                        return true;
+                    }
                 }
             }
         }
         return false;
     }
 
-    public static void telemetryAprilTag(Telemetry telemetry) {
-        boolean found = detectionAprilTag(583);
-        telemetry.addData("AprilTag found", found);
-        telemetry.addData("# AprilTags Detected", currentDetections.size());
+    public static void telemetryAprilTag(Telemetry telemetry) throws InterruptedException {
+        if (lastCurrentDetections == null) return;
         // Step through the list of detections and display info for each one.
-        for (AprilTagDetection detection : currentDetections) {
+        for (AprilTagDetection detection : lastCurrentDetections) {
             if (detection.metadata != null) {
                 telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
                 telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
@@ -158,6 +192,7 @@ public class WebCam {
         telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
         telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
         telemetry.addLine("RBE = Range, Bearing & Elevation");
+        telemetry.addData("nTrials counter", nTrials);
 
     }   // end method telemetryAprilTag()
 
