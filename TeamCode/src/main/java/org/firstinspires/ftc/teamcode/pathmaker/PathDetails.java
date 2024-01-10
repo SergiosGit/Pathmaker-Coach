@@ -41,6 +41,7 @@ public class PathDetails {
     public static double yFieldGoal_in, forwardOffset_in=0;
     public static double xFieldGoal_in, strafeOffset_in=0;
     public static double aFieldGoal_deg, turnOffset_deg=0;
+    private static double xRelativeToTag, yRelativetoTag, aRelativetoTag;
     // set initial delay
     public static double yFieldDelay_ms;
     public static double xFieldDelay_ms;
@@ -127,20 +128,19 @@ public class PathDetails {
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 2;
                 powerScaling = 0.6;
-                double[] tagXYA = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
-                yFieldGoal_in = tagXYA[0];
-                xFieldGoal_in = tagXYA[1];
-                aFieldGoal_deg = 0;
+                // in auto mode the goals are relative to the tag positions (see autoAprilTag)
+                yRelativetoTag = 24;
+                xRelativeToTag = 0;
+                aRelativetoTag = 0;
                 break;
             case PIXELSTACKS:
                 WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM2);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 9;
                 powerScaling = 0.6;
-                tagXYA = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
-                yFieldGoal_in = tagXYA[0];
-                xFieldGoal_in = tagXYA[1];
-                aFieldGoal_deg = 0;
+                yRelativetoTag = -24;
+                xRelativeToTag = 0;
+                aRelativetoTag = 0;
                 break;
 
             case DONE:
@@ -158,14 +158,14 @@ public class PathDetails {
         double a = RobotPose.getFieldA_deg();
         double x = distanceToTarget * Math.sin(Math.toRadians(a));
         double y = -distanceToTarget * Math.cos(Math.toRadians(a));
-        RobotPose.rebaseRelativeToTag(y, x, a, WebCam.targetID);
-        double tagXYA[] = RobotPose.tagOffset(WebCam.targetID);
-        yFieldGoal_in = tagXYA[0] - 24; // 12 is the distance from the camera to the front of the robot
-        xFieldGoal_in = tagXYA[1];
+        double tagXYA[] = RobotPose.rebaseRelativeToTag(y, x, a, PathMakerStateMachine.aprilTagDetectionID);
+        // position relative to tags
+        yFieldGoal_in = tagXYA[0] - yRelativetoTag; // 12 is the distance from the camera to the front of the robot
+        xFieldGoal_in = tagXYA[1] - xRelativeToTag;
         if (Math.abs(a) < 5) {
             xFieldGoal_in += WebCam.offsetToTarget;
         }
-        aFieldGoal_deg = tagXYA[2] + a;
+        aFieldGoal_deg = tagXYA[2] - aRelativetoTag;
         yFieldDelay_ms = 0;
         xFieldDelay_ms = 0;
         turnFieldDelay_ms = 0;
@@ -173,5 +173,6 @@ public class PathDetails {
         PathManager.forwardRampReach_in = 24;
         PathManager.strafeRampReach_in = 12;
         PathManager.turnRampReach_deg = 45;
+        WebCam.stopWebcam();
     }
 }

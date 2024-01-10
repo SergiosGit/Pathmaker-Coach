@@ -82,7 +82,11 @@ public class Auto_Robot1 extends LinearOpMode {
                     telemetry.addData("State", PathMakerStateMachine.state);
                     telemetry.addData("aprilTagDetectionOn", PathMakerStateMachine.aprilTagDetectionOn);
                     telemetry.addData("aprilTagDetectionID", PathMakerStateMachine.aprilTagDetectionID);
-                    telemetry.addData("tagOffset", RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID));
+                    double [] xya = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
+                    telemetry.addLine(String.format("tagOffset f/s/a %.1f / %.1f / %.1f (in/deg)",
+                            xya[0],
+                            xya[1],
+                            xya[2]));
                     telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
                     telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
                     telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
@@ -95,6 +99,11 @@ public class Auto_Robot1 extends LinearOpMode {
                             RobotPose.getFieldY_in(),
                             RobotPose.getFieldX_in(),
                             RobotPose.getFieldA_deg()));
+                    // telemetry velocity
+                    telemetry.addLine(String.format("f/s/a velocity %.1f / %.1f / %.1f ",
+                            RobotPose.getForwardVelocity_inPerSec(),
+                            RobotPose.getStrafeVelocity_inPerSec(),
+                            RobotPose.getHeadingVelocity_degPerSec()));
                     MyIMU.updateTelemetry(telemetry);
                     WebCam.telemetryAprilTag(telemetry);
                     telemetry.update();

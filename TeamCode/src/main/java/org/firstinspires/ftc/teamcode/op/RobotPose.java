@@ -246,7 +246,7 @@ public class RobotPose {
         // call readPose first (but only once for all encoders, imu)
         // get actual heading velocity of the robot in the
         // coordinate system defined at the beginning of the path
-        return (poseA_deg - lastHeadingAngle_deg) / PathManager.timeStep_ms * 1000;
+        return (headingAngle_rad - lastHeadingAngle_rad) / PathManager.timeStep_ms * 1000;
     }
 
     public static boolean isRobotAtRest() {
@@ -255,12 +255,13 @@ public class RobotPose {
                 Math.abs(getHeadingVelocity_degPerSec()) < 0.1);
     }
 
-    public static void rebaseRelativeToTag(double tagY, double tagX, double tagAngle, int tagID) {
+    public static double [] rebaseRelativeToTag(double tagY, double tagX, double tagAngle, int tagID) {
         // rebase robot pose based on tag identification
         double tagXYA [] = tagOffset(tagID);
         poseY_in = tagXYA[0] + tagY;
         poseX_in = tagXYA[1] + tagX;
         poseA_deg = tagXYA[2] + tagAngle;
+        return tagXYA;
     }
 
     public static double [] tagOffset(int tagID) {

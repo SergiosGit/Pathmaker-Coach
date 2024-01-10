@@ -139,38 +139,47 @@ public class WebCam {
         visionPortal.stopStreaming();
     }
     public static boolean detectionAprilTag(int ID) throws InterruptedException {
+        // this is a tricky call, we need to make sure the detection is stable
+        if (ID==0) return false;
         double lastDistanceToTarget=9E9, lastAngleToTarget=9E9, lastOffsetToTarget=9E9;
         distanceToTarget = angleToTarget = offsetToTarget = 0;
-        nTrials = 100;
+        nTrials = 10;
         boolean success = false;
         while (!success && nTrials-- > 0){
             // get two consecutive readings that are close enough
             success = Math.abs(lastDistanceToTarget - distanceToTarget) < 0.5 &&
                     Math.abs(lastAngleToTarget - angleToTarget) < 1 &&
                     Math.abs(lastOffsetToTarget - offsetToTarget) < 0.5;
-            if (success) return true;
             lastDistanceToTarget = distanceToTarget;
             lastAngleToTarget = angleToTarget;
             lastOffsetToTarget = offsetToTarget;
             currentDetections = aprilTag.getDetections();
+            while (currentDetections == null && nTrials-- > 0) {
+                Thread.sleep(100);
+            }
             lastCurrentDetections = currentDetections;
-            Thread.sleep(100);
-            for (AprilTagDetection detection : currentDetections) {
-                if (detection.metadata != null) {
-                    if (detection.id == ID) {
-                        targetID = ID;
-                        distanceToTarget = detection.ftcPose.range * distanceCalibration;
-                        angleToTarget = -detection.ftcPose.yaw; // when robot is looking directly at target (bearing = 0)
-                        offsetToTarget = detection.ftcPose.x * distanceCalibration;
-                        fieldY_in = RobotPose.getFieldY_in();
-                        fieldX_in = RobotPose.getFieldX_in();
-                        fieldA_deg = RobotPose.getFieldA_deg();
-                        return true;
+            if (!success) {
+                Thread.sleep(100);
+                for (AprilTagDetection detection : currentDetections) {
+                    if (detection.metadata != null) {
+                        if (detection.id == ID) {
+                            targetID = ID;
+                            distanceToTarget = detection.ftcPose.range * distanceCalibration;
+                            angleToTarget = -detection.ftcPose.yaw; // when robot is looking directly at target (bearing = 0)
+                            offsetToTarget = detection.ftcPose.x * distanceCalibration;
+                            if (distanceToTarget == 0) {
+                                // very likely a false detection
+                                return false;
+                            }
+                            fieldY_in = RobotPose.getFieldY_in();
+                            fieldX_in = RobotPose.getFieldX_in();
+                            fieldA_deg = RobotPose.getFieldA_deg();
+                        }
                     }
                 }
             }
         }
-        return false;
+        return success;
     }
 
     public static void telemetryAprilTag(Telemetry telemetry) throws InterruptedException {

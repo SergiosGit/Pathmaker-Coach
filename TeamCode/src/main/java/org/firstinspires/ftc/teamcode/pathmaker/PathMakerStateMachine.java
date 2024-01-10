@@ -111,7 +111,6 @@ public class PathMakerStateMachine {
                 break;
             case AUTO_BACKBOARD_ExecutePath:
                 if (PathManager.inTargetZone) {
-                    currentPath = nextPath = 0; // reset path, this will start the whole thing over
                     state = State.AUTO_NEXT_PATH;
                 } else if (PathDetails.elapsedTime_ms.milliseconds()>500 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms), then check if it rests again
                     state = State.AUTO_NEXT_PATH;
@@ -131,7 +130,7 @@ public class PathMakerStateMachine {
                     state = State.AUTO_NEXT_PATH;
                 } else if (PathManager.inTargetZone) {
                     state = State.AUTO_NEXT_PATH;
-                } else if (PathDetails.elapsedTime_ms.milliseconds()>300 && RobotPose.isRobotAtRest()) { // robot at rest after first moving (300 ms)
+                } else if (PathDetails.elapsedTime_ms.milliseconds()>1000 && RobotPose.isRobotAtRest()) { // robot at rest after first moving (1000 ms)
                     state = State.AUTO_NEXT_PATH;
                 } else {
                     PathManager.moveRobot();
