@@ -50,7 +50,7 @@ public class Auto_Robot1 extends LinearOpMode {
         //final ColorRangeSensor colorRangeSensor;
         WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
-        MyIMU.initMyIMU(this);
+        MyIMU.init(this);
         MyIMU.updateTelemetry(telemetry);
         PathMakerStateMachine.setAutonomous();
         ElapsedTime timer = new ElapsedTime();
@@ -80,17 +80,15 @@ public class Auto_Robot1 extends LinearOpMode {
                     double t1 = timer.milliseconds() / cycles;
                     timer.reset();
                     telemetry.addData("State", PathMakerStateMachine.state);
-                    telemetry.addData("aprilTagDetectionOn", PathMakerStateMachine.aprilTagDetectionOn);
-                    telemetry.addData("aprilTagDetectionID", PathMakerStateMachine.aprilTagDetectionID);
+                    telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
+                    telemetry.addLine(String.format("tag detection %b, ID %d, in zone %b", PathMakerStateMachine.aprilTagDetectionOn, PathMakerStateMachine.aprilTagDetectionID, PathManager.inTargetZone));
+                    telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
+                    telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                     double [] xya = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
                     telemetry.addLine(String.format("tagOffset f/s/a %.1f / %.1f / %.1f (in/deg)",
                             xya[0],
                             xya[1],
                             xya[2]));
-                    telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
-                    telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
-                    telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
-                    telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                     telemetry.addLine(String.format("Path Goals f/s/t %.1f / %.1f / %.1f (in/deg)",
                             PathDetails.yFieldGoal_in,
                             PathDetails.xFieldGoal_in,
@@ -98,18 +96,19 @@ public class Auto_Robot1 extends LinearOpMode {
                     telemetry.addLine(String.format("RoboPose f/s/t %.1f / %.1f / %.1f (in/deg)",
                             RobotPose.getFieldY_in(),
                             RobotPose.getFieldX_in(),
-                            RobotPose.getFieldA_deg()));
+                            RobotPose.getFieldAngle_deg()));
                     // telemetry velocity
                     telemetry.addLine(String.format("f/s/a velocity %.1f / %.1f / %.1f ",
                             RobotPose.getForwardVelocity_inPerSec(),
                             RobotPose.getStrafeVelocity_inPerSec(),
                             RobotPose.getHeadingVelocity_degPerSec()));
                     MyIMU.updateTelemetry(telemetry);
+                    telemetry.addData("webcam", WebCam.webcamMessage);
                     WebCam.telemetryAprilTag(telemetry);
                     telemetry.update();
                     cycles = 0;
                 }
-                PathMakerStateMachine.updateAuto();
+                PathMakerStateMachine.updateAuto(telemetry);
             }
         }
     }

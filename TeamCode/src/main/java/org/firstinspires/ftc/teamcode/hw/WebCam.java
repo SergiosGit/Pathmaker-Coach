@@ -24,24 +24,25 @@ public class WebCam {
     public static double distanceToTarget = 0, offsetToTarget = 0, angleToTarget = 0;
     public static double fieldY_in = 0, fieldX_in = 0, fieldA_deg = 0;
     public static int targetID = 0;
-    public static enum WEBCAM {WEBCAM1, WEBCAM2};
+    public static enum WEBCAM {WEBCAM1, NONE, WEBCAM2};
     private static WebcamName webcam1;
     private static WebcamName webcam2;
     private static double distanceCalibration = 1.0;
     private static int nTrials;
+    public static String webcamMessage = "Webcam message empty";
 
     public static void init(LinearOpMode opMode, Telemetry telemetry) throws InterruptedException {
         myOpMode = opMode;
         initAprilTag();
-        while (WebCam.setManualExposure(6, 250, telemetry) == null) {
-            Thread.sleep(100);
-        }
+        //while (WebCam.setManualExposure(6, 250, telemetry) == null) {
+        //    Thread.sleep(100);
+        //}
     }
     /**
      * The variable to store our instance of the AprilTag processor.
      */
     private static AprilTagProcessor aprilTag;
-    private static void initAprilTag() {
+    private static void initAprilTag() throws InterruptedException {
         // Create the AprilTag processor by using a builder.
         aprilTag = new AprilTagProcessor.Builder().build();
 
@@ -52,7 +53,7 @@ public class WebCam {
         // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second
         // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second
         // Note: Decimation can be changed on-the-fly to adapt during a match.
-        aprilTag.setDecimation(2);
+        //aprilTag.setDecimation(2);
 
         webcam1 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1");
         webcam2 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 2");
@@ -65,6 +66,7 @@ public class WebCam {
                 .addProcessor(aprilTag)
                 .build();
     }   // end method initAprilTag()
+
 
     /*
          Manually set the camera gain and exposure.
@@ -114,36 +116,50 @@ public class WebCam {
         visionPortal.stopStreaming();
         return 1;
     }
-    public static boolean streamWebcam(WEBCAM webcam) throws InterruptedException {
+    public static boolean streamWebcam(WEBCAM webcam, Telemetry telemetry) throws InterruptedException {
         // Start streaming
         boolean success = false;
-        nTrials = 10;
-        visionPortal.resumeStreaming();
-        Thread.sleep(100);
+        nTrials = 100;
+        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+            visionPortal.resumeStreaming(); // need to stream before setting active camera
+        }
         while (!success && nTrials-- > 0) {
+            Thread.sleep(50);
             if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
                 if (webcam == WEBCAM.WEBCAM1) {
                     visionPortal.setActiveCamera(webcam1);
+                    Thread.sleep(50);
                     distanceCalibration = 1.0;
+                    success = true;
                 } else if (webcam == WEBCAM.WEBCAM2){
                     visionPortal.setActiveCamera(webcam2);
+                    Thread.sleep(50);
                     distanceCalibration = 1.135;
+                    success = true;
+                } else {
+                    success = false;
                 }
             }
-            success = visionPortal.getActiveCamera().equals(webcam);
             Thread.sleep(100);
+            webcamMessage = String.format("Webcam %d, %s", nTrials, visionPortal.getActiveCamera());
+            telemetry.addData("Webcam", webcamMessage);
+            telemetry.update();
+
         }
         return success;
     }
     public static void stopWebcam() {
-        visionPortal.stopStreaming();
+        if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
+            visionPortal.stopStreaming();
+        }
     }
-    public static boolean detectionAprilTag(int ID) throws InterruptedException {
+    public static boolean detectionAprilTag(int ID, Telemetry telemetry) throws InterruptedException {
         // this is a tricky call, we need to make sure the detection is stable
+        targetID = 0; // if success this will be changed to ID
         if (ID==0) return false;
         double lastDistanceToTarget=9E9, lastAngleToTarget=9E9, lastOffsetToTarget=9E9;
         distanceToTarget = angleToTarget = offsetToTarget = 0;
-        nTrials = 10;
+        nTrials = 100;
         boolean success = false;
         while (!success && nTrials-- > 0){
             // get two consecutive readings that are close enough
@@ -173,7 +189,10 @@ public class WebCam {
                             }
                             fieldY_in = RobotPose.getFieldY_in();
                             fieldX_in = RobotPose.getFieldX_in();
-                            fieldA_deg = RobotPose.getFieldA_deg();
+                            fieldA_deg = RobotPose.getFieldAngle_deg();
+                            webcamMessage = String.format("ID %d, dY/dX/dA %.1f/%.1f/%.1f, Y/X/A %.1f/%.1f/%.1f",
+                                    targetID, distanceToTarget, offsetToTarget, angleToTarget, fieldY_in, fieldX_in, fieldA_deg);
+                            telemetry.addData("Webcam", webcamMessage);
                         }
                     }
                 }
@@ -198,10 +217,10 @@ public class WebCam {
         }   // end for() loop
 
         // Add "key" information to telemetry
+        telemetry.addData("nTrials counter", nTrials);
         telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
         telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
         telemetry.addLine("RBE = Range, Bearing & Elevation");
-        telemetry.addData("nTrials counter", nTrials);
 
     }   // end method telemetryAprilTag()
 

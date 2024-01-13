@@ -67,7 +67,7 @@ public class RobotPose {
     private static Telemetry poseTelemetry;
     private static DriveTrain poseDriveTrain;
     private static MyIMU imu = new MyIMU(null);
-    public static enum ODOMETRY {DEADWHEEL, XYPLUSIMU};
+    public enum ODOMETRY {DEADWHEEL, XYPLUSIMU};
     public static ODOMETRY odometry;
     public static int[] encoderValues = new int[4];
     public static double[] motorCurrents = new double[4];
@@ -77,12 +77,13 @@ public class RobotPose {
         driveTrain.init();
         odometry = ODOMETRY.XYPLUSIMU;
         imu.setOpMode(opMode);
-        imu.initMyIMU(opMode);
+        imu.init(opMode);
         imu.resetAngle();
         imuAngle_rad = imu.getAngle_rad();
         imuAngle_deg = imu.thisAngle_deg; // initialized after call getAngle_rad()
         poseTelemetry = telemetry;
         poseDriveTrain = driveTrain;
+        readPose();
         headingAngle_rad = 0; // PathDetails.turnOffset_deg / 180. * Math.PI;
         lastHeadingAngle_rad = 0;
         poseA_deg = 0;
@@ -91,8 +92,8 @@ public class RobotPose {
         lastForward_in = 0;
         strafe_in = 0;
         lastStrafe_in = 0;
-        poseY_in = 0; // PathDetails.forwardOffset_in;
-        poseX_in = 0; // PathDetails.strafeOffset_in;
+        poseY_in = getFieldY_in(); // PathDetails.forwardOffset_in;
+        poseX_in = getFieldX_in(); // PathDetails.strafeOffset_in;
         currentAuxPosition = 0;
         currentRightPosition = 0;
         currentLeftPosition = 0;
@@ -122,7 +123,7 @@ public class RobotPose {
         double powerFL, powerFR, powerBL, powerBR;
         double radians = 0;
         // get the angle in which the robot is actually headed
-        radians = getHeadingAngle_rad();
+        radians = getFieldAngle_rad();
         // project the desired forwardDrive (which is relative to the original
         // forward direction in the coordinate system at the beginning of the
         // path) onto the the actual drive train. This will not change the
@@ -208,11 +209,11 @@ public class RobotPose {
         poseY_in += deltaPathForward_in * cos - deltaPathStrafe_in * sin;
         poseX_in += deltaPathStrafe_in * cos + deltaPathForward_in * sin;
     }
-    public static double getHeadingAngle_rad(){
+    public static double getFieldAngle_rad(){
         // call readPose first (but only once for all encoders, imu)
         return headingAngle_rad;
     }
-    public static double getFieldA_deg(){
+    public static double getFieldAngle_deg(){
         return headingAngle_rad / Math.PI * 180;
     }
     public static double getIMUAngle_rad() {
@@ -258,9 +259,9 @@ public class RobotPose {
     public static double [] rebaseRelativeToTag(double tagY, double tagX, double tagAngle, int tagID) {
         // rebase robot pose based on tag identification
         double tagXYA [] = tagOffset(tagID);
-        poseY_in = tagXYA[0] + tagY;
-        poseX_in = tagXYA[1] + tagX;
-        poseA_deg = tagXYA[2] + tagAngle;
+        poseY_in = tagXYA[0] - tagY;
+        poseX_in = tagXYA[1] - tagX;
+        poseA_deg = tagXYA[2] - tagAngle;
         return tagXYA;
     }
 

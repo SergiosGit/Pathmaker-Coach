@@ -5,8 +5,6 @@ package org.firstinspires.ftc.teamcode.hw;
 //import com.qualcomm.hardware.bosch.BHI260IMU;
 //import com.qualcomm.hardware.bosch.BNO055IMU;
 
-import static com.qualcomm.hardware.rev.RevHubOrientationOnRobot.xyzOrientation;
-
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -14,8 +12,6 @@ import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
@@ -42,7 +38,7 @@ public class MyIMU {
     private static int n360 = 0;
 
 
-    public static void initMyIMU(LinearOpMode opMode){
+    public static void init(LinearOpMode opMode){
         // Retrieve the IMU from the hardware map
         imu = opMode.hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(

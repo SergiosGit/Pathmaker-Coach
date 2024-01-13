@@ -22,13 +22,10 @@
 //
 package org.firstinspires.ftc.teamcode.pathmaker;
 
-import static org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine.gamepadForward;
-import static org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine.gamepadTurn;
-import static org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine.gamepadStrafe;
-
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hw.WebCam;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 
@@ -50,6 +47,7 @@ public class PathDetails {
     public static ElapsedTime elapsedTime_ms = new ElapsedTime();
     public static double pathTime_ms = 0;
     public  static PathMakerStateMachine.State PMSMstate;
+    private static WebCam.WEBCAM currentWebCam = WebCam.WEBCAM.NONE;
 
     public static double lastTurnGoal; // RobotPose.getHeadingAngle_deg()
 
@@ -68,14 +66,14 @@ public class PathDetails {
         PMSMstate = PathMakerStateMachine.State.AUTO_SET_PATH;
         PathManager.maxPowerStepUp = 0.1;
         PathManager.inTargetZone = false;
-        PathManager.forwardTargetZone_in = 1;
-        PathManager.strafeTargetZone_in = 1;
+        PathManager.yTargetZone_in = 1;
+        PathManager.xTargetZone_in = 1;
         PathManager.turnTargetZone_deg = 1;
-        PathManager.forwardRampReach_in = 11;
-        PathManager.strafeRampReach_in = 11;
+        PathManager.yRampReach_in = 11;
+        PathManager.xRampReach_in = 11;
         PathManager.turnRampReach_deg = 45;
-        PathManager.forwardMinVelocity_inPerSec = 2;
-        PathManager.strafeMinVelocity_inPerSec = 2;
+        PathManager.yMinVelocity_inPerSec = 2;
+        PathManager.xMinVelocity_inPerSec = 2;
         PathManager.turnMinVelocity_degPerSec = 4;
         WebCam.stopWebcam();
     }
@@ -85,10 +83,11 @@ public class PathDetails {
         AutoAprilTag, PIXELSTACKS, DONE
     }   // end enum Event
 
-    public static void setPath(Path path) throws InterruptedException {
+    public static void setPath(Path path, Telemetry telemetry) throws InterruptedException {
         initializePath();
         switch (path) {
             case DriverControlled:
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
                 PathManager.maxPowerStepUp = 0.1;
                 //pathTime_ms = PathManager.timeStep_ms;
                 powerScaling = 1;
@@ -97,34 +96,39 @@ public class PathDetails {
                 // Note that "forward" is directly from the gamepad, i.e. a value between -1 and 1.
                 // Robot forward power is maximum for requested gaols larger or equal than forwardRampReach_in (this is controlled by the PathManager)
                 // Similar for strafe and turn.
-                yFieldGoal_in = PathManager.forwardRampReach_in * gamepadForward + RobotPose.getFieldY_in();
-                xFieldGoal_in = PathManager.strafeRampReach_in * gamepadStrafe + RobotPose.getFieldX_in();
-                aFieldGoal_deg = PathManager.turnRampReach_deg * gamepadTurn * turnSensitivity + lastTurnGoal;
+                yFieldGoal_in = PathMakerStateMachine.gamepad_yFieldGoal_in + RobotPose.getFieldY_in();
+                xFieldGoal_in = PathMakerStateMachine.gamepad_xFieldGoal_in + RobotPose.getFieldX_in();
+                aFieldGoal_deg = PathMakerStateMachine.gamepad_aFieldGoal_deg * turnSensitivity + lastTurnGoal;
                 yFieldDelay_ms = 0;
                 xFieldDelay_ms = 0;
                 turnFieldDelay_ms = 0;
                 lastTurnGoal = aFieldGoal_deg;
                 break;
             case P1:
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
                 powerScaling = 0.6;
                 yFieldGoal_in = 60;
                 xFieldGoal_in = -30;
                 aFieldGoal_deg = 0;
                 break;
             case P2:
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
                 powerScaling = 0.6;
                 yFieldGoal_in = 50;
                 xFieldGoal_in = -30;
                 aFieldGoal_deg = 0;
                 break;
             case P3:
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
                 powerScaling = 0.6;
                 yFieldGoal_in = 50;
                 xFieldGoal_in = -42;
                 aFieldGoal_deg = 0;
                 break;
             case BACKBOARD:
-                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM1);
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
+                currentWebCam = WebCam.WEBCAM.WEBCAM1;
+                WebCam.streamWebcam(currentWebCam, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 2;
                 powerScaling = 0.6;
@@ -134,7 +138,9 @@ public class PathDetails {
                 aRelativetoTag = 0;
                 break;
             case PIXELSTACKS:
-                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM2);
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
+                currentWebCam = WebCam.WEBCAM.WEBCAM2;
+                WebCam.streamWebcam(currentWebCam, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 9;
                 powerScaling = 0.6;
@@ -148,19 +154,31 @@ public class PathDetails {
         }
     }
     // check for AprilTag detection
-    public static void autoAprilTag() {
+    public static void autoAprilTagAndFieldGoals() {
+        int xyWebCamMultiplier = 1;
+        if (currentWebCam == WebCam.WEBCAM.WEBCAM2) {
+            xyWebCamMultiplier = -1;
+        }
         PathManager.maxPowerStepUp = 0.1;
         //pathTime_ms = PathManager.timeStep_ms;
         powerScaling = 0.6;
         // need to update with actual robot position
         double distanceToTarget = WebCam.distanceToTarget;
         //double a = WebCam.angleToTarget; // yaw angle
-        double a = RobotPose.getFieldA_deg();
-        double x = distanceToTarget * Math.sin(Math.toRadians(a));
-        double y = -distanceToTarget * Math.cos(Math.toRadians(a));
+        double a = RobotPose.getFieldAngle_deg();
+        double x = -distanceToTarget * Math.sin(Math.toRadians(a));
+        // limit sideways motion to 5 inches
+        if (Math.abs(x) > 5) {
+            x = 5 * Math.signum(x);
+        }
+        double y = distanceToTarget * Math.cos(Math.toRadians(a)) * xyWebCamMultiplier;
+        // limit forward motion to 25 inches
+        if (Math.abs(y) > 25) {
+            y = 25 * Math.signum(y);
+        }
         double tagXYA[] = RobotPose.rebaseRelativeToTag(y, x, a, PathMakerStateMachine.aprilTagDetectionID);
         // position relative to tags
-        yFieldGoal_in = tagXYA[0] - yRelativetoTag; // 12 is the distance from the camera to the front of the robot
+        yFieldGoal_in = tagXYA[0] - yRelativetoTag;
         xFieldGoal_in = tagXYA[1] - xRelativeToTag;
         if (Math.abs(a) < 5) {
             xFieldGoal_in += WebCam.offsetToTarget;
@@ -170,8 +188,8 @@ public class PathDetails {
         xFieldDelay_ms = 0;
         turnFieldDelay_ms = 0;
         lastTurnGoal = aFieldGoal_deg;
-        PathManager.forwardRampReach_in = 24;
-        PathManager.strafeRampReach_in = 12;
+        PathManager.yRampReach_in = 24;
+        PathManager.xRampReach_in = 12;
         PathManager.turnRampReach_deg = 45;
         WebCam.stopWebcam();
     }

@@ -24,7 +24,6 @@ import org.firstinspires.ftc.teamcode.hw.WebCam;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
-
 @Config
 @TeleOp (name = "Field Centric Driving", group = "Tests")
 public class Tele_Robot1 extends LinearOpMode {
@@ -40,8 +39,12 @@ public class Tele_Robot1 extends LinearOpMode {
     public static int setZone = 1;
     public static double motorPowerMultiplier = 1.0;
     public static double turnDamping = 0.5;
+    public static double gampadChange;
+    public static double yPower, yPowerLast;
+    public static double xPower, xPowerLast;
+    public static double turnPower, turnPowerLast;
 
-    final int       TEST_CYCLES    = 10;
+    final int TEST_CYCLES    = 10;
 
     static FtcDashboard dashboard = FtcDashboard.getInstance();
     static Telemetry telemetry = dashboard.getTelemetry();
@@ -54,47 +57,74 @@ public class Tele_Robot1 extends LinearOpMode {
         //limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         //final ColorRangeSensor colorRangeSensor;
         int cycles = 0;
+        RobotPose.odometry = RobotPose.ODOMETRY.DEADWHEEL;
         WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
-        MyIMU.initMyIMU(this);
+        MyIMU.init(this);
         PathMakerStateMachine.setDriverControlled();
         PathDetails.initializePath();
+        MyIMU.updateTelemetry(telemetry);
+        telemetry.addData("webcam", WebCam.webcamMessage);
+        WebCam.telemetryAprilTag(telemetry);
+        telemetry.update();
         waitForStart();
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
         while (opModeIsActive()) {
             if (isStopRequested()) return;
-            PathMakerStateMachine.updateTele(gamepad1);
             cycles++;
             if (cycles > TEST_CYCLES) {
                 double t1 = timer.milliseconds() / cycles;
                 timer.reset();
-                telemetry.addLine(String.format("inTargetZone %b", PathManager.inTargetZone));
-                telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
-                telemetry.addLine(String.format("forward/strafe/turn goal %.1f / %.1f / %.1f (in/deg)",
+                telemetry.addData("State", PathMakerStateMachine.state);
+                telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
+                telemetry.addLine(String.format("tag detection %b, ID %d, in zone %b", PathMakerStateMachine.aprilTagDetectionOn, PathMakerStateMachine.aprilTagDetectionID, PathManager.inTargetZone));
+                telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
+                telemetry.addLine(String.format("ave tele/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
+                double [] xya = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
+                telemetry.addLine(String.format("tagOffset f/s/a %.1f / %.1f / %.1f (in/deg)",
+                        xya[0],
+                        xya[1],
+                        xya[2]));
+                telemetry.addLine(String.format("Path Goals f/s/t %.1f / %.1f / %.1f (in/deg)",
                         PathDetails.yFieldGoal_in,
                         PathDetails.xFieldGoal_in,
                         PathDetails.aFieldGoal_deg));
-                telemetry.addLine(String.format("RoboPose forward/strafe/turn %.1f / %.1f / %.1f (in/deg)",
+                telemetry.addLine(String.format("RoboPose f/s/t %.1f / %.1f / %.1f (in/deg)",
                         RobotPose.getFieldY_in(),
                         RobotPose.getFieldX_in(),
-                        RobotPose.getFieldA_deg()));
-                telemetry.addLine(String.format("fl/bl/br/fr motor current %.1f / %.1f / %.1f / %.1f (A)",
-                        RobotPose.motorCurrents[0],
-                        RobotPose.motorCurrents[1],
-                        RobotPose.motorCurrents[2],
-                        RobotPose.motorCurrents[3]));
-                telemetry.addLine(String.format("fl/bl/br/fr motor velocity %.1f / %.1f / %.1f / %.1f (ticks/s)",
-                        RobotPose.motorVelocities[0],
-                        RobotPose.motorVelocities[1],
-                        RobotPose.motorVelocities[2],
-                        RobotPose.motorVelocities[3]));
+                        RobotPose.getFieldAngle_deg()));
+                // gamepad x/y input
+                telemetry.addLine(String.format("gamepad Y/X/A %.1f / %.1f / %.1f",
+                        gamepad1.left_stick_y,
+                        gamepad1.left_stick_x,
+                        gamepad1.right_stick_x));
+                // telemetry velocity
+                telemetry.addLine(String.format("f/s/a velocity %.1f / %.1f / %.1f ",
+                        RobotPose.getForwardVelocity_inPerSec(),
+                        RobotPose.getStrafeVelocity_inPerSec(),
+                        RobotPose.getHeadingVelocity_degPerSec()));
+                telemetry.addLine(String.format("actual power Y/X/A %.1f / %.1f / %.1f",
+                        yPower,
+                        xPower,
+                        turnPower));
+                telemetry.addLine(String.format("last power Y/X/A %.1f / %.1f / %.1f",
+                        yPowerLast,
+                        xPowerLast,
+                        turnPowerLast));
                 MyIMU.updateTelemetry(telemetry);
+                telemetry.addData("webcam", WebCam.webcamMessage);
                 WebCam.telemetryAprilTag(telemetry);
-                telemetry.addData("state", PathMakerStateMachine.state);
                 telemetry.update();
                 cycles = 0;
             }
+            PathMakerStateMachine.updateTele(gamepad1,telemetry);
+            xPower = PathManager.xPower;
+            yPower = PathManager.yPower;
+            turnPower = PathManager.turnPower;
+            xPowerLast = PathManager.xPowerLast;
+            yPowerLast = PathManager.yPowerLast;
+            turnPowerLast = PathManager.turnPowerLast;
         }
     }
 }

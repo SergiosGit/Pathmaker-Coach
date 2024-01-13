@@ -21,28 +21,25 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 
 public class PathManager {
-    public static double maxPowerStepUp = 0.05;
-    public static double maxPowerStepDown = 0.1;
+    public static double maxPowerStepUp = 0.05; // this is an addition, balancing power is done later
+    public static double powerScaleDown = 0.4; // this is a multiplier making sure zero is the minimum
+    private static double powerThreshold = 0.1;
     public static long timeStep_ms = 40;
     public static long PMcycleTime_ms = 0;
-    public static double forwardRampReach_in = 24;
-    public static double strafeRampReach_in = 12;
+    public static double yRampReach_in = 24;
+    public static double xRampReach_in = 12;
     public static double turnRampReach_deg = 45;
-    public static double forwardTargetZone_in = 1;
-    public static double strafeTargetZone_in = 1;
-    public static double turnTargetZone_deg = 2;
-    public static double forwardMinVelocity_inPerSec = 5;
-    public static double strafeMinVelocity_inPerSec = 5;
-    public static double turnMinVelocity_degPerSec = 5;
+    public static double yTargetZone_in = 1, xTargetZone_in = 1, turnTargetZone_deg = 1;
+    public static double yMinVelocity_inPerSec = 5, xMinVelocity_inPerSec = 5, turnMinVelocity_degPerSec = 5;
     public static double powerScaling = 1;
-    public static double forwardPower, forwardPowerLast;
-    public static double strafePower, strafePowerLast;
+    public static double yPower, yPowerLast;
+    public static double xPower, xPowerLast;
     public static double turnPower, turnPowerLast;
-    private enum THISDOF {FORWARD, STRAFE, TURN}
+    private enum THISDOF {Y, X, TURN}
 
     // set path time
     //public static double elapsedTime_ms;
-    private static double deltaIsShouldForward, deltaIsShouldStrafe, deltaIsShouldAngle;
+    private static double deltaIsShouldY, deltaIsShouldX, deltaIsShouldAngle;
     public static boolean inTargetZone = false;
     private static ElapsedTime timer = new ElapsedTime();
 
@@ -51,28 +48,36 @@ public class PathManager {
         powerScaling = PathDetails.powerScaling;
         double pathElapsedTime = PathDetails.elapsedTime_ms.milliseconds();
         timer.reset();
-        // calculate distance to goal for each DOF, followed by correction power
-        // which is proportional to distance to goal but limited by maxPowerStep
-        if (pathElapsedTime >= PathDetails.yFieldDelay_ms) {
-            deltaIsShouldForward = PathDetails.yFieldGoal_in - RobotPose.getFieldY_in();
-            forwardPower = calculateCorrectionPower(THISDOF.FORWARD);
+        if (PathMakerStateMachine.controlMode == PathMakerStateMachine.ControlMode.AUTONOMOUS) {
+            // calculate distance to goal for each DOF, followed by correction power
+            // which is proportional to distance to goal but limited by maxPowerStep
+            if (pathElapsedTime >= PathDetails.yFieldDelay_ms) {
+                deltaIsShouldY = PathDetails.yFieldGoal_in - RobotPose.getFieldY_in();
+                yPower = calculateCorrectionPower(THISDOF.Y);
+            }
+            if (pathElapsedTime >= PathDetails.xFieldDelay_ms) {
+                deltaIsShouldX = PathDetails.xFieldGoal_in - RobotPose.getFieldX_in();
+                xPower = calculateCorrectionPower(THISDOF.X);
+            }
+            if (pathElapsedTime >= PathDetails.turnFieldDelay_ms) {
+                deltaIsShouldAngle = PathDetails.aFieldGoal_deg - RobotPose.getFieldAngle_deg();
+                turnPower = calculateCorrectionPower(THISDOF.TURN);
+            }
+            if (checkInTargetZone()) {
+                // check if robot is in target zone
+                // if so, terminate path
+                PathMakerStateMachine.terminatePath();
+            }
+        } else {
+            // driver control
+            // brake mode
+            yPower = PathMakerStateMachine.gamepadY;
+            xPower = PathMakerStateMachine.gamepadX;
+            turnPower = PathMakerStateMachine.gamepadTurn;
         }
-        if (pathElapsedTime >= PathDetails.xFieldDelay_ms) {
-            deltaIsShouldStrafe = PathDetails.xFieldGoal_in - RobotPose.getFieldX_in();
-            strafePower = calculateCorrectionPower(THISDOF.STRAFE);
-        }
-        if (pathElapsedTime >= PathDetails.turnFieldDelay_ms) {
-            deltaIsShouldAngle = PathDetails.aFieldGoal_deg - RobotPose.getFieldA_deg();
-            turnPower = calculateCorrectionPower(THISDOF.TURN);
-        }
-        balancePower(); // balance power so it doesn't exceed 1
         RobotPose.readPose();
-        if (checkInTargetZone()) {
-            // check if robot is in target zone
-            // if so, terminate path
-            PathMakerStateMachine.terminatePath();
-        }
-        RobotPose.updatePose(forwardPower, strafePower, turnPower);  // move robot
+        balancePower(); // balance power so it doesn't exceed 1
+        RobotPose.updatePose(yPower, xPower, turnPower);  // move robot
         // sleep the time needed to match timeStep_ms
         PMcycleTime_ms = (long) timer.milliseconds() + 1; // 1 ms overhead
         if (PMcycleTime_ms<timeStep_ms) {
@@ -83,8 +88,8 @@ public class PathManager {
     }
     private static boolean checkInTargetZone() {
         // check if robot is in target zone
-        if (Math.abs(deltaIsShouldForward) < forwardTargetZone_in &&
-                Math.abs(deltaIsShouldStrafe) < strafeTargetZone_in &&
+        if (Math.abs(deltaIsShouldY) < yTargetZone_in &&
+                Math.abs(deltaIsShouldX) < xTargetZone_in &&
                 Math.abs(deltaIsShouldAngle) < turnTargetZone_deg) {
             inTargetZone = true;
         } else
@@ -94,15 +99,17 @@ public class PathManager {
     private static void balancePower() {
         // balance power so it doesn't exceed 1
         // remember max |power| is 1 but will be distributed evenly on the 3 DOFs
-        double sumPower = Math.abs(forwardPower) + Math.abs(strafePower) + Math.abs(turnPower);
+        double sumPower = Math.abs(yPower) + Math.abs(xPower) + Math.abs(turnPower);
         if (sumPower != 0 & sumPower > 1) {
-            forwardPower /= sumPower;
-            strafePower /= sumPower;
+            yPower /= sumPower;
+            xPower /= sumPower;
             turnPower /= sumPower;
         }
         // power scaling only for forward and strafe
-        forwardPower *= powerScaling;
-        strafePower *= powerScaling;
+        if (powerScaling<1) {
+            yPower *= powerScaling;
+            xPower *= powerScaling;
+        }
     }
 
     private static double calculateCorrectionPower(THISDOF dof) {
@@ -112,20 +119,20 @@ public class PathManager {
         double signumIsShould;
         double lastPower;
         double thisVelocity, minVelocity;
-        if (dof == THISDOF.FORWARD) {
-            deltaIsShould = deltaIsShouldForward;
-            signumIsShould = Math.signum(deltaIsShouldForward);
-            rampReach = forwardRampReach_in;
-            lastPower = forwardPowerLast;
+        if (dof == THISDOF.Y) {
+            deltaIsShould = deltaIsShouldY;
+            signumIsShould = Math.signum(deltaIsShouldY);
+            rampReach = yRampReach_in;
+            lastPower = yPowerLast;
             thisVelocity = RobotPose.getForwardVelocity_inPerSec();
-            minVelocity = forwardMinVelocity_inPerSec;
-        } else if (dof == THISDOF.STRAFE) {
-            deltaIsShould = deltaIsShouldStrafe;
-            signumIsShould = Math.signum(deltaIsShouldStrafe);
-            rampReach = strafeRampReach_in;
-            lastPower = strafePowerLast;
+            minVelocity = yMinVelocity_inPerSec;
+        } else if (dof == THISDOF.X) {
+            deltaIsShould = deltaIsShouldX;
+            signumIsShould = Math.signum(deltaIsShouldX);
+            rampReach = xRampReach_in;
+            lastPower = xPowerLast;
             thisVelocity = RobotPose.getStrafeVelocity_inPerSec();
-            minVelocity = strafeMinVelocity_inPerSec;
+            minVelocity = xMinVelocity_inPerSec;
         } else {
             deltaIsShould = deltaIsShouldAngle;
             signumIsShould = Math.signum(deltaIsShouldAngle);
@@ -147,13 +154,11 @@ public class PathManager {
         }
         if (Math.abs(power) > Math.abs(lastPower) + maxPowerStepUp) { // check if power is increasing too fast
             power = lastPower + signumIsShould * maxPowerStepUp;
-        } else if (Math.abs(power) < Math.abs(lastPower) - maxPowerStepDown) { // check if power is decreasing too fast
-            power = lastPower - signumIsShould * maxPowerStepDown;
         }
-        if (dof == THISDOF.FORWARD) {
-            forwardPowerLast = power;
-        } else if (dof == THISDOF.STRAFE) {
-            strafePowerLast = power;
+        if (dof == THISDOF.Y) {
+            yPowerLast = power;
+        } else if (dof == THISDOF.X) {
+            xPowerLast = power;
         } else {
             turnPowerLast = power;
         }

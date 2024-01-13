@@ -25,10 +25,10 @@ public class UpdateTelemetry {
         } else {
             telemetry.addData("forward_in", RobotPose.getFieldY_in());
             telemetry.addData("strafe_in", RobotPose.getFieldX_in());
-            telemetry.addData("headingAngle_deg", RobotPose.getFieldA_deg());
+            telemetry.addData("headingAngle_deg", RobotPose.getFieldAngle_deg());
         }
-        telemetry.addData("forwardPower", PathManager.forwardPower);
-        telemetry.addData("strafePower", PathManager.strafePower);
+        telemetry.addData("forwardPower", PathManager.yPower);
+        telemetry.addData("strafePower", PathManager.xPower);
         telemetry.addData("turnPower", PathManager.turnPower);
         telemetry.update();
     }

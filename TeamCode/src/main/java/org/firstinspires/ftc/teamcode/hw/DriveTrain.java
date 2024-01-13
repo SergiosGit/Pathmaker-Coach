@@ -32,10 +32,10 @@ public class DriveTrain {
     }
     public void init() throws InterruptedException {
         // For bulk read make sure to use DcMotorEx when instantiating motors.
-        frontLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"fl");
-        backLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"bl");
-        backRight = myOpMode.hardwareMap.get(DcMotorEx.class,"br");
-        frontRight = myOpMode.hardwareMap.get(DcMotorEx.class,"fr");
+        frontLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"front_left");
+        backLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"back_left");
+        backRight = myOpMode.hardwareMap.get(DcMotorEx.class,"back_right");
+        frontRight = myOpMode.hardwareMap.get(DcMotorEx.class,"front_right");
         initMotor(frontLeft);
         initMotor(backLeft);
         initMotor(backRight);
