@@ -11,6 +11,8 @@
 //
 package org.firstinspires.ftc.teamcode.op;
 
+import android.os.PowerManager;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -50,6 +52,7 @@ public class Auto_Robot1 extends LinearOpMode {
         //final ColorRangeSensor colorRangeSensor;
         WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
+        RobotPose.setPose(-36, 24, 0);
         MyIMU.init(this);
         MyIMU.updateTelemetry(telemetry);
         PathMakerStateMachine.setAutonomous();
@@ -57,10 +60,9 @@ public class Auto_Robot1 extends LinearOpMode {
         timer.reset();
         int cycles = 0;
         int TEST_CYCLES = 4;
-        PathMakerStateMachine.initAuto();
+        PathMakerStateMachine.initPathList();
         telemetry.addData("thisPathNumber", thisPathNumber);
         telemetry.update();
-        //RobotPose.rebaseRelativeToTag(-24, 0, 0, 2);
         waitForStart();
 
         while (opModeIsActive()) {
@@ -85,6 +87,14 @@ public class Auto_Robot1 extends LinearOpMode {
                     telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
                     telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                     double [] xya = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
+                    telemetry.addLine(String.format("delta is-should signum f/s/a %d / %d / %d",
+                            (int) Math.signum(PathManager.deltaIsShouldY),
+                            (int) Math.signum(PathManager.deltaIsShouldX),
+                            (int) Math.signum(PathManager.deltaIsShouldAngle)));
+                    telemetry.addLine(String.format("initial power signum f/s/a %d / %d / %d",
+                            (int) Math.signum(PathDetails.yInitialPowerSignum),
+                            (int) Math.signum(PathDetails.xInitialPowerSignum),
+                            (int) Math.signum(PathDetails.turnInitialPowerSignum)));
                     telemetry.addLine(String.format("tagOffset f/s/a %.1f / %.1f / %.1f (in/deg)",
                             xya[0],
                             xya[1],

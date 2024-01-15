@@ -39,7 +39,7 @@ public class PathManager {
 
     // set path time
     //public static double elapsedTime_ms;
-    private static double deltaIsShouldY, deltaIsShouldX, deltaIsShouldAngle;
+    public static double deltaIsShouldY, deltaIsShouldX, deltaIsShouldAngle;
     public static boolean inTargetZone = false;
     private static ElapsedTime timer = new ElapsedTime();
 
@@ -87,6 +87,8 @@ public class PathManager {
         }
     }
     private static boolean checkInTargetZone() {
+        // latch until inTargetZone is reset in setPath
+        if (inTargetZone == true) return true;
         // check if robot is in target zone
         if (Math.abs(deltaIsShouldY) < yTargetZone_in &&
                 Math.abs(deltaIsShouldX) < xTargetZone_in &&
@@ -118,6 +120,7 @@ public class PathManager {
         double power;
         double signumIsShould;
         double lastPower;
+        double initialPowerSignum;
         double thisVelocity, minVelocity;
         if (dof == THISDOF.Y) {
             deltaIsShould = deltaIsShouldY;
@@ -126,6 +129,7 @@ public class PathManager {
             lastPower = yPowerLast;
             thisVelocity = RobotPose.getForwardVelocity_inPerSec();
             minVelocity = yMinVelocity_inPerSec;
+            initialPowerSignum = PathDetails.yInitialPowerSignum;
         } else if (dof == THISDOF.X) {
             deltaIsShould = deltaIsShouldX;
             signumIsShould = Math.signum(deltaIsShouldX);
@@ -133,6 +137,7 @@ public class PathManager {
             lastPower = xPowerLast;
             thisVelocity = RobotPose.getStrafeVelocity_inPerSec();
             minVelocity = xMinVelocity_inPerSec;
+            initialPowerSignum = PathDetails.xInitialPowerSignum;
         } else {
             deltaIsShould = deltaIsShouldAngle;
             signumIsShould = Math.signum(deltaIsShouldAngle);
@@ -140,17 +145,27 @@ public class PathManager {
             lastPower = turnPowerLast;
             thisVelocity = RobotPose.getHeadingVelocity_degPerSec();
             minVelocity = turnMinVelocity_degPerSec;
+            initialPowerSignum = PathDetails.turnInitialPowerSignum;
         }
         // calculate ramp power
-        if (Math.abs(deltaIsShould) > rampReach || rampReach == 0) {
+        if (rampReach > 0) {
             // outside reach value: move with maximum available power
-            // for rampReach == 0, the robot will move with maximum power
-            // this is an expert mode, the user needs to make sure the robot
-            // can stop in time
-            power = signumIsShould;
+            if (Math.abs(deltaIsShould) > rampReach) {
+                // outside reach value: move with maximum available power
+                // for rampReach == 0, the robot will move with maximum power
+                // this is an expert mode, the user needs to make sure the robot
+                // can stop in time
+                power = signumIsShould;
+            } else {
+                // within reach value: reduce power proportional to distance to goal
+                power = deltaIsShould / rampReach;
+            }
         } else {
-            // within reach value: reduce power proportional to distance
-            power = deltaIsShould / rampReach;
+            // keep going full speed until power reverses, then go to next path
+            if (signumIsShould != initialPowerSignum) {
+                inTargetZone = true;
+            }
+            power = initialPowerSignum;
         }
         if (Math.abs(power) > Math.abs(lastPower) + maxPowerStepUp) { // check if power is increasing too fast
             power = lastPower + signumIsShould * maxPowerStepUp;

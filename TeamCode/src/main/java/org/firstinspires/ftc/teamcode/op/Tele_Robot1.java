@@ -57,7 +57,6 @@ public class Tele_Robot1 extends LinearOpMode {
         //limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         //final ColorRangeSensor colorRangeSensor;
         int cycles = 0;
-        RobotPose.odometry = RobotPose.ODOMETRY.DEADWHEEL;
         WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
         MyIMU.init(this);
@@ -82,15 +81,15 @@ public class Tele_Robot1 extends LinearOpMode {
                 telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
                 telemetry.addLine(String.format("ave tele/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                 double [] xya = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
-                telemetry.addLine(String.format("tagOffset f/s/a %.1f / %.1f / %.1f (in/deg)",
+                telemetry.addLine(String.format("tagOffset x/y/a %.1f / %.1f / %.1f (in/deg)",
                         xya[0],
                         xya[1],
                         xya[2]));
-                telemetry.addLine(String.format("Path Goals f/s/t %.1f / %.1f / %.1f (in/deg)",
+                telemetry.addLine(String.format("Path Goals x/y/a %.1f / %.1f / %.1f (in/deg)",
                         PathDetails.yFieldGoal_in,
                         PathDetails.xFieldGoal_in,
                         PathDetails.aFieldGoal_deg));
-                telemetry.addLine(String.format("RoboPose f/s/t %.1f / %.1f / %.1f (in/deg)",
+                telemetry.addLine(String.format("RoboPose x/y/a %.1f / %.1f / %.1f (in/deg)",
                         RobotPose.getFieldY_in(),
                         RobotPose.getFieldX_in(),
                         RobotPose.getFieldAngle_deg()));
@@ -100,7 +99,7 @@ public class Tele_Robot1 extends LinearOpMode {
                         gamepad1.left_stick_x,
                         gamepad1.right_stick_x));
                 // telemetry velocity
-                telemetry.addLine(String.format("f/s/a velocity %.1f / %.1f / %.1f ",
+                telemetry.addLine(String.format("x/y/a velocity %.1f / %.1f / %.1f ",
                         RobotPose.getForwardVelocity_inPerSec(),
                         RobotPose.getStrafeVelocity_inPerSec(),
                         RobotPose.getHeadingVelocity_degPerSec()));

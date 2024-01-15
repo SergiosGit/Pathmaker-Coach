@@ -28,7 +28,7 @@ public class WebCam {
     private static WebcamName webcam1;
     private static WebcamName webcam2;
     private static double distanceCalibration = 1.0;
-    private static int nTrials;
+    private static int nDetectionTrials;
     public static String webcamMessage = "Webcam message empty";
 
     public static void init(LinearOpMode opMode, Telemetry telemetry) throws InterruptedException {
@@ -119,11 +119,11 @@ public class WebCam {
     public static boolean streamWebcam(WEBCAM webcam, Telemetry telemetry) throws InterruptedException {
         // Start streaming
         boolean success = false;
-        nTrials = 100;
+        nDetectionTrials = 100;
         if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
             visionPortal.resumeStreaming(); // need to stream before setting active camera
         }
-        while (!success && nTrials-- > 0) {
+        while (!success && nDetectionTrials-- > 0) {
             Thread.sleep(50);
             if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
                 if (webcam == WEBCAM.WEBCAM1) {
@@ -141,7 +141,7 @@ public class WebCam {
                 }
             }
             Thread.sleep(100);
-            webcamMessage = String.format("Webcam %d, %s", nTrials, visionPortal.getActiveCamera());
+            webcamMessage = String.format("Webcam %d, %s", nDetectionTrials, visionPortal.getActiveCamera());
             telemetry.addData("Webcam", webcamMessage);
             telemetry.update();
 
@@ -159,9 +159,11 @@ public class WebCam {
         if (ID==0) return false;
         double lastDistanceToTarget=9E9, lastAngleToTarget=9E9, lastOffsetToTarget=9E9;
         distanceToTarget = angleToTarget = offsetToTarget = 0;
-        nTrials = 100;
+        nDetectionTrials = 100;
+        int nMinConsistentInARow = 10;
         boolean success = false;
-        while (!success && nTrials-- > 0){
+        int nInARow = 1;
+        while (nInARow < nMinConsistentInARow && nDetectionTrials-- > 0){
             // get two consecutive readings that are close enough
             success = Math.abs(lastDistanceToTarget - distanceToTarget) < 0.5 &&
                     Math.abs(lastAngleToTarget - angleToTarget) < 1 &&
@@ -170,33 +172,37 @@ public class WebCam {
             lastAngleToTarget = angleToTarget;
             lastOffsetToTarget = offsetToTarget;
             currentDetections = aprilTag.getDetections();
-            while (currentDetections == null && nTrials-- > 0) {
+            while (currentDetections == null && nDetectionTrials-- > 0) {
                 Thread.sleep(100);
             }
             lastCurrentDetections = currentDetections;
-            if (!success) {
-                Thread.sleep(100);
-                for (AprilTagDetection detection : currentDetections) {
-                    if (detection.metadata != null) {
-                        if (detection.id == ID) {
-                            targetID = ID;
-                            distanceToTarget = detection.ftcPose.range * distanceCalibration;
-                            angleToTarget = -detection.ftcPose.yaw; // when robot is looking directly at target (bearing = 0)
-                            offsetToTarget = detection.ftcPose.x * distanceCalibration;
-                            if (distanceToTarget == 0) {
-                                // very likely a false detection
-                                return false;
-                            }
-                            fieldY_in = RobotPose.getFieldY_in();
-                            fieldX_in = RobotPose.getFieldX_in();
-                            fieldA_deg = RobotPose.getFieldAngle_deg();
-                            webcamMessage = String.format("ID %d, dY/dX/dA %.1f/%.1f/%.1f, Y/X/A %.1f/%.1f/%.1f",
-                                    targetID, distanceToTarget, offsetToTarget, angleToTarget, fieldY_in, fieldX_in, fieldA_deg);
-                            telemetry.addData("Webcam", webcamMessage);
+            if (success) {
+                nInARow++;
+            } else {
+                nInARow = 1;
+            }
+            Thread.sleep(100);
+            for (AprilTagDetection detection : currentDetections) {
+                if (detection.metadata != null) {
+                    if (detection.id == ID) {
+                        targetID = ID;
+                        distanceToTarget = detection.ftcPose.range * distanceCalibration;
+                        angleToTarget = -detection.ftcPose.yaw; // when robot is looking directly at target (bearing = 0)
+                        offsetToTarget = detection.ftcPose.x * distanceCalibration;
+                        if (distanceToTarget == 0) {
+                            // very likely a false detection
+                            return false;
                         }
+                        fieldY_in = RobotPose.getFieldY_in();
+                        fieldX_in = RobotPose.getFieldX_in();
+                        fieldA_deg = RobotPose.getFieldAngle_deg();
+                        webcamMessage = String.format("ID %d, dY/dX/dA %.1f/%.1f/%.1f, Y/X/A %.1f/%.1f/%.1f",
+                                targetID, distanceToTarget, offsetToTarget, angleToTarget, fieldY_in, fieldX_in, fieldA_deg);
+                        telemetry.addData("Webcam", webcamMessage);
                     }
                 }
             }
+            success = nInARow >= 5;
         }
         return success;
     }
@@ -217,7 +223,7 @@ public class WebCam {
         }   // end for() loop
 
         // Add "key" information to telemetry
-        telemetry.addData("nTrials counter", nTrials);
+        telemetry.addData("nTrials counter", nDetectionTrials);
         telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
         telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
         telemetry.addLine("RBE = Range, Bearing & Elevation");

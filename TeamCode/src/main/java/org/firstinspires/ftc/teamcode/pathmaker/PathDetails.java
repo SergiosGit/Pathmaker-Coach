@@ -39,6 +39,7 @@ public class PathDetails {
     public static double xFieldGoal_in, strafeOffset_in=0;
     public static double aFieldGoal_deg, turnOffset_deg=0;
     private static double xRelativeToTag, yRelativetoTag, aRelativetoTag;
+    public static double xInitialPowerSignum = 1, yInitialPowerSignum = 1, turnInitialPowerSignum = 1;
     // set initial delay
     public static double yFieldDelay_ms;
     public static double xFieldDelay_ms;
@@ -80,7 +81,7 @@ public class PathDetails {
     public enum Path {
         P1, P2, P3, BACKBOARD,
         DriverControlled,
-        AutoAprilTag, PIXELSTACKS, DONE
+        AutoAprilTag, PIXELSTACKS, P4, DONE
     }   // end enum Event
 
     public static void setPath(Path path, Telemetry telemetry) throws InterruptedException {
@@ -105,46 +106,57 @@ public class PathDetails {
                 lastTurnGoal = aFieldGoal_deg;
                 break;
             case P1:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
-                powerScaling = 0.6;
-                yFieldGoal_in = 60;
-                xFieldGoal_in = -30;
-                aFieldGoal_deg = 0;
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
+                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                powerScaling = 0.5;
+                xFieldGoal_in = -36; yFieldGoal_in = 48; aFieldGoal_deg = 0;
+                calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
                 break;
             case P2:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
-                powerScaling = 0.6;
-                yFieldGoal_in = 50;
-                xFieldGoal_in = -30;
-                aFieldGoal_deg = 0;
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
+                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                PathManager.yRampReach_in = 0;
+                powerScaling = 0.5;
+                xFieldGoal_in = -12; yFieldGoal_in = 12; aFieldGoal_deg = 0;
+                calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
                 break;
             case P3:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
-                powerScaling = 0.6;
-                yFieldGoal_in = 50;
-                xFieldGoal_in = -42;
-                aFieldGoal_deg = 0;
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
+                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                PathManager.yRampReach_in = 0;
+                powerScaling = 0.5;
+                xFieldGoal_in = -12; yFieldGoal_in = -6; aFieldGoal_deg = 0;
+                calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
+                break;
+            case P4:
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
+                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                PathManager.yRampReach_in = 5;
+                powerScaling = 0.5;
+                xFieldGoal_in = -12; yFieldGoal_in = -20; aFieldGoal_deg = 0;
                 break;
             case BACKBOARD:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
+                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_APRILTAG;
                 currentWebCam = WebCam.WEBCAM.WEBCAM1;
                 WebCam.streamWebcam(currentWebCam, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 2;
-                powerScaling = 0.6;
+                powerScaling = 0.5;
                 // in auto mode the goals are relative to the tag positions (see autoAprilTag)
-                yRelativetoTag = 24;
+                yRelativetoTag = -10;
                 xRelativeToTag = 0;
                 aRelativetoTag = 0;
                 break;
             case PIXELSTACKS:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
+                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
+                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_APRILTAG;
                 currentWebCam = WebCam.WEBCAM.WEBCAM2;
                 WebCam.streamWebcam(currentWebCam, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 9;
-                powerScaling = 0.6;
-                yRelativetoTag = -24;
+                powerScaling = 0.5;
+                yRelativetoTag = 14;
                 xRelativeToTag = 0;
                 aRelativetoTag = 0;
                 break;
@@ -153,8 +165,16 @@ public class PathDetails {
                 break;
         }
     }
+
+    private static void calculateInitialPowerSignum(double goalX, double goalY, double goalA) {
+        xInitialPowerSignum = Math.signum( goalX - RobotPose.getFieldX_in());
+        yInitialPowerSignum = Math.signum( goalY - RobotPose.getFieldY_in());
+        turnInitialPowerSignum = Math.signum( goalA - RobotPose.getFieldAngle_deg());
+    }
+
     // check for AprilTag detection
     public static void autoAprilTagAndFieldGoals() {
+        PathMakerStateMachine.powerDown(); // just to make sure we are stopped
         int xyWebCamMultiplier = 1;
         if (currentWebCam == WebCam.WEBCAM.WEBCAM2) {
             xyWebCamMultiplier = -1;
@@ -172,18 +192,14 @@ public class PathDetails {
             x = 5 * Math.signum(x);
         }
         double y = distanceToTarget * Math.cos(Math.toRadians(a)) * xyWebCamMultiplier;
-        // limit forward motion to 25 inches
-        if (Math.abs(y) > 25) {
-            y = 25 * Math.signum(y);
-        }
-        double tagXYA[] = RobotPose.rebaseRelativeToTag(y, x, a, PathMakerStateMachine.aprilTagDetectionID);
+        double tagXYA[] = RobotPose.rebaseRelativeToTag(x, y, a, PathMakerStateMachine.aprilTagDetectionID);
         // position relative to tags
-        yFieldGoal_in = tagXYA[0] - yRelativetoTag;
-        xFieldGoal_in = tagXYA[1] - xRelativeToTag;
+        yFieldGoal_in = tagXYA[0] + yRelativetoTag;
+        xFieldGoal_in = tagXYA[1] + xRelativeToTag;
         if (Math.abs(a) < 5) {
             xFieldGoal_in += WebCam.offsetToTarget;
         }
-        aFieldGoal_deg = tagXYA[2] - aRelativetoTag;
+        aFieldGoal_deg = tagXYA[2] + aRelativetoTag;
         yFieldDelay_ms = 0;
         xFieldDelay_ms = 0;
         turnFieldDelay_ms = 0;

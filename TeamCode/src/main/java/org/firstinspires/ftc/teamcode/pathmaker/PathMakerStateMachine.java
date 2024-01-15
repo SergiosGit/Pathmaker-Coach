@@ -25,7 +25,7 @@ public class PathMakerStateMachine {
     }   // end enum GameMode
     enum State {
         INIT, IDLE, DONE, DRIVER_CONTROL,
-        AUTO_BACKBOARD, AUTO_SET_PATH, AUTO_NEXT_PATH, AUTO_BACKBOARD_ExecutePath, AUTO_APRILTAG, AUTO_ExecutePath
+        AUTO_BACKBOARD, AUTO_SET_PATH, AUTO_NEXT_PATH, AUTO_APRILTAG_ExecutePath, AUTO_APRILTAG, AUTO_ExecutePath
     }   // end enum State
 
     public static State state;
@@ -38,7 +38,6 @@ public class PathMakerStateMachine {
     static double gamepadTurn = 0;
     private static double lastGamePadY = 0, lastGamePadX = 0, lastGamePadTurn = 0;
     public static double gamepad_yFieldGoal_in = 0, gamepad_xFieldGoal_in = 0, gamepad_aFieldGoal_deg = 0;
-    public static double gampadYchange = 0, gampadXchange = 0, gampadTurnchange = 0;
     public PathMakerStateMachine() {
         state = State.INIT;
         controlMode = ControlMode.TELEOP;
@@ -48,6 +47,9 @@ public class PathMakerStateMachine {
     }
     public static void setAutonomous() {
         controlMode = ControlMode.AUTONOMOUS;
+    }
+    public static void goToNextPath() {
+        state = State.AUTO_NEXT_PATH;
     }
 
     public static void updateTele(Gamepad gamepad, Telemetry telemetry) throws InterruptedException {
@@ -59,11 +61,11 @@ public class PathMakerStateMachine {
                 PathDetails.autoAprilTagAndFieldGoals();
                 aprilTagDetectionOn = false;
                 WebCam.currentDetections = null;
-                state = State.AUTO_BACKBOARD_ExecutePath;
+                state = State.AUTO_APRILTAG_ExecutePath;
                 PathDetails.elapsedTime_ms.reset();
             }
-        } else if (state == State.AUTO_BACKBOARD_ExecutePath) {
-            state = State.AUTO_BACKBOARD_ExecutePath;
+        } else if (state == State.AUTO_APRILTAG_ExecutePath) {
+            state = State.AUTO_APRILTAG_ExecutePath;
         } else {
             state = State.DRIVER_CONTROL;
         }
@@ -78,9 +80,9 @@ public class PathMakerStateMachine {
                 break;
             case AUTO_BACKBOARD:
                 PathDetails.setPath(PathDetails.Path.AutoAprilTag,telemetry);
-                state = State.AUTO_BACKBOARD_ExecutePath;
+                state = State.AUTO_APRILTAG_ExecutePath;
                 break;
-            case AUTO_BACKBOARD_ExecutePath:
+            case AUTO_APRILTAG_ExecutePath:
                 if (PathDetails.elapsedTime_ms.milliseconds() > PathDetails.pathTime_ms) {
                     state = State.DRIVER_CONTROL;
                 } else if (PathManager.inTargetZone) {
@@ -112,38 +114,25 @@ public class PathMakerStateMachine {
         if (Math.abs(gamepadTurn) < gamepadThreshold) {
             gamepadTurn = 0;
         }
-        double gampadRamp = 0.9;
-        // if gamepad input transitions to zero too quickly, the robot will take some time to stop
-        // we will update the goal to the position when the robot velocity is below a threshold
-        // stopping x/y movement
-//        if (Math.abs(gamepadX) < gamepadThreshold && Math.abs(gamepadY) < gamepadThreshold) {
-//            gamepadX = lastGamePadX * gampadRamp;
-//            gamepadY = lastGamePadY * gampadRamp;
-//        }
-//        // stopping turn movement
-//        if (Math.abs(gamepadTurn) < gamepadThreshold) {
-//            gamepadTurn = lastGamePadTurn * gampadRamp;
-//        }
-        gampadXchange = gamepadX - lastGamePadX;
-        gampadYchange = gamepadY - lastGamePadY;
-        gampadTurnchange = gamepadTurn - lastGamePadTurn;
         gamepad_yFieldGoal_in = PathManager.yRampReach_in * gamepadY;
         gamepad_xFieldGoal_in = PathManager.xRampReach_in * gamepadX;
         gamepad_aFieldGoal_deg = PathManager.turnRampReach_deg * gamepadTurn * PathDetails.turnSensitivity;
-        lastGamePadX = gamepadX;
-        lastGamePadY = gamepadY;
-        lastGamePadTurn = gamepadTurn;
+
     }
 
     public static ArrayList<PathDetails.Path> autoPathList;
     private static int nextPath;
-    public static void initAuto() {
+    public static void initPathList() {
         state = State.AUTO_SET_PATH;
         currentPath = nextPath = 0;
         aprilTagDetectionOn = false;
         controlMode = ControlMode.AUTONOMOUS;
         autoPathList = new ArrayList<PathDetails.Path>();
+        autoPathList.add(PathDetails.Path.P1);
         autoPathList.add(PathDetails.Path.BACKBOARD);
+        autoPathList.add(PathDetails.Path.P2);
+        autoPathList.add(PathDetails.Path.P3);
+        autoPathList.add(PathDetails.Path.P4);
         autoPathList.add(PathDetails.Path.PIXELSTACKS);
     }   // end method initAuto
     public static void updateAuto(Telemetry telemetry) throws InterruptedException {
@@ -151,7 +140,6 @@ public class PathMakerStateMachine {
         switch (state) {
             case AUTO_SET_PATH:
                 PathDetails.setPath(autoPathList.get(nextPath),telemetry);
-                state = State.AUTO_APRILTAG;
             case AUTO_APRILTAG:
                 if (aprilTagDetectionOn && WebCam.detectionAprilTag(aprilTagDetectionID, telemetry) ) {
                     // making sure we don't mistakenly read old data from the WebCam
@@ -161,12 +149,12 @@ public class PathMakerStateMachine {
                         PathDetails.autoAprilTagAndFieldGoals();
                         aprilTagDetectionOn = false;
                         WebCam.currentDetections = null;
-                        state = State.AUTO_BACKBOARD_ExecutePath;
+                        state = State.AUTO_APRILTAG_ExecutePath;
                         PathDetails.elapsedTime_ms.reset();
                     }
                 }
                 break;
-            case AUTO_BACKBOARD_ExecutePath:
+            case AUTO_APRILTAG_ExecutePath:
                 if (PathManager.inTargetZone) {
                     state = State.AUTO_NEXT_PATH;
                 } else if (PathDetails.elapsedTime_ms.milliseconds()>500 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms), then check if it rests again
@@ -204,7 +192,7 @@ public class PathMakerStateMachine {
         }   // end switch (state)
     }   // end method update
 
-    private static void powerDown() {
+    static void powerDown() {
         DriveTrain.setMotorPowers(0, 0, 0, 0);
     }
 

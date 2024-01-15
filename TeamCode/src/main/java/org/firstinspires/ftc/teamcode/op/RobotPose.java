@@ -256,20 +256,23 @@ public class RobotPose {
                 Math.abs(getHeadingVelocity_degPerSec()) < 0.1);
     }
 
-    public static double [] rebaseRelativeToTag(double tagY, double tagX, double tagAngle, int tagID) {
+    public static double [] rebaseRelativeToTag(double tagX, double tagY, double tagAngle, int tagID) {
         // rebase robot pose based on tag identification
         double tagXYA [] = tagOffset(tagID);
-        poseY_in = tagXYA[0] - tagY;
-        poseX_in = tagXYA[1] - tagX;
-        poseA_deg = tagXYA[2] - tagAngle;
+        setPose(tagXYA[1] - tagX, tagXYA[0] - tagY, tagXYA[2] - tagAngle);
         return tagXYA;
+    }
+    public static void setPose(double X_in, double Y_in, double A_deg) {
+        strafe_in = lastStrafe_in = poseX_in = X_in;
+        forward_in = lastForward_in = poseY_in = Y_in;
+        lastHeadingAngle_rad = headingAngle_rad = A_deg / 180. * Math.PI;
     }
 
     public static double [] tagOffset(int tagID) {
         // rebase robot pose based on tag identification
         tagID =  Math.max(Math.min(tagID, 10), 0);
         double [] YOffset_in = {0, 62, 62, 62,62,62,62,-72.5,-72.5,-72.5,-72.5};
-        double [] XOffset_in = {0,-42,-36,-30,30,36,42, 44.5,   36,  -36,-44.5};
+        double [] XOffset_in = {0,-42,-36,-30,30,36,42, 44.5,   36,  -12,-44.5}; // for testing only (#9 actual: X=-36)
         double [] AOffset_deg ={0,  0,  0,  0, 0, 0, 0,    0,    0,    0,    0};
         return new double[]{YOffset_in[tagID], XOffset_in[tagID], AOffset_deg[tagID]};
     }
