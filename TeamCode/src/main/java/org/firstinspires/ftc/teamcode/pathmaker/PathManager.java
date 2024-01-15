@@ -21,8 +21,20 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 
 public class PathManager {
+    // The PathManager manages the power delivered to the robot drive train
+    // It operates in field centric mode and uses the RobotPose to determine the robot position
+    // to follow the path defined in PathDetails.
+    //
+    // The X and Y degrees of freedom in field centric coordinates are mapped to the strafe and forward
+    // directions of the robot. The turn degree of freedom is the same as the robot heading and used
+    // to determine the mapping (X,Y) to (strafe, forward).
+    //
+    // The PathManager is called from the PathMakerStateMachine.
+    // The PathManager is a blocking call with a fixed time interval defined by timeStep_ms.
+    // The PathManager will set the "inTargetZone" flag when the robot is within the target zone.
+    // The PathMakerStateMachine will terminate the path when the "inTargetZone" flag is set.
+    //
     public static double maxPowerStepUp = 0.05; // this is an addition, balancing power is done later
-    public static double powerScaleDown = 0.4; // this is a multiplier making sure zero is the minimum
     private static double powerThreshold = 0.1;
     public static long timeStep_ms = 40;
     public static long PMcycleTime_ms = 0;
@@ -35,20 +47,16 @@ public class PathManager {
     public static double yPower, yPowerLast;
     public static double xPower, xPowerLast;
     public static double turnPower, turnPowerLast;
-    private enum THISDOF {Y, X, TURN}
-
-    // set path time
-    //public static double elapsedTime_ms;
+    private enum THISDOF {Y, X, TURN} // Degrees of freedom
     public static double deltaIsShouldY, deltaIsShouldX, deltaIsShouldAngle;
     public static boolean inTargetZone = false;
     private static ElapsedTime timer = new ElapsedTime();
 
     public static void moveRobot() throws InterruptedException {
-        // initialize
         powerScaling = PathDetails.powerScaling;
         double pathElapsedTime = PathDetails.elapsedTime_ms.milliseconds();
         timer.reset();
-        if (PathMakerStateMachine.controlMode == PathMakerStateMachine.ControlMode.AUTONOMOUS) {
+        if (PathMakerStateMachine.control_mode == PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS) {
             // calculate distance to goal for each DOF, followed by correction power
             // which is proportional to distance to goal but limited by maxPowerStep
             if (pathElapsedTime >= PathDetails.yFieldDelay_ms) {
@@ -62,11 +70,6 @@ public class PathManager {
             if (pathElapsedTime >= PathDetails.turnFieldDelay_ms) {
                 deltaIsShouldAngle = PathDetails.aFieldGoal_deg - RobotPose.getFieldAngle_deg();
                 turnPower = calculateCorrectionPower(THISDOF.TURN);
-            }
-            if (checkInTargetZone()) {
-                // check if robot is in target zone
-                // if so, terminate path
-                PathMakerStateMachine.terminatePath();
             }
         } else {
             // driver control
@@ -145,7 +148,7 @@ public class PathManager {
             lastPower = turnPowerLast;
             thisVelocity = RobotPose.getHeadingVelocity_degPerSec();
             minVelocity = turnMinVelocity_degPerSec;
-            initialPowerSignum = PathDetails.turnInitialPowerSignum;
+            initialPowerSignum = PathDetails.aInitialPowerSignum;
         }
         // calculate ramp power
         if (rampReach > 0) {

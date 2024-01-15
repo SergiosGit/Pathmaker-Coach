@@ -154,7 +154,7 @@ public class WebCam {
         }
     }
     public static boolean detectionAprilTag(int ID, Telemetry telemetry) throws InterruptedException {
-        // this is a tricky call, we need to make sure the detection is stable
+        // this is a tricky call, we need to make sure the detection is reliable
         targetID = 0; // if success this will be changed to ID
         if (ID==0) return false;
         double lastDistanceToTarget=9E9, lastAngleToTarget=9E9, lastOffsetToTarget=9E9;

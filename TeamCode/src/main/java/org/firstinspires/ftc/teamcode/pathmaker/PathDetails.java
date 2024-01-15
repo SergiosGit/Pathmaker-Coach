@@ -31,15 +31,18 @@ import org.firstinspires.ftc.teamcode.op.RobotPose;
 
 @Config
 public class PathDetails {
-    // Note: the offsets defined below are used by the PathManager and are useful to set an offset
-    // from an arbitrary origin when using the FTC Dashboard. The default (offset=0) defines the
-    // robot centric coordinate system at the beginning of the path.
+    // PathDetails defines each path goals and constraints for each DOF (x,y,a)
+    // PathMaker uses a robot centric coordinate system (COS)
+    // All x/y coordinates relate to the field center
+    // Positive y is towards the backstage wall
+    // Positive x is towards the right when looking towards the backstage wall
+    // Positive turn is clockwise (tbc). Turn is also called "a" for angle
     public static double powerScaling = 1;
-    public static double yFieldGoal_in, forwardOffset_in=0;
-    public static double xFieldGoal_in, strafeOffset_in=0;
-    public static double aFieldGoal_deg, turnOffset_deg=0;
+    public static double yFieldGoal_in, yFieldOffset_in =0;
+    public static double xFieldGoal_in, xFieldOffset_in =0;
+    public static double aFieldGoal_deg, aFieldOffset_deg =0;
     private static double xRelativeToTag, yRelativetoTag, aRelativetoTag;
-    public static double xInitialPowerSignum = 1, yInitialPowerSignum = 1, turnInitialPowerSignum = 1;
+    public static double xInitialPowerSignum = 1, yInitialPowerSignum = 1, aInitialPowerSignum = 1;
     // set initial delay
     public static double yFieldDelay_ms;
     public static double xFieldDelay_ms;
@@ -47,13 +50,13 @@ public class PathDetails {
     public static double turnSensitivity = 0.4;
     public static ElapsedTime elapsedTime_ms = new ElapsedTime();
     public static double pathTime_ms = 0;
-    public  static PathMakerStateMachine.State PMSMstate;
+    public  static PathMakerStateMachine.PM_STATE PMSMstate;
     private static WebCam.WEBCAM currentWebCam = WebCam.WEBCAM.NONE;
 
-    public static double lastTurnGoal; // RobotPose.getHeadingAngle_deg()
+    public static double lastTurnGoal;
 
     public static void initializePath() {
-        // initialize
+        // initialize each new path
         pathTime_ms = 9E9;
         elapsedTime_ms.reset();
         powerScaling = 1;
@@ -64,7 +67,7 @@ public class PathDetails {
         xFieldDelay_ms = 0;
         turnFieldDelay_ms = 0;
         PathMakerStateMachine.aprilTagDetectionOn = false;
-        PMSMstate = PathMakerStateMachine.State.AUTO_SET_PATH;
+        PMSMstate = PathMakerStateMachine.PM_STATE.AUTO_SET_PATH;
         PathManager.maxPowerStepUp = 0.1;
         PathManager.inTargetZone = false;
         PathManager.yTargetZone_in = 1;
@@ -79,16 +82,22 @@ public class PathDetails {
         WebCam.stopWebcam();
     }
     public enum Path {
-        P1, P2, P3, BACKBOARD,
-        DriverControlled,
-        AutoAprilTag, PIXELSTACKS, P4, DONE
+        // Each path is labeled with a name as defined in this enum
+        P1, P2, P3, P4,
+        AUTO_BACKBOARD, AUTO_APRIL_TAG, AUTO_PIXEL_STACKS,
+        DRIVER_CONTROLLED,
+        DONE
     }   // end enum Event
 
     public static void setPath(Path path, Telemetry telemetry) throws InterruptedException {
+        // set path parameters
+        // this method is called from PathMakerStateMachine
+        // In Autonomous mode, the autoPathList is set by the PathMakerStateMachine
+        // In Tele mode, the path is set to DRIVER_CONTROLLED in the PathMakerStateMachine
         initializePath();
         switch (path) {
-            case DriverControlled:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.TELEOP;
+            case DRIVER_CONTROLLED:
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.TELEOP;
                 PathManager.maxPowerStepUp = 0.1;
                 //pathTime_ms = PathManager.timeStep_ms;
                 powerScaling = 1;
@@ -97,47 +106,47 @@ public class PathDetails {
                 // Note that "forward" is directly from the gamepad, i.e. a value between -1 and 1.
                 // Robot forward power is maximum for requested gaols larger or equal than forwardRampReach_in (this is controlled by the PathManager)
                 // Similar for strafe and turn.
-                yFieldGoal_in = PathMakerStateMachine.gamepad_yFieldGoal_in + RobotPose.getFieldY_in();
-                xFieldGoal_in = PathMakerStateMachine.gamepad_xFieldGoal_in + RobotPose.getFieldX_in();
-                aFieldGoal_deg = PathMakerStateMachine.gamepad_aFieldGoal_deg * turnSensitivity + lastTurnGoal;
-                yFieldDelay_ms = 0;
-                xFieldDelay_ms = 0;
-                turnFieldDelay_ms = 0;
-                lastTurnGoal = aFieldGoal_deg;
+//                yFieldGoal_in = PathMakerStateMachine.gamepad_yFieldGoal_in + RobotPose.getFieldY_in();
+//                xFieldGoal_in = PathMakerStateMachine.gamepad_xFieldGoal_in + RobotPose.getFieldX_in();
+//                aFieldGoal_deg = PathMakerStateMachine.gamepad_aFieldGoal_deg * turnSensitivity + lastTurnGoal;
+//                yFieldDelay_ms = 0;
+//                xFieldDelay_ms = 0;
+//                turnFieldDelay_ms = 0;
+//                lastTurnGoal = aFieldGoal_deg;
                 break;
             case P1:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
-                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
                 powerScaling = 0.5;
                 xFieldGoal_in = -36; yFieldGoal_in = 48; aFieldGoal_deg = 0;
                 calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
                 break;
             case P2:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
-                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
                 PathManager.yRampReach_in = 0;
                 powerScaling = 0.5;
                 xFieldGoal_in = -12; yFieldGoal_in = 12; aFieldGoal_deg = 0;
                 calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
                 break;
             case P3:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
-                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
                 PathManager.yRampReach_in = 0;
                 powerScaling = 0.5;
                 xFieldGoal_in = -12; yFieldGoal_in = -6; aFieldGoal_deg = 0;
                 calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
                 break;
             case P4:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
-                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_ExecutePath;
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
                 PathManager.yRampReach_in = 5;
                 powerScaling = 0.5;
                 xFieldGoal_in = -12; yFieldGoal_in = -20; aFieldGoal_deg = 0;
                 break;
-            case BACKBOARD:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
-                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_APRILTAG;
+            case AUTO_BACKBOARD:
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_APRILTAG;
                 currentWebCam = WebCam.WEBCAM.WEBCAM1;
                 WebCam.streamWebcam(currentWebCam, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
@@ -148,9 +157,9 @@ public class PathDetails {
                 xRelativeToTag = 0;
                 aRelativetoTag = 0;
                 break;
-            case PIXELSTACKS:
-                PathMakerStateMachine.controlMode = PathMakerStateMachine.ControlMode.AUTONOMOUS;
-                PathMakerStateMachine.state = PathMakerStateMachine.State.AUTO_APRILTAG;
+            case AUTO_PIXEL_STACKS:
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_APRILTAG;
                 currentWebCam = WebCam.WEBCAM.WEBCAM2;
                 WebCam.streamWebcam(currentWebCam, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
@@ -160,21 +169,27 @@ public class PathDetails {
                 xRelativeToTag = 0;
                 aRelativetoTag = 0;
                 break;
-
             case DONE:
                 break;
         }
     }
 
     private static void calculateInitialPowerSignum(double goalX, double goalY, double goalA) {
+        // calculate initial power signum (motor direction). The PathManager uses this when
+        // rampReach is set to zero. In this case the robot will keep moving until with
+        // full power until the goal is reached.
         xInitialPowerSignum = Math.signum( goalX - RobotPose.getFieldX_in());
         yInitialPowerSignum = Math.signum( goalY - RobotPose.getFieldY_in());
-        turnInitialPowerSignum = Math.signum( goalA - RobotPose.getFieldAngle_deg());
+        aInitialPowerSignum = Math.signum( goalA - RobotPose.getFieldAngle_deg());
     }
 
     // check for AprilTag detection
     public static void autoAprilTagAndFieldGoals() {
-        PathMakerStateMachine.powerDown(); // just to make sure we are stopped
+        // AprilTag detection with the robot stopped
+        // This method will rebase the coordinate system to the detected tag
+        // and set the field goals to the tag position
+        // The robot will then move to the field goals
+        // This method is called from PathMakerStateMachine
         int xyWebCamMultiplier = 1;
         if (currentWebCam == WebCam.WEBCAM.WEBCAM2) {
             xyWebCamMultiplier = -1;
@@ -186,19 +201,18 @@ public class PathDetails {
         double distanceToTarget = WebCam.distanceToTarget;
         //double a = WebCam.angleToTarget; // yaw angle
         double a = RobotPose.getFieldAngle_deg();
-        double x = -distanceToTarget * Math.sin(Math.toRadians(a));
+        double x = -distanceToTarget * Math.sin(Math.toRadians(a)) * xyWebCamMultiplier;
         // limit sideways motion to 5 inches
         if (Math.abs(x) > 5) {
             x = 5 * Math.signum(x);
+        } else  {
+            x = WebCam.offsetToTarget;
         }
         double y = distanceToTarget * Math.cos(Math.toRadians(a)) * xyWebCamMultiplier;
         double tagXYA[] = RobotPose.rebaseRelativeToTag(x, y, a, PathMakerStateMachine.aprilTagDetectionID);
         // position relative to tags
         yFieldGoal_in = tagXYA[0] + yRelativetoTag;
         xFieldGoal_in = tagXYA[1] + xRelativeToTag;
-        if (Math.abs(a) < 5) {
-            xFieldGoal_in += WebCam.offsetToTarget;
-        }
         aFieldGoal_deg = tagXYA[2] + aRelativetoTag;
         yFieldDelay_ms = 0;
         xFieldDelay_ms = 0;

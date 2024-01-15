@@ -211,10 +211,11 @@ public class RobotPose {
     }
     public static double getFieldAngle_rad(){
         // call readPose first (but only once for all encoders, imu)
-        return headingAngle_rad;
+        return headingAngle_rad + PathDetails.aFieldOffset_deg / 180. * Math.PI;
     }
     public static double getFieldAngle_deg(){
-        return headingAngle_rad / Math.PI * 180;
+
+        return headingAngle_rad / Math.PI * 180 + PathDetails.aFieldOffset_deg;
     }
     public static double getIMUAngle_rad() {
         return imuAngle_rad;
@@ -223,13 +224,13 @@ public class RobotPose {
         // call readPose first (but only once for all encoders, imu)
         // get actual forward position of the robot in the coordinate system
         // defined at the beginning of the path.
-        return poseY_in;
+        return poseY_in + PathDetails.yFieldOffset_in;
     }
     public static double getFieldX_in(){
         // call readPose first (but only once for all encoders, imu)
         // get actual strafe (lateral) position of the robot in the
         // coordinate system defined at the beginning of the path
-        return poseX_in;
+        return poseX_in + PathDetails.xFieldOffset_in;
     }
     public static double getForwardVelocity_inPerSec(){
         // call readPose first (but only once for all encoders, imu)

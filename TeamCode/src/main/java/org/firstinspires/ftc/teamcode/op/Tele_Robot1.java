@@ -75,7 +75,7 @@ public class Tele_Robot1 extends LinearOpMode {
             if (cycles > TEST_CYCLES) {
                 double t1 = timer.milliseconds() / cycles;
                 timer.reset();
-                telemetry.addData("State", PathMakerStateMachine.state);
+                telemetry.addData("State", PathMakerStateMachine.pm_state);
                 telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathMakerStateMachine.autoPathList.get(PathMakerStateMachine.currentPath));
                 telemetry.addLine(String.format("tag detection %b, ID %d, in zone %b", PathMakerStateMachine.aprilTagDetectionOn, PathMakerStateMachine.aprilTagDetectionID, PathManager.inTargetZone));
                 telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
