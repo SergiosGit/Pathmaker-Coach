@@ -29,6 +29,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hw.WebCam;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 
+import java.util.ArrayList;
+
 @Config
 public class PathDetails {
     // PathDetails defines each path goals and constraints for each DOF (x,y,a)
@@ -84,6 +86,20 @@ public class PathDetails {
         DRIVER_CONTROLLED,
         DONE
     }   // end enum Event
+    public static ArrayList<Path> autoPathList;
+    public static void initPathList() {
+        PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_SET_PATH;
+        PathMakerStateMachine.currentPath = PathMakerStateMachine.nextPath = 0;
+        PathMakerStateMachine.aprilTagDetectionOn = false;
+        PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+        autoPathList = new ArrayList<PathDetails.Path>();
+        autoPathList.add(PathDetails.Path.P1);
+        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
+        autoPathList.add(PathDetails.Path.P2);
+        autoPathList.add(PathDetails.Path.P3);
+        autoPathList.add(PathDetails.Path.P4);
+        autoPathList.add(PathDetails.Path.AUTO_PIXEL_STACKS);
+    }   // end method initAuto
 
     public static void setPath(Path path, Telemetry telemetry) throws InterruptedException {
         // set path parameters

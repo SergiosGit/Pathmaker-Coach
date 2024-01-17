@@ -31,7 +31,7 @@ public class PathMakerStateMachine {
     public static CONTROL_MODE control_mode;
     public static boolean aprilTagDetectionOn = false;
     public static int aprilTagDetectionID = 0;
-    public static int currentPath = -1;
+    public static int currentPath = -1, nextPath = -1;
     static double gamepadY = 0;
     static double gamepadX = 0;
     static double gamepadTurn = 0;
@@ -160,26 +160,11 @@ public class PathMakerStateMachine {
     //
     // Autonomous section
     //
-    public static ArrayList<PathDetails.Path> autoPathList;
-    private static int nextPath;
-    public static void initPathList() {
-        pm_state = PM_STATE.AUTO_SET_PATH;
-        currentPath = nextPath = 0;
-        aprilTagDetectionOn = false;
-        control_mode = CONTROL_MODE.AUTONOMOUS;
-        autoPathList = new ArrayList<PathDetails.Path>();
-        autoPathList.add(PathDetails.Path.P1);
-        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
-        autoPathList.add(PathDetails.Path.P2);
-        autoPathList.add(PathDetails.Path.P3);
-        autoPathList.add(PathDetails.Path.P4);
-        autoPathList.add(PathDetails.Path.AUTO_PIXEL_STACKS);
-    }   // end method initAuto
     public static void updateAuto(Telemetry telemetry) throws InterruptedException {
         // process state
         switch (pm_state) {
             case AUTO_SET_PATH:
-                PathDetails.setPath(autoPathList.get(nextPath),telemetry);
+                PathDetails.setPath(PathDetails.autoPathList.get(nextPath),telemetry);
             case AUTO_APRILTAG:
                 powerDown(); // making sure we are stopped for AprilTag detection
                 if (aprilTagDetectionOn && WebCam.detectionAprilTag(aprilTagDetectionID, telemetry) ) {
@@ -237,7 +222,7 @@ public class PathMakerStateMachine {
     }
     private static void setNextPath() {
         nextPath++;
-        if (nextPath >= autoPathList.size()) {
+        if (nextPath >= PathDetails.autoPathList.size()) {
             nextPath = -1;
         }
         currentPath = nextPath;

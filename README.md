@@ -7,3 +7,4 @@ Change log:
 - ...now PM variables autonomous_x, autonomous_y, autonomous_a can be set true/false as needed
 - ...to control if a field DOF is driver controlled or autonomous
 - ...Also added autoLaneKeeping function to PathMakerStateMachine.
+- Moved autoPathList to PathDetails class. Makes more sense.
