@@ -35,6 +35,7 @@ public class PathManager {
     // The PathMakerStateMachine will terminate the path when the "inTargetZone" flag is set.
     //
     public static double maxPowerStepUp = 0.05; // this is an addition, balancing power is done later
+    public static boolean autonomous_x, autonomous_y, autonomous_a;
     private static double powerThreshold = 0.1;
     public static long timeStep_ms = 40;
     public static long PMcycleTime_ms = 0;
@@ -56,29 +57,39 @@ public class PathManager {
         powerScaling = PathDetails.powerScaling;
         double pathElapsedTime = PathDetails.elapsedTime_ms.milliseconds();
         timer.reset();
+        RobotPose.readPose(); // always read pose in moveRobot
         if (PathMakerStateMachine.control_mode == PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS) {
+            if (checkInTargetZone()) return;
+        }
+        // calculate the power for each degree of freedom.
+        // In autonomous mode the power is proportional to the distance to the goal.
+        // In driver control mode the power is proportional to the gamepad input.
+        if (autonomous_x) {
+            if (pathElapsedTime >= PathDetails.xFieldDelay_ms) {
+                deltaIsShouldX = PathDetails.xFieldGoal_in - RobotPose.getFieldX_in();
+                xPower = calculateCorrectionPower(THISDOF.X);
+            }
+        } else {
+            xPower = PathMakerStateMachine.gamepadX;
+        }
+        if (autonomous_y) {
             // calculate distance to goal for each DOF, followed by correction power
             // which is proportional to distance to goal but limited by maxPowerStep
             if (pathElapsedTime >= PathDetails.yFieldDelay_ms) {
                 deltaIsShouldY = PathDetails.yFieldGoal_in - RobotPose.getFieldY_in();
                 yPower = calculateCorrectionPower(THISDOF.Y);
             }
-            if (pathElapsedTime >= PathDetails.xFieldDelay_ms) {
-                deltaIsShouldX = PathDetails.xFieldGoal_in - RobotPose.getFieldX_in();
-                xPower = calculateCorrectionPower(THISDOF.X);
-            }
+        } else {
+            yPower = PathMakerStateMachine.gamepadY;
+        }
+        if (autonomous_a) {
             if (pathElapsedTime >= PathDetails.turnFieldDelay_ms) {
                 deltaIsShouldAngle = PathDetails.aFieldGoal_deg - RobotPose.getFieldAngle_deg();
                 turnPower = calculateCorrectionPower(THISDOF.TURN);
             }
         } else {
-            // driver control
-            // brake mode
-            yPower = PathMakerStateMachine.gamepadY;
-            xPower = PathMakerStateMachine.gamepadX;
             turnPower = PathMakerStateMachine.gamepadTurn;
         }
-        RobotPose.readPose();
         balancePower(); // balance power so it doesn't exceed 1
         RobotPose.updatePose(yPower, xPower, turnPower);  // move robot
         // sleep the time needed to match timeStep_ms

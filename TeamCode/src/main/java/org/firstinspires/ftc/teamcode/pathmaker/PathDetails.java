@@ -47,7 +47,6 @@ public class PathDetails {
     public static double yFieldDelay_ms;
     public static double xFieldDelay_ms;
     public static double turnFieldDelay_ms;
-    public static double turnSensitivity = 0.4;
     public static ElapsedTime elapsedTime_ms = new ElapsedTime();
     public static double pathTime_ms = 0;
     public  static PathMakerStateMachine.PM_STATE PMSMstate;
@@ -60,9 +59,6 @@ public class PathDetails {
         pathTime_ms = 9E9;
         elapsedTime_ms.reset();
         powerScaling = 1;
-        yFieldGoal_in = 0;
-        xFieldGoal_in = 0;
-        aFieldGoal_deg = 0;
         yFieldDelay_ms = 0;
         xFieldDelay_ms = 0;
         turnFieldDelay_ms = 0;
@@ -99,20 +95,7 @@ public class PathDetails {
             case DRIVER_CONTROLLED:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.TELEOP;
                 PathManager.maxPowerStepUp = 0.1;
-                //pathTime_ms = PathManager.timeStep_ms;
                 powerScaling = 1;
-                // need to update with actual robot position
-                //robotAngle = RobotPose.getHeadingAngle_deg();
-                // Note that "forward" is directly from the gamepad, i.e. a value between -1 and 1.
-                // Robot forward power is maximum for requested gaols larger or equal than forwardRampReach_in (this is controlled by the PathManager)
-                // Similar for strafe and turn.
-//                yFieldGoal_in = PathMakerStateMachine.gamepad_yFieldGoal_in + RobotPose.getFieldY_in();
-//                xFieldGoal_in = PathMakerStateMachine.gamepad_xFieldGoal_in + RobotPose.getFieldX_in();
-//                aFieldGoal_deg = PathMakerStateMachine.gamepad_aFieldGoal_deg * turnSensitivity + lastTurnGoal;
-//                yFieldDelay_ms = 0;
-//                xFieldDelay_ms = 0;
-//                turnFieldDelay_ms = 0;
-//                lastTurnGoal = aFieldGoal_deg;
                 break;
             case P1:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;

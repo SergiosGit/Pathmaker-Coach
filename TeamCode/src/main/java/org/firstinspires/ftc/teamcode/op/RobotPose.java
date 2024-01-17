@@ -214,7 +214,6 @@ public class RobotPose {
         return headingAngle_rad + PathDetails.aFieldOffset_deg / 180. * Math.PI;
     }
     public static double getFieldAngle_deg(){
-
         return headingAngle_rad / Math.PI * 180 + PathDetails.aFieldOffset_deg;
     }
     public static double getIMUAngle_rad() {

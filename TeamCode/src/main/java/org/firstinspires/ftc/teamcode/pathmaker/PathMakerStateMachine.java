@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.pathmaker;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hw.DriveTrain;
@@ -34,16 +35,25 @@ public class PathMakerStateMachine {
     static double gamepadY = 0;
     static double gamepadX = 0;
     static double gamepadTurn = 0;
-    public static double gamepad_yFieldGoal_in = 0, gamepad_xFieldGoal_in = 0, gamepad_aFieldGoal_deg = 0;
+    public static double turnSensitivity = 0.4;
+    private static ElapsedTime switchToAutonomousTimer = new ElapsedTime();
+    private static boolean fromManualToAutoHeading = false;
+
     public PathMakerStateMachine() {
         pm_state = PM_STATE.INIT;
         control_mode = CONTROL_MODE.TELEOP;
     }   // end constructor PathMakerStateMachine
     public static void setDriverControlled() {
         pm_state = PM_STATE.DRIVER_CONTROL;
+        PathManager.autonomous_x = false;
+        PathManager.autonomous_y = false;
+        PathManager.autonomous_a = false;
     }
     public static void setAutonomous() {
         control_mode = CONTROL_MODE.AUTONOMOUS;
+        PathManager.autonomous_x = true;
+        PathManager.autonomous_y = true;
+        PathManager.autonomous_a = true;
     }
     //
     // Teleop section
@@ -70,9 +80,10 @@ public class PathMakerStateMachine {
                 pm_state = PM_STATE.IDLE;
                 break;
             case DRIVER_CONTROL:
-                    getGamepadInput(gamepad);
-                    PathDetails.setPath(PathDetails.Path.DRIVER_CONTROLLED,telemetry);
-                    PathManager.moveRobot();
+                PathDetails.setPath(PathDetails.Path.DRIVER_CONTROLLED,telemetry);
+                getGamepadInput(gamepad);
+                autoLaneKeeping();
+                PathManager.moveRobot();
                 break;
             case AUTO_BACKBOARD:
                 PathDetails.setPath(PathDetails.Path.AUTO_APRIL_TAG,telemetry);
@@ -93,10 +104,21 @@ public class PathMakerStateMachine {
                 break;
         }   // end switch (state)
     }   // end method updateTele
+    private static void autoLaneKeeping() {
+        // auto lane keeping while crossing the trusses in driver control mode
+        if (RobotPose.getFieldY_in() > 27) {
+            // if robot is not in target zone, we will move it back
+            PathDetails.xFieldGoal_in = -24;
+            PathManager.autonomous_x = true;
+        } else {
+            PathManager.autonomous_x = false;
+        }
+    }
     private static void getGamepadInput(Gamepad gamepad) {
         gamepadX = gamepad.left_stick_x;
         gamepadY = -gamepad.left_stick_y;
-        gamepadTurn = gamepad.right_stick_x;
+        gamepadTurn = gamepad.right_stick_x * turnSensitivity;
+
         double gamepadThreshold = 0.02;
         // check if gampad input is below threshold
         // if so, we will ramp down the input to zero
@@ -109,10 +131,31 @@ public class PathMakerStateMachine {
         if (Math.abs(gamepadTurn) < gamepadThreshold) {
             gamepadTurn = 0;
         }
-        gamepad_yFieldGoal_in = PathManager.yRampReach_in * gamepadY;
-        gamepad_xFieldGoal_in = PathManager.xRampReach_in * gamepadX;
-        gamepad_aFieldGoal_deg = PathManager.turnRampReach_deg * gamepadTurn * PathDetails.turnSensitivity;
-
+        // if gamepadTurn is zero, we will automatically keep the robot heading the same
+        // if gamepadTurn is not zero, we will turn the robot to the new heading
+        PathManager.autonomous_x = false;
+        PathManager.autonomous_y = false;
+        PathManager.autonomous_a = true;
+        if (gamepadTurn == 0) {
+            // auto heading
+            // keep robot heading the same direction if no turn input
+            // this counteracts rotational drifting of the robot
+            if (switchToAutonomousTimer.milliseconds() < 200 && fromManualToAutoHeading) {
+                // need to wait long enough to get one or two IMU readings
+                // before switching to autonomous mode to avoid bounce back
+                PathDetails.aFieldGoal_deg = RobotPose.getFieldAngle_deg();
+            } else {
+                PathManager.autonomous_a = true;
+                fromManualToAutoHeading = false;
+            }
+        } else {
+            // manual heading
+            // keep track of the last actual robot heading
+            // this is used when switching from driver control to autonomous for turning
+            fromManualToAutoHeading = true;
+            switchToAutonomousTimer.reset();
+            PathManager.autonomous_a = false;
+        }
     }
     //
     // Autonomous section

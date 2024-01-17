@@ -2,4 +2,8 @@ This version of the PathMaker is an upgrade of the original implementation. The 
 
 Change log:
 
-- added setManualExposure to Webcam.ini
+- Modifications to PathMakerStateMachine, PathManager as well as small updates to PathDetails and Tele_Robot1:
+- added autonomous turn control to field centric driving see function PMSM getGamepadInput
+- ...now PM variables autonomous_x, autonomous_y, autonomous_a can be set true/false as needed
+- ...to control if a field DOF is driver controlled or autonomous
+- ...Also added autoLaneKeeping function to PathMakerStateMachine.

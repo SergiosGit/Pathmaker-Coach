@@ -59,6 +59,7 @@ public class Tele_Robot1 extends LinearOpMode {
         int cycles = 0;
         WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
+        RobotPose.setPose(0, 0, 0);
         MyIMU.init(this);
         PathMakerStateMachine.setDriverControlled();
         PathDetails.initializePath();
