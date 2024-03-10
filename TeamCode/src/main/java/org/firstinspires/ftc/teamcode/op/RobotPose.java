@@ -39,7 +39,7 @@ public class RobotPose {
     private static double headingAngle_rad = 0, lastHeadingAngle_rad = 0;
     private static double poseA_deg = 0, lastHeadingAngle_deg = 0;
     private static double forward_in = 0, lastForward_in = 0, strafe_in = 0, lastStrafe_in = 0;
-    private static double poseY_in = 0, poseX_in = 0;
+    private static double poseY_in = 0, lastPoseY_in, poseX_in, lastPoseX_in = 0;
     private static double imuAngle_rad = 0, lastImuAngle_rad = 0;
     private static double imuAngle_deg = 0, lastImuAngle_deg = 0;
 
@@ -143,6 +143,7 @@ public class RobotPose {
         poseDriveTrain.setMotorPowers(powerFL,powerBL,powerBR,powerFR);
     }
     public static void readPose() {
+        // read robot pose from encoders and IMU in robot coordinate system
         double dtheta, dx_in, dy_in, dx, dy, x, y;
         int dn1, dn2, dn3, dn4;
 
@@ -206,6 +207,7 @@ public class RobotPose {
         double deltaPathStrafe_in = strafe_in - lastStrafe_in;
         double sin = Math.sin(headingAngle_rad);
         double cos = Math.cos(headingAngle_rad);
+        // translate pose to field coordinate system
         poseY_in += deltaPathForward_in * cos - deltaPathStrafe_in * sin;
         poseX_in += deltaPathStrafe_in * cos + deltaPathForward_in * sin;
     }
@@ -231,13 +233,29 @@ public class RobotPose {
         // coordinate system defined at the beginning of the path
         return poseX_in + PathDetails.xFieldOffset_in;
     }
+    public static double getXVelocity_inPerSec(){
+        // field centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual strafe (lateral) velocity of the robot in the
+        // coordinate system defined at the beginning of the path
+        return (poseX_in - lastPoseX_in) / PathManager.timeStep_ms * 1000;
+    }
+    public static double getYVelocity_inPerSec(){
+        // field centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual forward velocity of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return (poseY_in - lastPoseY_in) / PathManager.timeStep_ms * 1000;
+    }
     public static double getForwardVelocity_inPerSec(){
+        // robot centric coordinate system
         // call readPose first (but only once for all encoders, imu)
         // get actual forward velocity of the robot in the coordinate system
         // defined at the beginning of the path.
         return (forward_in - lastForward_in) / PathManager.timeStep_ms * 1000;
     }
     public static double getStrafeVelocity_inPerSec(){
+        // robot centric coordinate system
         // call readPose first (but only once for all encoders, imu)
         // get actual strafe (lateral) velocity of the robot in the
         // coordinate system defined at the beginning of the path
@@ -263,17 +281,22 @@ public class RobotPose {
         return tagXYA;
     }
     public static void setPose(double X_in, double Y_in, double A_deg) {
-        strafe_in = lastStrafe_in = poseX_in = X_in;
-        forward_in = lastForward_in = poseY_in = Y_in;
+        strafe_in = lastStrafe_in = lastPoseX_in = poseX_in = X_in;
+        forward_in = lastForward_in = lastPoseY_in = poseY_in = Y_in;
         lastHeadingAngle_rad = headingAngle_rad = A_deg / 180. * Math.PI;
     }
 
     public static double [] tagOffset(int tagID) {
         // rebase robot pose based on tag identification
         tagID =  Math.max(Math.min(tagID, 10), 0);
-        double [] YOffset_in = {0, 62, 62, 62,62,62,62,-72.5,-72.5,-72.5,-72.5};
-        double [] XOffset_in = {0,-42,-36,-30,30,36,42, 44.5,   36,  -12,-44.5}; // for testing only (#9 actual: X=-36)
-        double [] AOffset_deg ={0,  0,  0,  0, 0, 0, 0,    0,    0,    0,    0};
+//            double [] YOffset_in = {0, 62, 62, 62,62,62,62,-72.5,-72.5,-72.5,-72.5};
+//            double [] XOffset_in = {0,-42,-36,-30,30,36,42, 44.5,   36,  -36,-44.5};
+//            double [] AOffset_deg ={0,  0,  0,  0, 0, 0, 0,    0,    0,    0,    0};
+        // for testing in my office only, moving between April tags 2 and 9
+        //     Tag Nr:             1,  2,  3,  4,  5,  6,  7,  8,  9, 10
+        double[] YOffset_in =  {0, 62, 62, 62, 62, 62, 62,-48,-48,-48,-48};
+        double[] XOffset_in =  {0,-42,-36,-30, 30, 36, 42, 44, 36,-22,-44}; // for testing in my office only (#9 actual: X=-36)
+        double[] AOffset_deg = {0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0};
         return new double[]{YOffset_in[tagID], XOffset_in[tagID], AOffset_deg[tagID]};
     }
 }

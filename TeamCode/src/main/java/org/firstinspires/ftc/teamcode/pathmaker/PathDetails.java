@@ -87,18 +87,18 @@ public class PathDetails {
         DONE
     }   // end enum Event
     public static ArrayList<Path> autoPathList;
-    public static void initPathList() {
+    public static void initAutoPathList() {
         PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_SET_PATH;
         PathMakerStateMachine.currentPath = PathMakerStateMachine.nextPath = 0;
         PathMakerStateMachine.aprilTagDetectionOn = false;
         PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
         autoPathList = new ArrayList<PathDetails.Path>();
         autoPathList.add(PathDetails.Path.P1);
-        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
-        autoPathList.add(PathDetails.Path.P2);
-        autoPathList.add(PathDetails.Path.P3);
-        autoPathList.add(PathDetails.Path.P4);
-        autoPathList.add(PathDetails.Path.AUTO_PIXEL_STACKS);
+//        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
+//        autoPathList.add(PathDetails.Path.P2);
+//        autoPathList.add(PathDetails.Path.P3);
+//        autoPathList.add(PathDetails.Path.P4);
+//        autoPathList.add(PathDetails.Path.AUTO_PIXEL_STACKS);
     }   // end method initAuto
 
     public static void setPath(Path path, Telemetry telemetry) throws InterruptedException {
@@ -116,8 +116,9 @@ public class PathDetails {
             case P1:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                powerScaling = 0.5;
+                powerScaling = 1;
                 xFieldGoal_in = -36; yFieldGoal_in = 48; aFieldGoal_deg = 0;
+                PathManager.yTargetZone_in = 2; PathManager.xTargetZone_in = 1; PathManager.turnTargetZone_deg = 2;
                 calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
                 break;
             case P2:
@@ -141,7 +142,7 @@ public class PathDetails {
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
                 PathManager.yRampReach_in = 5;
                 powerScaling = 0.5;
-                xFieldGoal_in = -12; yFieldGoal_in = -20; aFieldGoal_deg = 0;
+                xFieldGoal_in = -12; yFieldGoal_in = -10; aFieldGoal_deg = 0;
                 break;
             case AUTO_BACKBOARD:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
@@ -184,10 +185,10 @@ public class PathDetails {
 
     // check for AprilTag detection
     public static void autoAprilTagAndFieldGoals() {
-        // AprilTag detection with the robot stopped
+        // AprilTag detection while the robot is stopped (investigate if robot can move slowly)
         // This method will rebase the coordinate system to the detected tag
-        // and set the field goals to the tag position
-        // The robot will then move to the field goals
+        // and set the field goals relative to the tag position
+        // The robot will then move to these field goals
         // This method is called from PathMakerStateMachine
         int xyWebCamMultiplier = 1;
         if (currentWebCam == WebCam.WEBCAM.WEBCAM2) {

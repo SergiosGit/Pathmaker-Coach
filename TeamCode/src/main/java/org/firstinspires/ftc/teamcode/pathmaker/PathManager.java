@@ -17,9 +17,11 @@
 
 package org.firstinspires.ftc.teamcode.pathmaker;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 
+@Config
 public class PathManager {
     // The PathManager manages the power delivered to the robot drive train
     // It operates in field centric mode and uses the RobotPose to determine the robot position
@@ -35,10 +37,13 @@ public class PathManager {
     // The PathMakerStateMachine will terminate the path when the "inTargetZone" flag is set.
     //
     public static double maxPowerStepUp = 0.05; // this is an addition, balancing power is done later
+    public static double breakPower = 0.05, breakPowerScale = 0.5, approachPower = 0.2;
     public static boolean autonomous_x, autonomous_y, autonomous_a;
     private static double powerThreshold = 0.1;
     public static long timeStep_ms = 40;
     public static long PMcycleTime_ms = 0;
+    public static enum RAMPTYPE {LINEAR, STEP};
+    public static RAMPTYPE rampType = RAMPTYPE.STEP;
     public static double yRampReach_in = 24;
     public static double xRampReach_in = 12;
     public static double turnRampReach_deg = 45;
@@ -49,7 +54,7 @@ public class PathManager {
     public static double xPower, xPowerLast;
     public static double turnPower, turnPowerLast;
     private enum THISDOF {Y, X, TURN} // Degrees of freedom
-    public static double deltaIsShouldY, deltaIsShouldX, deltaIsShouldAngle;
+    public static double deltaIsShouldY=1e99, deltaIsShouldX=1e99, deltaIsShouldAngle=1e99;
     public static boolean inTargetZone = false;
     private static ElapsedTime timer = new ElapsedTime();
 
@@ -57,11 +62,8 @@ public class PathManager {
         powerScaling = PathDetails.powerScaling;
         double pathElapsedTime = PathDetails.elapsedTime_ms.milliseconds();
         timer.reset();
-        RobotPose.readPose(); // always read pose in moveRobot
-        if (PathMakerStateMachine.control_mode == PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS) {
-            if (checkInTargetZone()) return;
-        }
-        // calculate the power for each degree of freedom.
+        RobotPose.readPose(); // always read pose in moveRobot before calculating power
+        // calculate the power for each degree of freedom in field coordinates
         // In autonomous mode the power is proportional to the distance to the goal.
         // In driver control mode the power is proportional to the gamepad input.
         if (autonomous_x) {
@@ -70,7 +72,7 @@ public class PathManager {
                 xPower = calculateCorrectionPower(THISDOF.X);
             }
         } else {
-            xPower = PathMakerStateMachine.gamepadX;
+            xPower = PathMakerStateMachine.xPower;
         }
         if (autonomous_y) {
             // calculate distance to goal for each DOF, followed by correction power
@@ -80,7 +82,7 @@ public class PathManager {
                 yPower = calculateCorrectionPower(THISDOF.Y);
             }
         } else {
-            yPower = PathMakerStateMachine.gamepadY;
+            yPower = PathMakerStateMachine.yPower;
         }
         if (autonomous_a) {
             if (pathElapsedTime >= PathDetails.turnFieldDelay_ms) {
@@ -88,7 +90,11 @@ public class PathManager {
                 turnPower = calculateCorrectionPower(THISDOF.TURN);
             }
         } else {
-            turnPower = PathMakerStateMachine.gamepadTurn;
+            turnPower = PathMakerStateMachine.turnPower;
+        }
+        if (PathMakerStateMachine.control_mode == PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS) {
+            // check if robot is in target zone after calculating isShould above
+            if (checkInTargetZone()) return;
         }
         balancePower(); // balance power so it doesn't exceed 1
         RobotPose.updatePose(yPower, xPower, turnPower);  // move robot
@@ -141,7 +147,7 @@ public class PathManager {
             signumIsShould = Math.signum(deltaIsShouldY);
             rampReach = yRampReach_in;
             lastPower = yPowerLast;
-            thisVelocity = RobotPose.getForwardVelocity_inPerSec();
+            thisVelocity = RobotPose.getYVelocity_inPerSec();
             minVelocity = yMinVelocity_inPerSec;
             initialPowerSignum = PathDetails.yInitialPowerSignum;
         } else if (dof == THISDOF.X) {
@@ -149,7 +155,7 @@ public class PathManager {
             signumIsShould = Math.signum(deltaIsShouldX);
             rampReach = xRampReach_in;
             lastPower = xPowerLast;
-            thisVelocity = RobotPose.getStrafeVelocity_inPerSec();
+            thisVelocity = RobotPose.getXVelocity_inPerSec();
             minVelocity = xMinVelocity_inPerSec;
             initialPowerSignum = PathDetails.xInitialPowerSignum;
         } else {
@@ -171,11 +177,29 @@ public class PathManager {
                 // can stop in time
                 power = signumIsShould;
             } else {
-                // within reach value: reduce power proportional to distance to goal
-                power = deltaIsShould / rampReach;
+                if (rampType == RAMPTYPE.LINEAR) {
+                    // within reach value: reduce power proportional to distance to goal
+                    power = deltaIsShould / rampReach;
+                } else {
+                    if (Math.abs(thisVelocity) > minVelocity) {
+                        // within reach value: reduce power to minVelocity
+                        // but slightly more than zero to avoid motor break mode
+                        if (Math.abs(lastPower) > breakPower) {
+                            // break mode (power < 0)
+                            power = breakPowerScale * lastPower;
+                        } else {
+                            // stay at minVelocity until goal is reached
+                            power = approachPower * signumIsShould;
+                        }
+                        //power = breakPower * signumIsShould;
+                    } else {
+                        // stay at minVelocity until goal is reached
+                        power = approachPower * signumIsShould;
+                    }
+                }
             }
         } else {
-            // keep going full speed until power reverses, then go to next path
+            // keep going full speed until power reverses(i.e. passing by the goal mark), then go to next path
             if (signumIsShould != initialPowerSignum) {
                 inTargetZone = true;
             }

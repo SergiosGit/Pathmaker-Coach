@@ -94,6 +94,11 @@ public class Tele_Robot1 extends LinearOpMode {
                         RobotPose.getFieldY_in(),
                         RobotPose.getFieldX_in(),
                         RobotPose.getFieldAngle_deg()));
+                // power x/y
+                telemetry.addLine(String.format("power Y/X/A %.2f / %.2f / %.2f",
+                        PathMakerStateMachine.yPower,
+                        PathMakerStateMachine.xPower,
+                        PathMakerStateMachine.turnPower));
                 // gamepad x/y input
                 telemetry.addLine(String.format("gamepad Y/X/A %.1f / %.1f / %.1f",
                         gamepad1.left_stick_y,

@@ -50,7 +50,7 @@ public class Auto_Robot1 extends LinearOpMode {
         //final ColorRangeSensor colorRangeSensor;
         WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
-        RobotPose.setPose(-36, 24, 0);
+        RobotPose.setPose(-36, 0, 0);
         MyIMU.init(this);
         MyIMU.updateTelemetry(telemetry);
         PathMakerStateMachine.setAutonomous();
@@ -58,7 +58,7 @@ public class Auto_Robot1 extends LinearOpMode {
         timer.reset();
         int cycles = 0;
         int TEST_CYCLES = 4;
-        PathDetails.initPathList();
+        PathDetails.initAutoPathList();
         telemetry.addData("thisPathNumber", thisPathNumber);
         telemetry.update();
         waitForStart();
@@ -85,6 +85,10 @@ public class Auto_Robot1 extends LinearOpMode {
                     telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
                     telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
                     double [] xya = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
+                    telemetry.addLine(String.format("delta-is-should f/s/a %.1f / %.1f / %.1f",
+                            PathManager.deltaIsShouldY,
+                            PathManager.deltaIsShouldX,
+                            PathManager.deltaIsShouldAngle));
                     telemetry.addLine(String.format("delta is-should signum f/s/a %d / %d / %d",
                             (int) Math.signum(PathManager.deltaIsShouldY),
                             (int) Math.signum(PathManager.deltaIsShouldX),

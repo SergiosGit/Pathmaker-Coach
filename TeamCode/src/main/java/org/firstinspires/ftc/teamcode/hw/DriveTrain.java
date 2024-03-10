@@ -53,8 +53,8 @@ public class DriveTrain {
     }
 
     public DcMotorEx initMotor(DcMotorEx motor) throws InterruptedException {
-        motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        //motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+        //motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         Thread.sleep(100);
         motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
