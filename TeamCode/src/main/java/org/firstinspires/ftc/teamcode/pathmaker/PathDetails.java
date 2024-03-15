@@ -52,7 +52,6 @@ public class PathDetails {
     public static ElapsedTime elapsedTime_ms = new ElapsedTime();
     public static double pathTime_ms = 0;
     public  static PathMakerStateMachine.PM_STATE PMSMstate;
-    private static WebCam.WEBCAM currentWebCam = WebCam.WEBCAM.NONE;
 
     public static double lastTurnGoal;
 
@@ -66,18 +65,26 @@ public class PathDetails {
         turnFieldDelay_ms = 0;
         PathMakerStateMachine.aprilTagDetectionOn = false;
         PMSMstate = PathMakerStateMachine.PM_STATE.AUTO_SET_PATH;
+        PathManager.powerScalingTurn = 1;
         PathManager.maxPowerStepUp = 0.1;
         PathManager.inTargetZone = false;
         PathManager.yTargetZone_in = 1;
         PathManager.xTargetZone_in = 1;
         PathManager.turnTargetZone_deg = 1;
-        PathManager.yRampReach_in = 11;
-        PathManager.xRampReach_in = 11;
+        PathManager.yRampReach_in = 24;
+        PathManager.xRampReach_in = 24;
         PathManager.turnRampReach_deg = 45;
-        PathManager.yMinVelocity_inPerSec = 2;
-        PathManager.xMinVelocity_inPerSec = 2;
+        PathManager.yMinVelocity_InchPerSec = 2;
+        PathManager.xMinVelocity_InchPerSec = 2;
         PathManager.turnMinVelocity_degPerSec = 4;
-        WebCam.stopWebcam();
+        PathManager.rampType_x = PathManager.RAMPTYPE.LINEAR;
+        PathManager.rampType_y = PathManager.RAMPTYPE.LINEAR;
+        PathManager.rampType_a = PathManager.RAMPTYPE.LINEAR;
+        PathManager.approachPowerTurn = 0.1;
+        PathManager.approachPowerXY = 0.2;
+        PathManager.breakPower = 0.05;
+        PathManager.breakPowerScale = 0.5;
+        //WebCam.stopWebcam();
     }
     public enum Path {
         // Each path is labeled with a name as defined in this enum
@@ -94,7 +101,7 @@ public class PathDetails {
         PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
         autoPathList = new ArrayList<PathDetails.Path>();
         autoPathList.add(PathDetails.Path.P1);
-//        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
+        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
 //        autoPathList.add(PathDetails.Path.P2);
 //        autoPathList.add(PathDetails.Path.P3);
 //        autoPathList.add(PathDetails.Path.P4);
@@ -111,14 +118,22 @@ public class PathDetails {
             case DRIVER_CONTROLLED:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.TELEOP;
                 PathManager.maxPowerStepUp = 0.1;
+                PathManager.turnTargetZone_deg = 3;
                 powerScaling = 1;
                 break;
             case P1:
+                pathTime_ms = 1400;
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                powerScaling = 1;
-                xFieldGoal_in = -36; yFieldGoal_in = 48; aFieldGoal_deg = 0;
-                PathManager.yTargetZone_in = 2; PathManager.xTargetZone_in = 1; PathManager.turnTargetZone_deg = 2;
+                powerScaling = 0.8;
+                xFieldGoal_in = -42; yFieldGoal_in = 40; aFieldGoal_deg = 0;
+                PathManager.yTargetZone_in = 2;
+                PathManager.xTargetZone_in = 1;
+                PathManager.turnTargetZone_deg = 2;
+                PathManager.yMinVelocity_InchPerSec = 7;
+                PathManager.xMinVelocity_InchPerSec = 2;
+                PathManager.approachPowerTurn = 0.1;
+                PathManager.approachPowerXY = 0.25;
                 calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
                 break;
             case P2:
@@ -147,11 +162,20 @@ public class PathDetails {
             case AUTO_BACKBOARD:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_APRILTAG;
-                currentWebCam = WebCam.WEBCAM.WEBCAM1;
-                WebCam.streamWebcam(currentWebCam, telemetry);
+                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM1, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 2;
                 powerScaling = 0.5;
+                PathManager.rampType_y = PathManager.RAMPTYPE.STEP;
+                PathManager.yTargetZone_in = 2;
+                PathManager.xTargetZone_in = 1;
+                PathManager.yRampReach_in = 12;
+                PathManager.turnTargetZone_deg = 2;
+                PathManager.yMinVelocity_InchPerSec = 8;
+                PathManager.xMinVelocity_InchPerSec = 2;
+                PathManager.approachPowerTurn = 0.1;
+                PathManager.approachPowerXY = 0.25;
+                PathManager.breakPowerScale = 0.9;
                 // in auto mode the goals are relative to the tag positions (see autoAprilTag)
                 yRelativetoTag = -10;
                 xRelativeToTag = 0;
@@ -160,8 +184,7 @@ public class PathDetails {
             case AUTO_PIXEL_STACKS:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_APRILTAG;
-                currentWebCam = WebCam.WEBCAM.WEBCAM2;
-                WebCam.streamWebcam(currentWebCam, telemetry);
+                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM2, telemetry);
                 PathMakerStateMachine.aprilTagDetectionOn = true;
                 PathMakerStateMachine.aprilTagDetectionID = 9;
                 powerScaling = 0.5;
@@ -191,7 +214,7 @@ public class PathDetails {
         // The robot will then move to these field goals
         // This method is called from PathMakerStateMachine
         int xyWebCamMultiplier = 1;
-        if (currentWebCam == WebCam.WEBCAM.WEBCAM2) {
+        if (WebCam.currentWebCam == WebCam.WEBCAM.WEBCAM2) {
             xyWebCamMultiplier = -1;
         }
         PathManager.maxPowerStepUp = 0.1;
@@ -199,8 +222,7 @@ public class PathDetails {
         powerScaling = 0.6;
         // need to update with actual robot position
         double distanceToTarget = WebCam.distanceToTarget;
-        //double a = WebCam.angleToTarget; // yaw angle
-        double a = RobotPose.getFieldAngle_deg();
+        double a = WebCam.angleToTarget; // yaw angle
         double x = -distanceToTarget * Math.sin(Math.toRadians(a)) * xyWebCamMultiplier;
         // limit sideways motion to 5 inches
         if (Math.abs(x) > 5) {
@@ -221,6 +243,6 @@ public class PathDetails {
         PathManager.yRampReach_in = 24;
         PathManager.xRampReach_in = 12;
         PathManager.turnRampReach_deg = 45;
-        WebCam.stopWebcam();
+        //WebCam.stopWebcam();
     }
 }

@@ -11,11 +11,13 @@
 //
 package org.firstinspires.ftc.teamcode.op;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hw.MyIMU;
 import org.firstinspires.ftc.teamcode.hw.WebCam;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
@@ -62,7 +64,6 @@ public class Auto_Robot1 extends LinearOpMode {
         telemetry.addData("thisPathNumber", thisPathNumber);
         telemetry.update();
         waitForStart();
-
         while (opModeIsActive()) {
             if (isStopRequested()) return;
             if (thisPathNumber == -1) {
@@ -81,9 +82,10 @@ public class Auto_Robot1 extends LinearOpMode {
                     timer.reset();
                     telemetry.addData("State", PathMakerStateMachine.pm_state);
                     telemetry.addData("PathDetails.currentPath", PathMakerStateMachine.currentPath < 0? -1: PathDetails.autoPathList.get(PathMakerStateMachine.currentPath));
-                    telemetry.addLine(String.format("tag detection %b, ID %d, in zone %b", PathMakerStateMachine.aprilTagDetectionOn, PathMakerStateMachine.aprilTagDetectionID, PathManager.inTargetZone));
+                    telemetry.addLine(String.format("tag %b, ID %d, in zone %b, at rest %b",
+                            PathMakerStateMachine.aprilTagDetectionOn, PathMakerStateMachine.aprilTagDetectionID, PathManager.inTargetZone, RobotPose.isRobotAtRest()));
                     telemetry.addLine(String.format("PathDetails.elapsedTime_ms %.1f", PathDetails.elapsedTime_ms.milliseconds()));
-                    telemetry.addLine(String.format("ave/PM cycle %d /  %d (ms)", (int) t1, PathManager.PMcycleTime_ms));
+                    telemetry.addLine(String.format("ave/PM/DT cycle %d /  %d (ms) / %.3f (s)", (int) t1, PathManager.PMcycleTime_ms, RobotPose.DT_seconds));
                     double [] xya = RobotPose.tagOffset(PathMakerStateMachine.aprilTagDetectionID);
                     telemetry.addLine(String.format("delta-is-should f/s/a %.1f / %.1f / %.1f",
                             PathManager.deltaIsShouldY,
@@ -97,6 +99,10 @@ public class Auto_Robot1 extends LinearOpMode {
                             (int) Math.signum(PathDetails.yInitialPowerSignum),
                             (int) Math.signum(PathDetails.xInitialPowerSignum),
                             (int) Math.signum(PathDetails.aInitialPowerSignum)));
+                    telemetry.addLine(String.format("power x,y,a %.2f / %.2f / %.2f",
+                            PathManager.xPower,
+                            PathManager.yPower,
+                            PathManager.turnPower));
                     telemetry.addLine(String.format("tagOffset f/s/a %.1f / %.1f / %.1f (in/deg)",
                             xya[0],
                             xya[1],
@@ -110,10 +116,12 @@ public class Auto_Robot1 extends LinearOpMode {
                             RobotPose.getFieldX_in(),
                             RobotPose.getFieldAngle_deg()));
                     // telemetry velocity
-                    telemetry.addLine(String.format("f/s/a velocity %.1f / %.1f / %.1f ",
-                            RobotPose.getForwardVelocity_inPerSec(),
-                            RobotPose.getStrafeVelocity_inPerSec(),
-                            RobotPose.getHeadingVelocity_degPerSec()));
+                    telemetry.addLine(String.format("x/y/a velocity %.1f / %.1f / %.1f (v_r %.3f)",
+                            RobotPose.getXVelocity_inPerSec(),
+                            RobotPose.getYVelocity_inPerSec(),
+                            RobotPose.getHeadingVelocity_degPerSec(),
+                            PathManager.v_ramp));
+
                     MyIMU.updateTelemetry(telemetry);
                     telemetry.addData("webcam", WebCam.webcamMessage);
                     WebCam.telemetryAprilTag(telemetry);

@@ -37,19 +37,20 @@ public class PathManager {
     // The PathMakerStateMachine will terminate the path when the "inTargetZone" flag is set.
     //
     public static double maxPowerStepUp = 0.05; // this is an addition, balancing power is done later
-    public static double breakPower = 0.05, breakPowerScale = 0.5, approachPower = 0.2;
+    public static double breakPower = 0.05, breakPowerScale = 0.5, approachPowerXY = 0.2, approachPowerTurn = 0.01;
     public static boolean autonomous_x, autonomous_y, autonomous_a;
-    private static double powerThreshold = 0.1;
+    private static double powerThreshold = 0.1, approachPower;
     public static long timeStep_ms = 40;
     public static long PMcycleTime_ms = 0;
     public static enum RAMPTYPE {LINEAR, STEP};
-    public static RAMPTYPE rampType = RAMPTYPE.STEP;
+    public static RAMPTYPE rampType, rampType_x, rampType_y, rampType_a;
     public static double yRampReach_in = 24;
     public static double xRampReach_in = 12;
     public static double turnRampReach_deg = 45;
+    public static double waitBeforeRamp_ms = 300;
     public static double yTargetZone_in = 1, xTargetZone_in = 1, turnTargetZone_deg = 1;
-    public static double yMinVelocity_inPerSec = 5, xMinVelocity_inPerSec = 5, turnMinVelocity_degPerSec = 5;
-    public static double powerScaling = 1;
+    public static double yMinVelocity_InchPerSec = 5, xMinVelocity_InchPerSec = 5, turnMinVelocity_degPerSec = 5, v_ramp = 1;
+    public static double powerScalingXY = 1, powerScalingTurn = 1, powerScaling;
     public static double yPower, yPowerLast;
     public static double xPower, xPowerLast;
     public static double turnPower, turnPowerLast;
@@ -59,10 +60,10 @@ public class PathManager {
     private static ElapsedTime timer = new ElapsedTime();
 
     public static void moveRobot() throws InterruptedException {
-        powerScaling = PathDetails.powerScaling;
+        powerScalingXY = PathDetails.powerScaling;
         double pathElapsedTime = PathDetails.elapsedTime_ms.milliseconds();
         timer.reset();
-        RobotPose.readPose(); // always read pose in moveRobot before calculating power
+        //RobotPose.readPose(); // this is done in the PathMakerStateMachine
         // calculate the power for each degree of freedom in field coordinates
         // In autonomous mode the power is proportional to the distance to the goal.
         // In driver control mode the power is proportional to the gamepad input.
@@ -128,9 +129,9 @@ public class PathManager {
             turnPower /= sumPower;
         }
         // power scaling only for forward and strafe
-        if (powerScaling<1) {
-            yPower *= powerScaling;
-            xPower *= powerScaling;
+        if (powerScalingXY <1) {
+            yPower *= powerScalingXY;
+            xPower *= powerScalingXY;
         }
     }
 
@@ -143,22 +144,29 @@ public class PathManager {
         double initialPowerSignum;
         double thisVelocity, minVelocity;
         if (dof == THISDOF.Y) {
+            powerScaling = powerScalingXY;
             deltaIsShould = deltaIsShouldY;
             signumIsShould = Math.signum(deltaIsShouldY);
             rampReach = yRampReach_in;
             lastPower = yPowerLast;
             thisVelocity = RobotPose.getYVelocity_inPerSec();
-            minVelocity = yMinVelocity_inPerSec;
+            minVelocity = yMinVelocity_InchPerSec;
             initialPowerSignum = PathDetails.yInitialPowerSignum;
+            approachPower = approachPowerXY;
+            rampType = rampType_y;
         } else if (dof == THISDOF.X) {
+            powerScaling = powerScalingXY;
             deltaIsShould = deltaIsShouldX;
             signumIsShould = Math.signum(deltaIsShouldX);
             rampReach = xRampReach_in;
             lastPower = xPowerLast;
             thisVelocity = RobotPose.getXVelocity_inPerSec();
-            minVelocity = xMinVelocity_inPerSec;
+            minVelocity = xMinVelocity_InchPerSec;
             initialPowerSignum = PathDetails.xInitialPowerSignum;
+            approachPower = approachPowerXY;
+            rampType = rampType_x;
         } else {
+            powerScaling = powerScalingTurn;
             deltaIsShould = deltaIsShouldAngle;
             signumIsShould = Math.signum(deltaIsShouldAngle);
             rampReach = turnRampReach_deg;
@@ -166,6 +174,8 @@ public class PathManager {
             thisVelocity = RobotPose.getHeadingVelocity_degPerSec();
             minVelocity = turnMinVelocity_degPerSec;
             initialPowerSignum = PathDetails.aInitialPowerSignum;
+            approachPower = approachPowerTurn;
+            rampType = rampType_a;
         }
         // calculate ramp power
         if (rampReach > 0) {
@@ -181,20 +191,14 @@ public class PathManager {
                     // within reach value: reduce power proportional to distance to goal
                     power = deltaIsShould / rampReach;
                 } else {
-                    if (Math.abs(thisVelocity) > minVelocity) {
-                        // within reach value: reduce power to minVelocity
-                        // but slightly more than zero to avoid motor break mode
-                        if (Math.abs(lastPower) > breakPower) {
-                            // break mode (power < 0)
-                            power = breakPowerScale * lastPower;
-                        } else {
-                            // stay at minVelocity until goal is reached
-                            power = approachPower * signumIsShould;
-                        }
-                        //power = breakPower * signumIsShould;
-                    } else {
-                        // stay at minVelocity until goal is reached
-                        power = approachPower * signumIsShould;
+                    double minPower = 0.2 / powerScaling; // undo scaling for minPower
+                    power = signumIsShould * Math.max(minPower,Math.abs(deltaIsShould / rampReach)); // for the first waitBeforeRamp_ms, use linear ramp
+                    if (PathDetails.elapsedTime_ms.milliseconds() > waitBeforeRamp_ms) {
+                        double v_abs = Math.max(Math.abs(thisVelocity), minVelocity/2);
+                        v_ramp = minVelocity / v_abs;
+                        v_ramp = Math.max(v_ramp, 0.9);
+                        v_ramp = Math.min(v_ramp, 1.1);
+                        power *= v_ramp;
                     }
                 }
             }

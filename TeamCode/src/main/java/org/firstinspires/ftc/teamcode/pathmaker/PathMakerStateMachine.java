@@ -59,6 +59,7 @@ public class PathMakerStateMachine {
     // Teleop section
     //
     public static void updateTele(Gamepad gamepad, Telemetry telemetry) throws InterruptedException {
+        RobotPose.readPose(); // read pose once per tele loop
         if (aprilTagDetectionOn && WebCam.detectionAprilTag(aprilTagDetectionID, telemetry)  && gamepad.left_bumper) {
             // making sure we don't mistakenly read old data from the WebCam
             // until then the field goals are initialized to 0
@@ -165,8 +166,8 @@ public class PathMakerStateMachine {
             // keep robot heading the same direction if no turn input
             // this counteracts rotational drifting of the robot
             if (switchToAutonomousTimer.milliseconds() < 200 && fromManualToAutoHeading) {
-                // need to wait long enough to get one or two IMU readings
-                // increase 200 to 400 ms for heavy robot
+                // need to wait long enough to get one or heading readings
+                // increase 200 to 400 ms for heavy robot (more inertia)
                 // before switching to autonomous mode to avoid bounce back
                 PathDetails.aFieldGoal_deg = RobotPose.getFieldAngle_deg();
             } else {
@@ -190,6 +191,7 @@ public class PathMakerStateMachine {
     // Autonomous section
     //
     public static void updateAuto(Telemetry telemetry) throws InterruptedException {
+        RobotPose.readPose(); // read pose once per auto loop (moved here from PathManager)
         // process state
         switch (pm_state) {
             case AUTO_SET_PATH:
@@ -251,6 +253,9 @@ public class PathMakerStateMachine {
     }   // end method update
     static void powerDown() {
         DriveTrain.setMotorPowers(0, 0, 0, 0);
+    }
+    static void powerDown(double minPower) throws InterruptedException {
+        DriveTrain.setMotorPowers(minPower, minPower, minPower, minPower);
     }
     private static void setNextPath() {
         nextPath++;

@@ -27,6 +27,8 @@
 package org.firstinspires.ftc.teamcode.op;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hw.DriveTrain;
 import org.firstinspires.ftc.teamcode.hw.MyIMU;
@@ -63,6 +65,9 @@ public class RobotPose {
     private static double R; // odometry wheel radius in cm
     private static double N; // REV encoders tic per revolution
     private static double cm_per_tick, cm_per_tick_strafe;
+    private static ElapsedTime timer = new ElapsedTime();
+
+    public static double DT_seconds = 1;
 
     private static Telemetry poseTelemetry;
     private static DriveTrain poseDriveTrain;
@@ -75,7 +80,7 @@ public class RobotPose {
 
     public static void initializePose(LinearOpMode opMode, DriveTrain driveTrain, Telemetry telemetry) throws InterruptedException {
         driveTrain.init();
-        odometry = ODOMETRY.XYPLUSIMU;
+        odometry = ODOMETRY.DEADWHEEL;
         imu.setOpMode(opMode);
         imu.init(opMode);
         imu.resetAngle();
@@ -105,10 +110,10 @@ public class RobotPose {
         PathDetails.xFieldGoal_in = 0;
         PathDetails.lastTurnGoal = 0;
         if (odometry == ODOMETRY.DEADWHEEL) {
-            L = 32.9438; // distance between left and right encoders in cm - LATERAL DISTANCE
-            B = 11.724; // distance between midpoints of left and right encoders and encoder aux
-            R = 1.9; // odometry wheel radius in cm
-            N = 8192; // REV encoders tic per revolution
+            L = 30.3; // distance between left and right encoders in cm - LATERAL DISTANCE
+            B = 0; // distance between midpoints of left and right encoders and encoder aux
+            R = 2.4; // GoBilda odometry wheel radius in cm (48mm diameter)
+            N = 2000; // GoBilda odometry pod: 2000 Countable Events per Revolution
         } else if (odometry == ODOMETRY.XYPLUSIMU) {
             R = 4.8; // Mecanum wheel radius in cm (OD=96mm)
             N = 537.7; // 312 RPM motor encoder tics per revolution (PPR)
@@ -147,6 +152,8 @@ public class RobotPose {
         double dtheta, dx_in, dy_in, dx, dy, x, y;
         int dn1, dn2, dn3, dn4;
 
+        DT_seconds = timer.seconds(); // time since last call, we use this to calculate velocities
+        timer.reset();
         // Clear the BulkCache once at the beginning of each control cycle
         for (LynxModule module : DriveTrain.allHubs) {
             module.clearBulkCache();
@@ -166,7 +173,7 @@ public class RobotPose {
             dn3 = currentAuxPosition - previousAuxPosition;
 
             //find out robot movement in cm
-            dtheta = cm_per_tick * (dn2 - dn1) / L;
+            dtheta = -cm_per_tick * (dn2 - dn1) / L;
             dy = cm_per_tick * (dn1 + dn2) / 2.0;
             dx = cm_per_tick * (-dn3 + (dn2 - dn1) * B / L);
             lastHeadingAngle_rad = headingAngle_rad;
@@ -208,6 +215,8 @@ public class RobotPose {
         double sin = Math.sin(headingAngle_rad);
         double cos = Math.cos(headingAngle_rad);
         // translate pose to field coordinate system
+        lastPoseY_in = poseY_in;
+        lastPoseX_in = poseX_in;
         poseY_in += deltaPathForward_in * cos - deltaPathStrafe_in * sin;
         poseX_in += deltaPathStrafe_in * cos + deltaPathForward_in * sin;
     }
@@ -238,40 +247,40 @@ public class RobotPose {
         // call readPose first (but only once for all encoders, imu)
         // get actual strafe (lateral) velocity of the robot in the
         // coordinate system defined at the beginning of the path
-        return (poseX_in - lastPoseX_in) / PathManager.timeStep_ms * 1000;
+        return (poseX_in - lastPoseX_in) / DT_seconds;
     }
     public static double getYVelocity_inPerSec(){
         // field centric coordinate system
         // call readPose first (but only once for all encoders, imu)
         // get actual forward velocity of the robot in the coordinate system
         // defined at the beginning of the path.
-        return (poseY_in - lastPoseY_in) / PathManager.timeStep_ms * 1000;
+        return (poseY_in - lastPoseY_in) / DT_seconds;
     }
     public static double getForwardVelocity_inPerSec(){
         // robot centric coordinate system
         // call readPose first (but only once for all encoders, imu)
         // get actual forward velocity of the robot in the coordinate system
         // defined at the beginning of the path.
-        return (forward_in - lastForward_in) / PathManager.timeStep_ms * 1000;
+        return (forward_in - lastForward_in) / DT_seconds;
     }
     public static double getStrafeVelocity_inPerSec(){
         // robot centric coordinate system
         // call readPose first (but only once for all encoders, imu)
         // get actual strafe (lateral) velocity of the robot in the
         // coordinate system defined at the beginning of the path
-        return (strafe_in - lastStrafe_in) / PathManager.timeStep_ms * 1000;
+        return (strafe_in - lastStrafe_in) / DT_seconds;
     }
     public static double getHeadingVelocity_degPerSec(){
         // call readPose first (but only once for all encoders, imu)
         // get actual heading velocity of the robot in the
         // coordinate system defined at the beginning of the path
-        return (headingAngle_rad - lastHeadingAngle_rad) / PathManager.timeStep_ms * 1000;
+        return (headingAngle_rad - lastHeadingAngle_rad) / DT_seconds * 180 / Math.PI;
     }
 
     public static boolean isRobotAtRest() {
-        return (Math.abs(getForwardVelocity_inPerSec()) < 0.1 &&
-                Math.abs(getStrafeVelocity_inPerSec()) < 0.1 &&
-                Math.abs(getHeadingVelocity_degPerSec()) < 0.1);
+        return (Math.abs(getXVelocity_inPerSec()) < PathManager.xMinVelocity_InchPerSec &&
+                Math.abs(getYVelocity_inPerSec()) < PathManager.yMinVelocity_InchPerSec &&
+                Math.abs(getHeadingVelocity_degPerSec()) < PathManager.turnMinVelocity_degPerSec);
     }
 
     public static double [] rebaseRelativeToTag(double tagX, double tagY, double tagAngle, int tagID) {

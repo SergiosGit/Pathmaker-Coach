@@ -30,6 +30,7 @@ public class WebCam {
     private static double distanceCalibration = 1.0;
     private static int nDetectionTrials;
     public static String webcamMessage = "Webcam message empty";
+    public static WEBCAM currentWebCam = WEBCAM.NONE;
 
     public static void init(LinearOpMode opMode, Telemetry telemetry) throws InterruptedException {
         myOpMode = opMode;
@@ -118,6 +119,7 @@ public class WebCam {
     }
     public static boolean streamWebcam(WEBCAM webcam, Telemetry telemetry) throws InterruptedException {
         // Start streaming
+        currentWebCam = webcam;
         boolean success = false;
         nDetectionTrials = 100;
         if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
