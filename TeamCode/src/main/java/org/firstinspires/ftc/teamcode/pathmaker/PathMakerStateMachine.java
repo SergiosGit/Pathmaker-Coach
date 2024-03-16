@@ -214,6 +214,7 @@ public class PathMakerStateMachine {
                 break;
             case AUTO_APRILTAG_ExecutePath:
                 if (PathManager.inTargetZone) {
+                    powerDown();
                     pm_state = PM_STATE.AUTO_NEXT_PATH;
                 } else if (PathDetails.elapsedTime_ms.milliseconds()>500 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms), then check if it rests again
                     pm_state = PM_STATE.AUTO_NEXT_PATH;

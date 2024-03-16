@@ -48,8 +48,9 @@ public class PathManager {
     public static double xRampReach_in = 12;
     public static double turnRampReach_deg = 45;
     public static double waitBeforeRamp_ms = 300;
-    public static double yTargetZone_in = 1, xTargetZone_in = 1, turnTargetZone_deg = 1;
-    public static double yMinVelocity_InchPerSec = 5, xMinVelocity_InchPerSec = 5, turnMinVelocity_degPerSec = 5, v_ramp = 1;
+    public static double xTargetZone_in = 1, yTargetZone_in = 1, turnTargetZone_deg = 1;
+    public static double xMinVelocity_InchPerSec = 5, yMinVelocity_InchPerSec = 5, turnMinVelocity_degPerSec = 5, v_ramp = 1;
+    public static double minPower, xMinPower = 0.2, yMinPower = 0.2, turnMinPower = 0.2;
     public static double powerScalingXY = 1, powerScalingTurn = 1, powerScaling;
     public static double yPower, yPowerLast;
     public static double xPower, xPowerLast;
@@ -154,6 +155,7 @@ public class PathManager {
             initialPowerSignum = PathDetails.yInitialPowerSignum;
             approachPower = approachPowerXY;
             rampType = rampType_y;
+            minPower = yMinPower;
         } else if (dof == THISDOF.X) {
             powerScaling = powerScalingXY;
             deltaIsShould = deltaIsShouldX;
@@ -165,6 +167,7 @@ public class PathManager {
             initialPowerSignum = PathDetails.xInitialPowerSignum;
             approachPower = approachPowerXY;
             rampType = rampType_x;
+            minPower = xMinPower;
         } else {
             powerScaling = powerScalingTurn;
             deltaIsShould = deltaIsShouldAngle;
@@ -176,6 +179,7 @@ public class PathManager {
             initialPowerSignum = PathDetails.aInitialPowerSignum;
             approachPower = approachPowerTurn;
             rampType = rampType_a;
+            minPower = turnMinPower;
         }
         // calculate ramp power
         if (rampReach > 0) {
@@ -203,11 +207,33 @@ public class PathManager {
                 }
             }
         } else {
-            // keep going full speed until power reverses(i.e. passing by the goal mark), then go to next path
+            // keep going until power reverses(i.e. passing by the goal mark), then go to next path
             if (signumIsShould != initialPowerSignum) {
                 inTargetZone = true;
             }
-            power = initialPowerSignum;
+            double absRampReach = Math.abs(rampReach);
+            if (Math.abs(deltaIsShould) > absRampReach) {
+                // outside reach value: move with maximum available power
+                // for rampReach == 0, the robot will move with maximum power
+                // this is an expert mode, the user needs to make sure the robot
+                // can stop in time
+                power = initialPowerSignum;
+            } else {
+                if (rampType == RAMPTYPE.LINEAR) {
+                    // within reach value: reduce power proportional to distance to goal
+                    power = initialPowerSignum*Math.max(minPower/powerScaling,Math.abs(deltaIsShould/rampReach));
+                } else {
+                    double minPower = 0.2 / powerScaling; // undo scaling for minPower
+                    power = signumIsShould * Math.max(minPower,Math.abs(deltaIsShould / absRampReach)); // for the first waitBeforeRamp_ms, use linear ramp
+                    if (PathDetails.elapsedTime_ms.milliseconds() > waitBeforeRamp_ms) {
+                        double v_abs = Math.max(Math.abs(thisVelocity), minVelocity/2);
+                        v_ramp = minVelocity / v_abs;
+                        v_ramp = Math.max(v_ramp, 0.9);
+                        v_ramp = Math.min(v_ramp, 1.1);
+                        power *= v_ramp;
+                    }
+                }
+            }
         }
         if (Math.abs(power) > Math.abs(lastPower) + maxPowerStepUp) { // check if power is increasing too fast
             power = lastPower + signumIsShould * maxPowerStepUp;

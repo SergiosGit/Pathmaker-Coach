@@ -52,7 +52,7 @@ public class Auto_Robot1 extends LinearOpMode {
         //final ColorRangeSensor colorRangeSensor;
         WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
-        RobotPose.setPose(-36, 0, 0);
+        RobotPose.setPose(-12, -46, 0);
         MyIMU.init(this);
         MyIMU.updateTelemetry(telemetry);
         PathMakerStateMachine.setAutonomous();
