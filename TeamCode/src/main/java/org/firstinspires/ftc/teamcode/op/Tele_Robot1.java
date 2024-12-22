@@ -20,7 +20,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hw.DriveTrain;
 import org.firstinspires.ftc.teamcode.hw.MyIMU;
-import org.firstinspires.ftc.teamcode.hw.WebCam;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
@@ -57,15 +56,12 @@ public class Tele_Robot1 extends LinearOpMode {
         //limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         //final ColorRangeSensor colorRangeSensor;
         int cycles = 0;
-        WebCam.init(this, telemetry);
         RobotPose.initializePose(this, driveTrain, telemetry);
-        RobotPose.setPose(0, 0, 0);
+        RobotPose.setPose(0, -48, 0);
         MyIMU.init(this);
         PathMakerStateMachine.setDriverControlled();
         PathDetails.initializePath();
         MyIMU.updateTelemetry(telemetry);
-        telemetry.addData("webcam", WebCam.webcamMessage);
-        WebCam.telemetryAprilTag(telemetry);
         telemetry.update();
         waitForStart();
         ElapsedTime timer = new ElapsedTime();
@@ -87,12 +83,12 @@ public class Tele_Robot1 extends LinearOpMode {
                         xya[1],
                         xya[2]));
                 telemetry.addLine(String.format("Path Goals x/y/a %.1f / %.1f / %.1f (in/deg)",
-                        PathDetails.yFieldGoal_in,
                         PathDetails.xFieldGoal_in,
+                        PathDetails.yFieldGoal_in,
                         PathDetails.aFieldGoal_deg));
                 telemetry.addLine(String.format("RoboPose x/y/a %.1f / %.1f / %.1f (in/deg)",
-                        RobotPose.getFieldY_in(),
                         RobotPose.getFieldX_in(),
+                        RobotPose.getFieldY_in(),
                         RobotPose.getFieldAngle_deg()));
                 // power x/y
                 telemetry.addLine(String.format("power Y/X/A %.2f / %.2f / %.2f",
@@ -118,8 +114,6 @@ public class Tele_Robot1 extends LinearOpMode {
                         xPowerLast,
                         turnPowerLast));
                 MyIMU.updateTelemetry(telemetry);
-                telemetry.addData("webcam", WebCam.webcamMessage);
-                WebCam.telemetryAprilTag(telemetry);
                 telemetry.update();
                 cycles = 0;
             }

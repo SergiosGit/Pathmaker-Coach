@@ -54,12 +54,28 @@ public class DriveTrain {
     }
 
     public DcMotorEx initMotor(DcMotorEx motor) throws InterruptedException {
-        //motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+        motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        //motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         Thread.sleep(100);
         motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         return motor;
+    }
+
+    public void setMotorVelocities(double fl, double bl, double br, double fr){
+        frontLeft.setVelocity(fl, AngleUnit.DEGREES);
+        backLeft.setVelocity(bl, AngleUnit.DEGREES);
+        backRight.setVelocity(br, AngleUnit.DEGREES);
+        frontRight.setVelocity(fr, AngleUnit.DEGREES);
+    }
+
+    public static double[] getMotorVelocities(double fl, double bl, double br, double fr){
+        return new double[]{
+            frontLeft.getVelocity(AngleUnit.DEGREES),
+            backLeft.getVelocity(AngleUnit.DEGREES),
+            backRight.getVelocity(AngleUnit.DEGREES),
+            frontRight.getVelocity(AngleUnit.DEGREES)
+        };
     }
 
     public static void setMotorPowers(double fl, double bl, double br, double fr){
@@ -93,6 +109,7 @@ public class DriveTrain {
             return new int[]{frontLeft.getCurrentPosition(), backLeft.getCurrentPosition(), backRight.getCurrentPosition(), frontRight.getCurrentPosition()};
         } else if (RobotPose.odometry == RobotPose.ODOMETRY.DEADWHEEL) {
             // dead wheel odometry: 0: left encoder, 1: middle encoder, 2: right encoder
+            // babybot: side encoders negative
             return new int[]{-frontLeft.getCurrentPosition(), backRight.getCurrentPosition(), -frontRight.getCurrentPosition()};
         } else {
             return new int[]{0, 0, 0, 0};

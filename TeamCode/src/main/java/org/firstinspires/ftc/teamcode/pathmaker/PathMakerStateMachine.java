@@ -20,14 +20,15 @@ public class PathMakerStateMachine {
     enum CONTROL_MODE {
         TELEOP, AUTONOMOUS
     }   // end enum GameMode
-    enum PM_STATE {
+    public  enum PM_STATE {
         INIT, IDLE, DONE, DRIVER_CONTROL,
         AUTO_BACKBOARD, AUTO_SET_PATH, AUTO_NEXT_PATH, AUTO_APRILTAG_ExecutePath, AUTO_APRILTAG, AUTO_ExecutePath
     }   // end enum State
-
+    public static double telemaxXYPowerStep = 0.3;
     public static PM_STATE pm_state;
     public static CONTROL_MODE control_mode;
     public static boolean aprilTagDetectionOn = false;
+    public static boolean autoLaneKeeping = false;
     public static int aprilTagDetectionID = 0;
     public static int currentPath = -1, nextPath = -1;
     public static double yPower = 0, yPowerLast = 0;
@@ -83,7 +84,7 @@ public class PathMakerStateMachine {
             case DRIVER_CONTROL:
                 PathDetails.setPath(PathDetails.Path.DRIVER_CONTROLLED,telemetry);
                 getGamepadInput(gamepad);
-                //autoLaneKeeping();
+                // autoLaneKeeping();
                 PathManager.moveRobot();
                 break;
             case AUTO_BACKBOARD:
@@ -107,17 +108,33 @@ public class PathMakerStateMachine {
     }   // end method updateTele
     private static void autoLaneKeeping() {
         // auto lane keeping while crossing the trusses in driver control mode
-        if (RobotPose.getFieldY_in() > 27) {
-            // if robot is not in target zone, we will move it back
-            PathDetails.xFieldGoal_in = -24;
+        // define array with x coordinates of the truss
+        double[] trussX = {-72,-48,-24,24,48,72};
+        if (RobotPose.getFieldY_in() > -36 && RobotPose.getFieldY_in() < 12) {
+            // find value in trussX that is closest to RobotPose.getFieldX_in()
+            double closestX = trussX[0];
+            double closestDistance = Math.abs(trussX[0] - RobotPose.getFieldX_in());
+            for (int i = 1; i < trussX.length; i++) {
+                double distance = Math.abs(trussX[i] - RobotPose.getFieldX_in());
+                if (distance < closestDistance) {
+                    closestX = trussX[i];
+                    int closestXindex = i;
+                    closestDistance = distance;
+                }
+            }
+            if (closestX > RobotPose.getFieldX_in()) {
+                PathDetails.xFieldGoal_in = closestX - 12;
+            } else {
+                PathDetails.xFieldGoal_in = closestX + 12;
+            }
             PathManager.autonomous_x = true;
         } else {
             PathManager.autonomous_x = false;
         }
     }
     private static void getGamepadInput(Gamepad gamepad) {
-        xPower = gamepad.left_stick_x;
-        yPower = -gamepad.left_stick_y;
+        xPower = -gamepad.left_stick_x;
+        yPower = gamepad.left_stick_y;
         turnPower = gamepad.right_stick_x * turnSensitivity;
 
         double gamepadThreshold = 0.1;
@@ -139,7 +156,7 @@ public class PathMakerStateMachine {
             turnPower = 0;
         }
         // add ramp for x and y powers
-        double maxXYPowerStep = 0.15;
+        double maxXYPowerStep = telemaxXYPowerStep;
         double signumXPowerChange = Math.signum(xPower - xPowerLast);
         if (Math.abs(xPower-xPowerLast) > maxXYPowerStep) {
             xPower = xPowerLast + signumXPowerChange * maxXYPowerStep;

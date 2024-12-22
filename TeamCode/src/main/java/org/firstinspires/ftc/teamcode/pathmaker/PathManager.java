@@ -36,7 +36,10 @@ public class PathManager {
     // The PathManager will set the "inTargetZone" flag when the robot is within the target zone.
     // The PathMakerStateMachine will terminate the path when the "inTargetZone" flag is set.
     //
-    public static double maxPowerStepUp = 0.05; // this is an addition, balancing power is done later
+    public static double testRampPower = 0;
+    public static int testRampZeros = 2;
+    private static int testRampCounter = 0;
+    public static double maxPowerStepUp = 0.005; // this is an addition, balancing power is done later
     public static double breakPower = 0.05, breakPowerScale = 0.5, approachPowerXY = 0.2, approachPowerTurn = 0.01;
     public static boolean autonomous_x, autonomous_y, autonomous_a;
     private static double powerThreshold = 0.1, approachPower;
@@ -57,6 +60,10 @@ public class PathManager {
     public static double turnPower, turnPowerLast;
     private enum THISDOF {Y, X, TURN} // Degrees of freedom
     public static double deltaIsShouldY=1e99, deltaIsShouldX=1e99, deltaIsShouldAngle=1e99;
+    public static double deltaVelocity=1.0, deltaPosition=1.0;
+    public static double lastXVelocity=0.0, lastYVelocity=0.0, lastTurnVelocity=0.0;
+    public static double lastXPosition=0.0, lastYPosition=0.0, lastTurnPosition=0.0;
+    public static double deltaXPosition=0.0, deltaYPosition=0.0, deltaTurnPosition=0.0;
     public static boolean inTargetZone = false;
     private static ElapsedTime timer = new ElapsedTime();
 
@@ -150,7 +157,11 @@ public class PathManager {
             signumIsShould = Math.signum(deltaIsShouldY);
             rampReach = yRampReach_in;
             lastPower = yPowerLast;
+            deltaYPosition = RobotPose.getFieldY_in() - lastYPosition;
+            lastYPosition = RobotPose.getFieldY_in();
             thisVelocity = RobotPose.getYVelocity_inPerSec();
+            deltaVelocity = thisVelocity - lastYVelocity;
+            lastYVelocity = thisVelocity;
             minVelocity = yMinVelocity_InchPerSec;
             initialPowerSignum = PathDetails.yInitialPowerSignum;
             approachPower = approachPowerXY;
@@ -162,7 +173,10 @@ public class PathManager {
             signumIsShould = Math.signum(deltaIsShouldX);
             rampReach = xRampReach_in;
             lastPower = xPowerLast;
+            deltaXPosition = RobotPose.getFieldX_in() - lastXPosition;
             thisVelocity = RobotPose.getXVelocity_inPerSec();
+            deltaVelocity = thisVelocity - lastXVelocity;
+            lastXVelocity = thisVelocity;
             minVelocity = xMinVelocity_InchPerSec;
             initialPowerSignum = PathDetails.xInitialPowerSignum;
             approachPower = approachPowerXY;
@@ -174,7 +188,10 @@ public class PathManager {
             signumIsShould = Math.signum(deltaIsShouldAngle);
             rampReach = turnRampReach_deg;
             lastPower = turnPowerLast;
+            deltaTurnPosition = RobotPose.getFieldAngle_deg() - lastTurnPosition;
             thisVelocity = RobotPose.getHeadingVelocity_degPerSec();
+            deltaVelocity = thisVelocity - lastTurnVelocity;
+            lastTurnVelocity = thisVelocity;
             minVelocity = turnMinVelocity_degPerSec;
             initialPowerSignum = PathDetails.aInitialPowerSignum;
             approachPower = approachPowerTurn;
@@ -182,7 +199,10 @@ public class PathManager {
             minPower = turnMinPower;
         }
         // calculate ramp power
-        if (rampReach > 0) {
+        // typical case: rampReach > 0, i.e. robot is supposed to stop at the goal
+        // rampReach is negative to indicate that the robot should keep going full power
+        // until deltaIsShould reverses (i.e. goal is reached) and then go to the next path
+        if (rampReach > 0) { // rampReach is positive
             // outside reach value: move with maximum available power
             if (Math.abs(deltaIsShould) > rampReach) {
                 // outside reach value: move with maximum available power
@@ -193,17 +213,44 @@ public class PathManager {
             } else {
                 if (rampType == RAMPTYPE.LINEAR) {
                     // within reach value: reduce power proportional to distance to goal
-                    power = deltaIsShould / rampReach;
+                    // power = deltaIsShould / rampReach;
+                    testRampCounter++;
+                    // if testRampCounter is equal testRampZeros, use ramp, else set to testRampPower
+                    // full breaking if energy in any DOF is above threshold
+                    double robot_energy_threshold = RobotPose.testrobot_energy_threshold;
+                    boolean isEnergyAboveThreshold = RobotPose.getAngularEnergy() > robot_energy_threshold ||
+                            RobotPose.getForwardEnergy() > robot_energy_threshold || RobotPose.getStrafeEnergy() > robot_energy_threshold;
+                    if (isEnergyAboveThreshold) {
+                        power = 0;
+                    } else {
+                        power = deltaIsShould / rampReach;
+                    }
                 } else {
                     double minPower = 0.2 / powerScaling; // undo scaling for minPower
-                    power = signumIsShould * Math.max(minPower,Math.abs(deltaIsShould / rampReach)); // for the first waitBeforeRamp_ms, use linear ramp
-                    if (PathDetails.elapsedTime_ms.milliseconds() > waitBeforeRamp_ms) {
-                        double v_abs = Math.max(Math.abs(thisVelocity), minVelocity/2);
-                        v_ramp = minVelocity / v_abs;
-                        v_ramp = Math.max(v_ramp, 0.9);
-                        v_ramp = Math.min(v_ramp, 1.1);
-                        power *= v_ramp;
+//                    power = signumIsShould * Math.max(minPower,Math.abs(deltaIsShould / rampReach));
+//                    // for the first waitBeforeRamp_ms, use linear ramp
+//                    if (PathDetails.elapsedTime_ms.milliseconds() > waitBeforeRamp_ms) {
+//                        double v_abs = Math.max(Math.abs(thisVelocity), minVelocity/2);
+//                        v_ramp = minVelocity / v_abs;
+//                        v_ramp = Math.max(v_ramp, 0.9);
+//                        v_ramp = Math.min(v_ramp, 1.1);
+//                        power *= v_ramp;
+//                    }
+                    // rate at which velocity needs to be ramped down to zero
+                    double v_rate_required = thisVelocity / deltaIsShould;
+                    // rate at which velocity is actually changing is velocity change since last time
+                    // over position change since last time
+                    double v_rate_actual = deltaVelocity / deltaPosition;
+                    // scale the power to achieve the required rate
+                    // make sure v_rate_actual is not zero
+                    if (v_rate_actual == 0) {
+                        v_rate_actual = v_rate_required;
                     }
+                    double powerAdjustment = Math.abs(v_rate_required / v_rate_actual);
+                    // limit power adjustment within 0.5 and 1.5
+                    powerAdjustment = Math.max(powerAdjustment, 0.5);
+                    powerAdjustment = Math.min(powerAdjustment, 1.5);
+                    power = lastPower * powerAdjustment;
                 }
             }
         } else {

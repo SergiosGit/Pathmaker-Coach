@@ -33,6 +33,19 @@ import java.util.ArrayList;
 
 @Config
 public class PathDetails {
+    // for testing
+    public static double  p1maxPowerStepUp = 0.05;
+    public static double  p1powerScaling = 1;
+    public static double  p1xFieldGoal_in = 0;
+    public static double  p1yFieldGoal_in = 45;
+    public static double  p1aFieldGoal_deg = 0;
+    public static double  p1pathTime_ms = 9E9;
+    public static double  p1yFieldDelay_ms = 0;
+    public static double  p1xFieldDelay_ms = 0;
+    public static double  p1turnFieldDelay_ms = 0;
+    public static double  p1xRampReach_in = 10;
+    public static double  p1yRampReach_in = 15;
+    public static double  p1turnRampReach_deg = 45;
     // PathDetails defines each path goals and constraints for each DOF (x,y,a)
     // PathMaker uses a robot centric coordinate system (COS)
     // All x/y coordinates relate to the field center
@@ -66,7 +79,7 @@ public class PathDetails {
         PathMakerStateMachine.aprilTagDetectionOn = false;
         PMSMstate = PathMakerStateMachine.PM_STATE.AUTO_SET_PATH;
         PathManager.powerScalingTurn = 1;
-        PathManager.maxPowerStepUp = 0.1;
+        PathManager.maxPowerStepUp = p1maxPowerStepUp;
         PathManager.inTargetZone = false;
         PathManager.yTargetZone_in = 1;
         PathManager.xTargetZone_in = 1;
@@ -88,7 +101,7 @@ public class PathDetails {
     }
     public enum Path {
         // Each path is labeled with a name as defined in this enum
-        P1, P11, P2, P3, P4,
+        P1, P11, P2, P3, P4, P5,
         AUTO_BACKBOARD, AUTO_APRIL_TAG, AUTO_PIXEL_STACKS,
         DRIVER_CONTROLLED,
         DONE
@@ -101,9 +114,12 @@ public class PathDetails {
         PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
         autoPathList = new ArrayList<PathDetails.Path>();
         autoPathList.add(PathDetails.Path.P1);
-        autoPathList.add(PathDetails.Path.P11);
-        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
-        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
+//        autoPathList.add(PathDetails.Path.P2);
+//        autoPathList.add(PathDetails.Path.P3);
+//        autoPathList.add(PathDetails.Path.P4);
+//        autoPathList.add(PathDetails.Path.P11);
+//        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
+//        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
 //        autoPathList.add(PathDetails.Path.P2);
 //        autoPathList.add(PathDetails.Path.P3);
 //        autoPathList.add(PathDetails.Path.P4);
@@ -126,92 +142,35 @@ public class PathDetails {
             case P1:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                powerScaling = 0.8;
-                xFieldGoal_in = -12; yFieldGoal_in = 0; aFieldGoal_deg = 0;
-                yFieldDelay_ms = 700;
-                //PathManager.rampType_y = PathManager.RAMPTYPE.STEP;
-                PathManager.yTargetZone_in = 2;
-                PathManager.xTargetZone_in = 1;
-                PathManager.turnTargetZone_deg = 2;
-                PathManager.yMinVelocity_InchPerSec = 7;
-                PathManager.xMinVelocity_InchPerSec = 2;
-                PathManager.approachPowerTurn = 0.1;
-                PathManager.approachPowerXY = 0.25;
-                PathManager.yRampReach_in = 0;
-                calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
-                break;
-            case P11:
-                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
-                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                powerScaling = 0.8;
-                xFieldGoal_in = -12; yFieldGoal_in = 48; aFieldGoal_deg = 0;
-                PathManager.rampType_y = PathManager.RAMPTYPE.STEP;
-                PathManager.yTargetZone_in = 2;
-                PathManager.xTargetZone_in = 1;
-                PathManager.turnTargetZone_deg = 2;
-                PathManager.yMinVelocity_InchPerSec = 7;
-                PathManager.xMinVelocity_InchPerSec = 2;
-                PathManager.approachPowerTurn = 0.1;
-                PathManager.approachPowerXY = 0.25;
-                PathManager.yRampReach_in = 24;
-                PathManager.xRampReach_in = 24;
-                calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
+                PathManager.xRampReach_in = p1xRampReach_in;
+                PathManager.yRampReach_in = p1yRampReach_in;
+                PathManager.turnRampReach_deg = p1turnRampReach_deg;
+                PathManager.maxPowerStepUp = p1maxPowerStepUp;
+                powerScaling = p1powerScaling;
+                xFieldGoal_in = p1xFieldGoal_in;
+                yFieldGoal_in = p1yFieldGoal_in;
+                aFieldGoal_deg = p1aFieldGoal_deg;
+                pathTime_ms = p1pathTime_ms;
+                yFieldDelay_ms = p1yFieldDelay_ms;
+                xFieldDelay_ms = p1xFieldDelay_ms;
+                turnFieldDelay_ms = p1turnFieldDelay_ms;
                 break;
             case P2:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                PathManager.yRampReach_in = 0;
+                PathManager.yRampReach_in = 5;
+                PathManager.xRampReach_in = 5;
+//                xFieldDelay_ms = 5000;
                 powerScaling = 0.5;
-                xFieldGoal_in = -12; yFieldGoal_in = 12; aFieldGoal_deg = 0;
-                calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
+                xFieldGoal_in = -60; yFieldGoal_in = 96; aFieldGoal_deg = 90;
                 break;
             case P3:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                PathManager.yRampReach_in = 0;
-                powerScaling = 0.5;
-                xFieldGoal_in = -12; yFieldGoal_in = -6; aFieldGoal_deg = 0;
-                calculateInitialPowerSignum(xFieldGoal_in, yFieldGoal_in, aFieldGoal_deg);
-                break;
-            case P4:
-                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
-                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
                 PathManager.yRampReach_in = 5;
+                PathManager.xRampReach_in = 5;
                 powerScaling = 0.5;
-                xFieldGoal_in = -12; yFieldGoal_in = -10; aFieldGoal_deg = 0;
-                break;
-            case AUTO_BACKBOARD:
-                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
-                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_APRILTAG;
-                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM1, telemetry);
-                PathMakerStateMachine.aprilTagDetectionOn = true;
-                PathMakerStateMachine.aprilTagDetectionID = 2;
-                powerScaling = 0.4;
-                PathManager.rampType_y = PathManager.RAMPTYPE.STEP;
-                PathManager.yTargetZone_in = 2;
-                PathManager.xTargetZone_in = 1;
-                PathManager.yRampReach_in = 12;
-                PathManager.turnTargetZone_deg = 2;
-                PathManager.yMinVelocity_InchPerSec = 8;
-                PathManager.xMinVelocity_InchPerSec = 2;
-                PathManager.approachPowerTurn = 0.1;
-                PathManager.approachPowerXY = 0.25;
-                PathManager.breakPowerScale = 0.9;
-                // in auto mode the goals are relative to the tag positions (see autoAprilTag)
-                yRelativetoTag = -10;
-                xRelativeToTag = 0;
-                aRelativetoTag = 0;
-                break;
-            case AUTO_PIXEL_STACKS:
-                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
-                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_APRILTAG;
-                WebCam.streamWebcam(WebCam.WEBCAM.WEBCAM2, telemetry);
-                PathMakerStateMachine.aprilTagDetectionOn = true;
-                PathMakerStateMachine.aprilTagDetectionID = 9;
-                powerScaling = 0.5;
-                yRelativetoTag = 14;
-                xRelativeToTag = 0;
-                aRelativetoTag = 0;
+                xFieldGoal_in = -60; yFieldGoal_in = 0; aFieldGoal_deg = 90;
                 break;
             case DONE:
                 break;

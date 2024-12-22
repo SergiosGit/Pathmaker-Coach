@@ -25,6 +25,7 @@
 // Copyright (c) 2023 bayrobotics.org
 //
 package org.firstinspires.ftc.teamcode.op;
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -37,6 +38,7 @@ import static org.firstinspires.ftc.teamcode.hw.DriveTrain.getEncoderValues;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
 
+@Config
 public class RobotPose {
     private static double headingAngle_rad = 0, lastHeadingAngle_rad = 0;
     private static double poseA_deg = 0, lastHeadingAngle_deg = 0;
@@ -60,8 +62,15 @@ public class RobotPose {
     public static int currentForwardTics = 0;
     public static int currentTurn_rad = 0;
 
-    private static double L; // distance between left and right encoders in cm - LATERAL DISTANCE
-    private static double B; // distance between midpoints of left and right encoders and encoder aux
+    public static double robot_mass_kg = 10.0; // mass of baby bot in kg
+    public static double robot_energy_f = 0; // forward kinetic energy in arbitrary units (E_kin = m * (in/sec)^2)
+    public static double robot_energy_s = 0; // strafe kinetic energy in arbitrary units
+    public static double robot_energy_a = 0; // angular kinetic energy in arbitrary units (E_rot = 1/25 * m * (deg/sec)^2)
+    public static double testrobot_energy_threshold = 8000; // kinetic energy threshold to switch from full breaking to slow driving until stop at goal
+    public static double robot_energy_threshold = testrobot_energy_threshold; // 5760, kinetic energy threshold to switch from full breaking to slow driving until stop at goal
+
+    public static double L = 30.3; // Baby Bot, distance between left and right encoders in cm - LATERAL DISTANCE
+    public static double B = 14.0; // Baby Bot, distance between midpoints of left and right encoders and encoder aux
     private static double R; // odometry wheel radius in cm
     private static double N; // REV encoders tic per revolution
     private static double cm_per_tick, cm_per_tick_strafe;
@@ -110,8 +119,8 @@ public class RobotPose {
         PathDetails.xFieldGoal_in = 0;
         PathDetails.lastTurnGoal = 0;
         if (odometry == ODOMETRY.DEADWHEEL) {
-            L = 30.3; // distance between left and right encoders in cm - LATERAL DISTANCE
-            B = 0; // distance between midpoints of left and right encoders and encoder aux
+//            L = 30.3; // distance between left and right encoders in cm - LATERAL DISTANCE
+//            B = 0; // distance between midpoints of left and right encoders and encoder aux
             R = 2.4; // GoBilda odometry wheel radius in cm (48mm diameter)
             N = 2000; // GoBilda odometry pod: 2000 Countable Events per Revolution
         } else if (odometry == ODOMETRY.XYPLUSIMU) {
@@ -212,11 +221,12 @@ public class RobotPose {
         // robot coordinate system (COS at start)
         double deltaPathForward_in = forward_in - lastForward_in;
         double deltaPathStrafe_in = strafe_in - lastStrafe_in;
-        double sin = Math.sin(headingAngle_rad);
-        double cos = Math.cos(headingAngle_rad);
+        double useHeadingAngle_rad = headingAngle_rad ;
+        double sin = Math.sin(useHeadingAngle_rad);
+        double cos = Math.cos(useHeadingAngle_rad);
         // translate pose to field coordinate system
-        lastPoseY_in = poseY_in;
         lastPoseX_in = poseX_in;
+        lastPoseY_in = poseY_in;
         poseY_in += deltaPathForward_in * cos - deltaPathStrafe_in * sin;
         poseX_in += deltaPathStrafe_in * cos + deltaPathForward_in * sin;
     }
@@ -263,6 +273,27 @@ public class RobotPose {
         // defined at the beginning of the path.
         return (forward_in - lastForward_in) / DT_seconds;
     }
+    public static double getForwardEnergy(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual forward kinetic energy of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return robot_mass_kg * Math.pow(getForwardVelocity_inPerSec(), 2);
+    }
+    public static double getStrafeEnergy(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual strafe kinetic energy of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return robot_mass_kg * Math.pow(getStrafeVelocity_inPerSec(), 2);
+    }
+    public static double getAngularEnergy(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual angular kinetic energy of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return robot_mass_kg * Math.pow(getHeadingVelocity_degPerSec(), 2) / 25;
+    }
     public static double getStrafeVelocity_inPerSec(){
         // robot centric coordinate system
         // call readPose first (but only once for all encoders, imu)
@@ -298,14 +329,14 @@ public class RobotPose {
     public static double [] tagOffset(int tagID) {
         // rebase robot pose based on tag identification
         tagID =  Math.max(Math.min(tagID, 10), 0);
-//            double [] YOffset_in = {0, 62, 62, 62,62,62,62,-72.5,-72.5,-72.5,-72.5};
-//            double [] XOffset_in = {0,-42,-36,-30,30,36,42, 44.5,   36,  -36,-44.5};
-//            double [] AOffset_deg ={0,  0,  0,  0, 0, 0, 0,    0,    0,    0,    0};
+        double [] XOffset_in = {0,-42,-36,-30,30,36,42, 44.5,   36,  -36,-44.5};
+        double [] YOffset_in = {0, 62, 62, 62,62,62,62,-72.5,-72.5,-72.5,-72.5};
+        double [] AOffset_deg ={0,  0,  0,  0, 0, 0, 0,    0,    0,    0,    0};
         // for testing in my office only, moving between April tags 2 and 9
         //     Tag Nr:             1,  2,  3,  4,  5,  6,  7,  8,  9, 10
-        double[] YOffset_in =  {0, 62, 62, 62, 62, 62, 62,-48,-48,-48,-48};
-        double[] XOffset_in =  {0,-42,-36,-30, 30, 36, 42, 44, 36,-22,-44}; // for testing in my office only (#9 actual: X=-36)
-        double[] AOffset_deg = {0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0};
+//        double[] XOffset_in =  {0,-42,-36,-30, 30, 36, 42, 44, 36,-22,-44}; // for testing in my office only (#9 actual: X=-36)
+//        double[] YOffset_in =  {0, 62, 62, 62, 62, 62, 62,-48,-48,-48,-48};
+//        double[] AOffset_deg = {0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0};
         return new double[]{YOffset_in[tagID], XOffset_in[tagID], AOffset_deg[tagID]};
     }
 }
