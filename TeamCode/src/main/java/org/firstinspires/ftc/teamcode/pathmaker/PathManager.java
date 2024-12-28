@@ -38,7 +38,6 @@ public class PathManager {
     //
     public static double testRampPower = 0;
     public static int testRampZeros = 2;
-    private static int testRampCounter = 0;
     public static double maxPowerStepUp = 0.005; // this is an addition, balancing power is done later
     public static double breakPower = 0.05, breakPowerScale = 0.5, approachPowerXY = 0.2, approachPowerTurn = 0.01;
     public static boolean autonomous_x, autonomous_y, autonomous_a;
@@ -214,12 +213,10 @@ public class PathManager {
                 if (rampType == RAMPTYPE.LINEAR) {
                     // within reach value: reduce power proportional to distance to goal
                     // power = deltaIsShould / rampReach;
-                    testRampCounter++;
-                    // if testRampCounter is equal testRampZeros, use ramp, else set to testRampPower
                     // full breaking if energy in any DOF is above threshold
                     double robot_energy_threshold = RobotPose.testrobot_energy_threshold;
-                    boolean isEnergyAboveThreshold = RobotPose.getAngularEnergy() > robot_energy_threshold ||
-                            RobotPose.getForwardEnergy() > robot_energy_threshold || RobotPose.getStrafeEnergy() > robot_energy_threshold;
+                    boolean isEnergyAboveThreshold = (RobotPose.getAngularEnergy() +
+                            RobotPose.getForwardEnergy() + RobotPose.getStrafeEnergy()) > robot_energy_threshold;
                     if (isEnergyAboveThreshold) {
                         power = 0;
                     } else {
