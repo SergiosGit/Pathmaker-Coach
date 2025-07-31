@@ -26,6 +26,9 @@ import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
 import org.firstinspires.ftc.teamcode.hw.DriveTrain;
 
 
+// This is the main module showing the use of the PathMaker library that can be used
+// for autonomous control of a Mecanum wheel drive train for the FTC competition.
+
 @Config
 @Autonomous
 public class Auto_Robot1 extends LinearOpMode {
