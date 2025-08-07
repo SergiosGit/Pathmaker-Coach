@@ -233,7 +233,7 @@ public class PathMakerStateMachine {
                 if (PathManager.inTargetZone) {
                     powerDown();
                     pm_state = PM_STATE.AUTO_NEXT_PATH;
-                } else if (PathDetails.elapsedTime_ms.milliseconds()>500 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms), then check if it rests again
+                } else if (PathDetails.elapsedTime_ms.milliseconds()>1000 && RobotPose.isRobotAtRest()) { // wait until robot first moves (300 ms), then check if it rests again
                     pm_state = PM_STATE.AUTO_NEXT_PATH;
                 } else {
                     PathManager.moveRobot();
@@ -258,14 +258,7 @@ public class PathMakerStateMachine {
                 }
                 break;
             case AUTO_NEXT_PATH:
-                setNextPath();
-                if (nextPath < 0) {
-                    //nextPath = 0;
-                    //pm_state = PM_STATE.AUTO_SET_PATH; // repeat from the beginning
-                    pm_state = PM_STATE.DONE;
-                } else {
-                    pm_state = PM_STATE.AUTO_SET_PATH;
-                }
+                pm_state = PM_STATE.AUTO_SET_PATH; // repeat from the beginning
                 break;
         }   // end switch (state)
     }   // end method update

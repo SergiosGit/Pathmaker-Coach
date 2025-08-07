@@ -49,7 +49,7 @@ public class RobotPose {
 
     private static int currentRightPosition = 0;
     private static int currentLeftPosition = 0;
-    private static int currentAuxPosition = 0;
+    public static int currentAuxPosition = 0;
 
     //to keep track of the previous encoder values
     private static int previousRightPosition = 0;
@@ -69,8 +69,8 @@ public class RobotPose {
     public static double testrobot_energy_threshold = 8000; // kinetic energy threshold to switch from full breaking to slow driving until stop at goal
     public static double robot_energy_threshold = testrobot_energy_threshold; // 5760, kinetic energy threshold to switch from full breaking to slow driving until stop at goal
 
-    public static double L = 30.3; // Baby Bot, distance between left and right encoders in cm - LATERAL DISTANCE
-    public static double B = 14.0; // Baby Bot, distance between midpoints of left and right encoders and encoder aux
+    public static double L = 28.0; // Baby Bot, distance between left and right encoders in cm - LATERAL DISTANCE
+    public static double B = -6.90; // Baby Bot, distance between midpoints of left and right encoders and encoder aux
     private static double R; // odometry wheel radius in cm
     private static double N; // REV encoders tic per revolution
     private static double cm_per_tick, cm_per_tick_strafe;
@@ -183,8 +183,8 @@ public class RobotPose {
 
             //find out robot movement in cm
             dtheta = -cm_per_tick * (dn2 - dn1) / L;
-            dy = cm_per_tick * (dn1 + dn2) / 2.0;
-            dx = cm_per_tick * (-dn3 + (dn2 - dn1) * B / L);
+            dy = -cm_per_tick * (dn1 + dn2) / 2.0;
+            dx = -cm_per_tick * (-dn3 + (dn2 - dn1) * B / L);
             lastHeadingAngle_rad = headingAngle_rad;
             headingAngle_rad += dtheta;
         } else if (odometry == ODOMETRY.XYPLUSIMU){

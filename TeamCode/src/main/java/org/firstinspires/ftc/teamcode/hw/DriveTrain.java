@@ -105,7 +105,7 @@ public class DriveTrain {
     }
     public static int[] getEncoderValues() {
         if (RobotPose.odometry == RobotPose.ODOMETRY.XYPLUSIMU) {
-            // odometry from wheel encoders: 0: frontLeft, 1: backLeft, 2: backRight, 3: frontRight
+            // odometry from wheel encoders: 0: frontLeft, 1: backLeft, 2: backRight, 3: fron tRight
             return new int[]{frontLeft.getCurrentPosition(), backLeft.getCurrentPosition(), backRight.getCurrentPosition(), frontRight.getCurrentPosition()};
         } else if (RobotPose.odometry == RobotPose.ODOMETRY.DEADWHEEL) {
             // dead wheel odometry: 0: left encoder, 1: middle encoder, 2: right encoder

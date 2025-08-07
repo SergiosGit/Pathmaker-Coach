@@ -65,6 +65,7 @@ public class PathDetails {
     public static ElapsedTime elapsedTime_ms = new ElapsedTime();
     public static double pathTime_ms = 0;
     public  static PathMakerStateMachine.PM_STATE PMSMstate;
+    public static double roombaRadius = 20;
 
     public static double lastTurnGoal;
 
@@ -83,7 +84,7 @@ public class PathDetails {
         PathManager.inTargetZone = false;
         PathManager.yTargetZone_in = 1;
         PathManager.xTargetZone_in = 1;
-        PathManager.turnTargetZone_deg = 1;
+        PathManager.turnTargetZone_deg = 10;
         PathManager.yRampReach_in = 24;
         PathManager.xRampReach_in = 24;
         PathManager.turnRampReach_deg = 45;
@@ -97,6 +98,9 @@ public class PathDetails {
         PathManager.approachPowerXY = 0.2;
         PathManager.breakPower = 0.05;
         PathManager.breakPowerScale = 0.5;
+        int rotateDeg = (int) (Math.random() * 360);
+        yFieldGoal_in = (int) (Math.sin(Math.toRadians(rotateDeg))) * roombaRadius;
+        xFieldGoal_in = (int) (Math.cos(Math.toRadians(rotateDeg))) * roombaRadius;
         //WebCam.stopWebcam();
     }
     public enum Path {
@@ -142,35 +146,8 @@ public class PathDetails {
             case P1:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                PathManager.xRampReach_in = p1xRampReach_in;
-                PathManager.yRampReach_in = p1yRampReach_in;
-                PathManager.turnRampReach_deg = p1turnRampReach_deg;
-                PathManager.maxPowerStepUp = p1maxPowerStepUp;
-                powerScaling = p1powerScaling;
-                xFieldGoal_in = p1xFieldGoal_in;
-                yFieldGoal_in = p1yFieldGoal_in;
-                aFieldGoal_deg = p1aFieldGoal_deg;
-                pathTime_ms = p1pathTime_ms;
-                yFieldDelay_ms = p1yFieldDelay_ms;
-                xFieldDelay_ms = p1xFieldDelay_ms;
-                turnFieldDelay_ms = p1turnFieldDelay_ms;
-                break;
-            case P2:
-                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
-                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                PathManager.yRampReach_in = 5;
-                PathManager.xRampReach_in = 5;
-//                xFieldDelay_ms = 5000;
-                powerScaling = 0.5;
-                xFieldGoal_in = -60; yFieldGoal_in = 96; aFieldGoal_deg = 90;
-                break;
-            case P3:
-                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
-                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                PathManager.yRampReach_in = 5;
-                PathManager.xRampReach_in = 5;
-                powerScaling = 0.5;
-                xFieldGoal_in = -60; yFieldGoal_in = 0; aFieldGoal_deg = 90;
+                powerScaling = 0.4;
+                pathTime_ms = 10000;
                 break;
             case DONE:
                 break;
