@@ -188,7 +188,7 @@ public class PathDetails {
             x = WebCam.offsetToTarget;
         }
         double y = distanceToTarget * Math.cos(Math.toRadians(a)) * xyWebCamMultiplier;
-        double tagXYA[] = RobotPose.rebaseRelativeToTag(x, y, a, PathMakerStateMachine.aprilTagDetectionID);
+        double[] tagXYA = RobotPose.rebaseRelativeToTag(x, y, a, PathMakerStateMachine.aprilTagDetectionID);
         // position relative to tags
         yFieldGoal_in = tagXYA[0] + yRelativetoTag;
         xFieldGoal_in = tagXYA[1] + xRelativeToTag;

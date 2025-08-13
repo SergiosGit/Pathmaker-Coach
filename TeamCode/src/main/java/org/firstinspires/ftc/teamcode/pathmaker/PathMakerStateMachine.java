@@ -37,7 +37,7 @@ public class PathMakerStateMachine {
     static double turnPowerLast = 0;
     static int xStoppingCounter = 1, yStoppingCounter = 1;
     public static double turnSensitivity = 0.4;
-    private static ElapsedTime switchToAutonomousTimer = new ElapsedTime();
+    private static final ElapsedTime switchToAutonomousTimer = new ElapsedTime();
     private static boolean fromManualToAutoHeading = false;
 
     public PathMakerStateMachine() {
@@ -244,8 +244,6 @@ public class PathMakerStateMachine {
             case DONE:
                 powerDown();
                 break;
-            default:
-                break;
             case AUTO_ExecutePath:
                 if (PathDetails.elapsedTime_ms.milliseconds() > PathDetails.pathTime_ms) {
                     pm_state = PM_STATE.AUTO_NEXT_PATH;
@@ -259,6 +257,8 @@ public class PathMakerStateMachine {
                 break;
             case AUTO_NEXT_PATH:
                 pm_state = PM_STATE.AUTO_SET_PATH; // repeat from the beginning
+                break;
+            default:
                 break;
         }   // end switch (state)
     }   // end method update

@@ -11,8 +11,8 @@ public class Intake {
     public enum IntakePosition {GRAB, HOLD, IDLE, DELIVER}
 
     private class IntakePreset{
-        private IntakePosition intakePosition;
-        private double motorSpeed;
+        private final IntakePosition intakePosition;
+        private final double motorSpeed;
 
         public IntakePreset(IntakePosition intakePosition, double motorSpeed)
         {
@@ -25,9 +25,9 @@ public class Intake {
 
     }
 
-    private DcMotor intakeMotor;
+    private final DcMotor intakeMotor;
 
-    private ArrayList<IntakePreset> presets = new ArrayList<>();
+    private final ArrayList<IntakePreset> presets = new ArrayList<>();
     private IntakePreset currentIntakePreset;
 
     public Intake(HardwareMap hardwareMap){

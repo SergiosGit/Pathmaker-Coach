@@ -41,10 +41,12 @@ public class PathManager {
     public static double maxPowerStepUp = 0.005; // this is an addition, balancing power is done later
     public static double breakPower = 0.05, breakPowerScale = 0.5, approachPowerXY = 0.2, approachPowerTurn = 0.01;
     public static boolean autonomous_x, autonomous_y, autonomous_a;
-    private static double powerThreshold = 0.1, approachPower;
+    private static final double powerThreshold = 0.1;
+    private static double approachPower;
     public static long timeStep_ms = 40;
     public static long PMcycleTime_ms = 0;
-    public static enum RAMPTYPE {LINEAR, STEP};
+    public enum RAMPTYPE {LINEAR, STEP}
+
     public static RAMPTYPE rampType, rampType_x, rampType_y, rampType_a;
     public static double yRampReach_in = 24;
     public static double xRampReach_in = 12;
@@ -64,7 +66,7 @@ public class PathManager {
     public static double lastXPosition=0.0, lastYPosition=0.0, lastTurnPosition=0.0;
     public static double deltaXPosition=0.0, deltaYPosition=0.0, deltaTurnPosition=0.0;
     public static boolean inTargetZone = false;
-    private static ElapsedTime timer = new ElapsedTime();
+    private static final ElapsedTime timer = new ElapsedTime();
 
     public static void moveRobot() throws InterruptedException {
         powerScalingXY = PathDetails.powerScaling;
@@ -116,14 +118,11 @@ public class PathManager {
     }
     private static boolean checkInTargetZone() {
         // latch until inTargetZone is reset in setPath
-        if (inTargetZone == true) return true;
+        if (inTargetZone) return true;
         // check if robot is in target zone
-        if (Math.abs(deltaIsShouldY) < yTargetZone_in &&
+        inTargetZone = Math.abs(deltaIsShouldY) < yTargetZone_in &&
                 Math.abs(deltaIsShouldX) < xTargetZone_in &&
-                Math.abs(deltaIsShouldAngle) < turnTargetZone_deg) {
-            inTargetZone = true;
-        } else
-            inTargetZone = false;
+                Math.abs(deltaIsShouldAngle) < turnTargetZone_deg;
         return inTargetZone;
     }
     private static void balancePower() {

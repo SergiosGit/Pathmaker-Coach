@@ -1,63 +1,122 @@
-# Purpose
+# FTC Dashboard
 
-This version of the PathMaker is an upgrade of the original implementation. The main improvement is the use of a state machine wrapped around the original engine that calculates the power in the three degrees of freedom (forward, strafe, turn) of a mecanum wheel drive.
+FTC Dashboard provides telemetry and monitoring tools for FTC robots during operation with the following features:
 
-# Change log
+- Live telemetry with plots and field graphics
+- Live configuration variables
+- Camera streaming
+- Limited op mode controls and gamepad support
+  - Note: Gamepad support is volatile due to unstable browser APIs
+- Custom dashboard layouts
+- Telemetry CSV export
 
-- Moved autoPathList to PathDetails class. Makes more sense.
-- Modifications to PathMakerStateMachine, PathManager as well as small updates to PathDetails and Tele_Robot1:
-- added autonomous turn control to field centric driving see function PMSM getGamepadInput
-- ...now PM variables autonomous_x, autonomous_y, autonomous_a can be set true/false as needed
-- ...to control if a field DOF is driver controlled or autonomous
-- ...Also added autoLaneKeeping function to PathMakerStateMachine.
+Check out our [online documentation](https://acmerobotics.github.io/ftc-dashboard).
 
+|       Screenshot of custom layout        |          Screenshot with theme           |
+| :--------------------------------------: | :--------------------------------------: |
+| ![](docs/images/readme-screenshot-2.jpg) | ![](docs/images/readme-screenshot-1.jpg) |
 
-# Git Collaborator
+# Installation
 
-Here are the steps to connect, clone, and start working with a GitHub repository as a collaborator:
+## Basic
 
-Note: You do not need to run git init if you are cloning an existing repository. The git clone command automatically initializes a new Git repository in the cloned folder. Use git init only when starting a brand new repository from scratch.
+1. Open [`build.dependencies.gradle`](https://github.com/FIRST-Tech-Challenge/FtcRobotController/blob/master/build.dependencies.gradle)
+2. In the `repositories` section, add `maven { url = 'https://maven.brott.dev/' }`
+3. Add the dashboard implementation (see the [GitHub releases page](https://github.com/acmerobotics/ftc-dashboard/releases) for the latest version number):
+    - If you’re using a normal SDK setup, in the `dependencies` section, add the following:
+      ```gradle
+      implementation 'com.acmerobotics.dashboard:dashboard:0.4.17'
+      ```
+    - If you’re using OpenRC or have non-standard SDK dependencies, in the `dependencies` section, add the following:
+      ```gradle
+      implementation('com.acmerobotics.dashboard:dashboard:0.4.17') {
+        exclude group: 'org.firstinspires.ftc'
+      }
+      ```
 
-1. Accept the Invitation
-Go to your email or GitHub notifications and accept the collaborator invitation.
+# Development
 
-2. Install Git
-Make sure Git is installed on your Windows system.
-You can download it from git-scm.com.
+## Installation
 
-3. Authenticate with GitHub
+1. Install Node.js
 
-Set up SSH keys (recommended) or use HTTPS with your GitHub credentials.
-For SSH:
-Generate a key with ssh-keygen, add it to your GitHub account.
-Clone the Repository
+   - Note: Node.js 16+ is required for builds to work on M1 MacBooks
+   - Current Node version used in gradle builds can be found in [FtcDashboard/build.gradle](https://github.com/acmerobotics/ftc-dashboard/blob/master/FtcDashboard/build.gradle#L33)
+   - Node version is `18.12.1` as of time of writing
 
-4. Get the repository URL from GitHub (either SSH or HTTPS).
+2. Install Yarn
 
-Open your terminal (Command Prompt, PowerShell, or Git Bash).
-Run:
-git clone <repo-url>
-Example:
-git clone https://github.com/username/repo-name.git
+   - Not explicitly required and provides little advantage over modern `npm` (as of the time of writing)
+   - Further instructions will however reference `yarn` over `npm` for historical reasons
 
-5. Navigate to the Project Folder
+3. Browser FTC Dashboard client is located in `client`
 
-cd repo-name
+4. Run `yarn` (alternatively `npm install`) to install dependencies
 
-6. Configure Git (if needed)
+   - This only need be done once
 
-Set your name and email:
-git config user.name "Your Name"
-git config user.email "your@email.com"
+5. Optionally, specify the server IP address through the environment variable `VITE_REACT_APP_HOST`
 
-7.a) Create a Branch (optional)
-git checkout -b my-feature-branch
-7.b) Switch to a branch
-Switching to another branch (example): git checkout Roomba
-If the branch does not exist locally, fetch all branches first: git fetch origin
+   - Details on Vite's environment variables can be found [here](https://vitejs.dev/guide/env-and-mode.html)
 
-8. Start Working
+   - Default IPs:
+     - Android Phone: `192.168.49.1`
+     - Control Hub: `192.168.43.1`
 
-Open the project in your IDE (e.g., Android Studio).
-Make changes, commit, and push as needed.
-You are now ready to collaborate on the repository.
+6. Run `yarn dev` (alternatively `npm run dev`) to start the development server
+
+   - This will start a development server on [`http://localhost:3000`](http://localhost:3000) by default
+   - Navigate to this address in your browser to view the dashboard client
+   - The development server will automatically reload when changes are made to the source code
+
+## Mock server
+
+To test without an FTC app, run the mock server located at `DashboardCore/src/test/java/com/acmerobotics/dashboard/TestServer.java`.
+
+- Mock server is a simple Java server hosting mock FTC op modes
+- A test sample op mode can be found at [`TestSineWaveOpMode.java`](https://github.com/acmerobotics/ftc-dashboard/blob/master/DashboardCore/src/test/java/com/acmerobotics/dashboard/TestSineWaveOpMode.java)
+- Test op modes are registered in [`TestOpModeManager.java`](https://github.com/acmerobotics/ftc-dashboard/blob/8ac8b29257dede5f4a13c440fe6756efc270cbb8/DashboardCore/src/test/java/com/acmerobotics/dashboard/testopmode/TestOpModeManager.java#L10)
+
+# Basic Architecture
+
+## Java Server
+
+Dashboard's server is split into two packages, `DashboardCore` and `FtcDashboard`
+
+- [Dashboard Core](https://github.com/acmerobotics/ftc-dashboard/tree/master/DashboardCore/src/main/java/com/acmerobotics/dashboard)
+  - A standalone library that can be used to create a dashboard server for any Java application
+- [FtcDashboard](https://github.com/acmerobotics/ftc-dashboard/tree/master/FtcDashboard/src/main/java/com/acmerobotics/dashboard)
+  - A wrapper around `DashboardCore` that provides relevant tooling and hooks for FTC teams
+  - Contains the API FTC teams will access and manipulate through their own code
+  - This package also contains the browser client source
+
+## Browser Client
+
+Primary interface as a web-client acessible to the end-user through a web browser
+
+- Located in [`client`](https://github.com/acmerobotics/ftc-dashboard/tree/master/client)
+- Installation and run instructions mentioned above
+- TypeScript + React application
+- Vite for builds
+- Web Socket connection to the dashboard server
+
+### Relevant files
+
+- [Dashboard.tsx](https://github.com/acmerobotics/ftc-dashboard/blob/master/client/src/components/Dashboard/Dashboard.tsx)
+  - Primary functional entrypoint
+- [LayoutPreset.tsx](https://github.com/acmerobotics/ftc-dashboard/blob/master/client/src/enums/LayoutPreset.tsx)
+  - Contains preset layouts
+- [`views/`](https://github.com/acmerobotics/ftc-dashboard/tree/master/client/src/components/views)
+  - Contains the various views that can be displayed on the dashboard
+    - Graphs
+    - Telemetry
+    - Gamepad
+    - etc
+- [`store/`](https://github.com/acmerobotics/ftc-dashboard/tree/master/client/src/store)
+  - Contains shared state management logic
+    - Web Socket connection
+    - Gamepad state management
+    - Storage middleware
+    - etc
+- Views subscribe to websocket updates via the Redux store
+  - Basic example can be found in the [`TelemetryView`](https://github.com/acmerobotics/ftc-dashboard/blob/8ac8b29257dede5f4a13c440fe6756efc270cbb8/FtcDashboard/dash/src/components/views/TelemetryView.tsx#L21) component

@@ -26,7 +26,7 @@ public class DriveTrain {
     private static DcMotorEx backLeft  = null;
     private static DcMotorEx backRight = null;
     private static DcMotorEx frontRight = null;
-    private static GameSetup.RobotModel robotModel = GameSetup.RobotModel.ROBOT1;
+    private static final GameSetup.RobotModel robotModel = GameSetup.RobotModel.ROBOT1;
     public static List <LynxModule> allHubs;
     public DriveTrain(LinearOpMode opMode){
         myOpMode = opMode;

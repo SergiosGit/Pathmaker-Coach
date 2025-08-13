@@ -15,9 +15,9 @@ public class Lift {
         FIVE_CONES,FOUR_CONES,THREE_CONES,TWO_CONES,ONE_CONE}
 
     private class LiftPreset {
-        private LiftPosition position;
-        private int ticks;
-        private double motorSpeed;
+        private final LiftPosition position;
+        private final int ticks;
+        private final double motorSpeed;
 
         public LiftPreset(LiftPosition position, int ticks, double motorSpeed)
         {
@@ -37,11 +37,13 @@ public class Lift {
         }
 
     }
-    private DcMotor leftLift,centerLift,rightLift;
-    private List<DcMotor> liftMotors;
+    private final DcMotor leftLift;
+    private final DcMotor centerLift;
+    private final DcMotor rightLift;
+    private final List<DcMotor> liftMotors;
     private final TouchSensor limitSwitch;
 
-    private ArrayList<LiftPreset> presets = new ArrayList<>();
+    private final ArrayList<LiftPreset> presets = new ArrayList<>();
     private LiftPreset currentLiftPreset;
 
     public Lift(HardwareMap hardwareMap, boolean stopAndResetEncoders){

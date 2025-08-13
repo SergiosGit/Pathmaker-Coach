@@ -85,7 +85,8 @@ public class ConceptAprilTag extends LinearOpMode {
      * The variable to store our instance of the vision portal.
      */
     private VisionPortal visionPortal;
-    private int cycles, TEST_CYCLES = 50;
+    private int cycles;
+    private final int TEST_CYCLES = 50;
     private double t1 = 0;
 
     @Override

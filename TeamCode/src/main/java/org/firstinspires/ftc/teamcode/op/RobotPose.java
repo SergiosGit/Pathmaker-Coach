@@ -44,8 +44,10 @@ public class RobotPose {
     private static double poseA_deg = 0, lastHeadingAngle_deg = 0;
     private static double forward_in = 0, lastForward_in = 0, strafe_in = 0, lastStrafe_in = 0;
     private static double poseY_in = 0, lastPoseY_in, poseX_in, lastPoseX_in = 0;
-    private static double imuAngle_rad = 0, lastImuAngle_rad = 0;
-    private static double imuAngle_deg = 0, lastImuAngle_deg = 0;
+    private static double imuAngle_rad = 0;
+    private static final double lastImuAngle_rad = 0;
+    private static double imuAngle_deg = 0;
+    private static final double lastImuAngle_deg = 0;
 
     private static int currentRightPosition = 0;
     private static int currentLeftPosition = 0;
@@ -57,7 +59,7 @@ public class RobotPose {
     private static int previousAuxPosition = 0;
     private static int previousStrafeTics = 0;
     private static int previousForwardTics = 0;
-    private static int previousTurn_rad = 0;
+    private static final int previousTurn_rad = 0;
     public static int currentStrafeTics = 0;
     public static int currentForwardTics = 0;
     public static int currentTurn_rad = 0;
@@ -74,14 +76,15 @@ public class RobotPose {
     private static double R; // odometry wheel radius in cm
     private static double N; // REV encoders tic per revolution
     private static double cm_per_tick, cm_per_tick_strafe;
-    private static ElapsedTime timer = new ElapsedTime();
+    private static final ElapsedTime timer = new ElapsedTime();
 
     public static double DT_seconds = 1;
 
     private static Telemetry poseTelemetry;
     private static DriveTrain poseDriveTrain;
-    private static MyIMU imu = new MyIMU(null);
-    public enum ODOMETRY {DEADWHEEL, XYPLUSIMU};
+    private static final MyIMU imu = new MyIMU(null);
+    public enum ODOMETRY {DEADWHEEL, XYPLUSIMU}
+
     public static ODOMETRY odometry;
     public static int[] encoderValues = new int[4];
     public static double[] motorCurrents = new double[4];
@@ -91,10 +94,10 @@ public class RobotPose {
         driveTrain.init();
         odometry = ODOMETRY.DEADWHEEL;
         imu.setOpMode(opMode);
-        imu.init(opMode);
-        imu.resetAngle();
+        MyIMU.init(opMode);
+        MyIMU.resetAngle();
         imuAngle_rad = imu.getAngle_rad();
-        imuAngle_deg = imu.thisAngle_deg; // initialized after call getAngle_rad()
+        imuAngle_deg = MyIMU.thisAngle_deg; // initialized after call getAngle_rad()
         poseTelemetry = telemetry;
         poseDriveTrain = driveTrain;
         readPose();
@@ -154,7 +157,7 @@ public class RobotPose {
         // add turn power
         powerFL += rotateDrive; powerFR -= rotateDrive;
         powerBL += rotateDrive; powerBR -= rotateDrive;
-        poseDriveTrain.setMotorPowers(powerFL,powerBL,powerBR,powerFR);
+        DriveTrain.setMotorPowers(powerFL,powerBL,powerBR,powerFR);
     }
     public static void readPose() {
         // read robot pose from encoders and IMU in robot coordinate system
@@ -316,7 +319,7 @@ public class RobotPose {
 
     public static double [] rebaseRelativeToTag(double tagX, double tagY, double tagAngle, int tagID) {
         // rebase robot pose based on tag identification
-        double tagXYA [] = tagOffset(tagID);
+        double[] tagXYA = tagOffset(tagID);
         setPose(tagXYA[1] - tagX, tagXYA[0] - tagY, tagXYA[2] - tagAngle);
         return tagXYA;
     }

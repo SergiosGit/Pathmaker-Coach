@@ -22,7 +22,7 @@ public class WheelPowerManager {
         // add turn power
         powerFL += rotateDrive; powerFR -= rotateDrive;
         powerBL += rotateDrive; powerBR -= rotateDrive;
-        driveTrain.setMotorPowers(powerFL,powerBL,powerBR,powerFR);
+        DriveTrain.setMotorPowers(powerFL,powerBL,powerBR,powerFR);
     }
 
 }

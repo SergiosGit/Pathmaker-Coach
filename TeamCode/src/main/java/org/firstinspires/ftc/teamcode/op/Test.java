@@ -28,31 +28,31 @@ public class Test extends LinearOpMode {
             telemetry.addData("Time in Seconds: ", startTime);
             telemetry.update();
             power = 0.7;
-            driveTrain.setMotorPowers(power, power, power, power); // forward
+            DriveTrain.setMotorPowers(power, power, power, power); // forward
             sleep(1500);
-            driveTrain.setMotorPowers(0,0,0,0);
+            DriveTrain.setMotorPowers(0,0,0,0);
             sleep(500);
-            driveTrain.setMotorPowers(-power, power, -power, power); // strafe left
+            DriveTrain.setMotorPowers(-power, power, -power, power); // strafe left
             sleep(1500);
-            driveTrain.setMotorPowers(0,0,0,0);
+            DriveTrain.setMotorPowers(0,0,0,0);
             sleep(500);
 
-            driveTrain.setMotorPowers(-0.25, -0.25, 0.25, 0.25); // Turn left
+            DriveTrain.setMotorPowers(-0.25, -0.25, 0.25, 0.25); // Turn left
             sleep(rotateTime);
-            driveTrain.setMotorPowers(0,0,0,0);
+            DriveTrain.setMotorPowers(0,0,0,0);
             sleep(500);
-            driveTrain.setMotorPowers(0.25, 0.25, -0.25, -0.25); //Turn right
+            DriveTrain.setMotorPowers(0.25, 0.25, -0.25, -0.25); //Turn right
             sleep(rotateTime);
-            driveTrain.setMotorPowers(0,0,0,0);
+            DriveTrain.setMotorPowers(0,0,0,0);
             sleep(500);
 
-            driveTrain.setMotorPowers(-power, -power, -power, -power); // backwards
+            DriveTrain.setMotorPowers(-power, -power, -power, -power); // backwards
             sleep(1500);
-            driveTrain.setMotorPowers(0,0,0,0);
+            DriveTrain.setMotorPowers(0,0,0,0);
             sleep(500);
-            driveTrain.setMotorPowers(power, -power, power, -power); // strafe right
+            DriveTrain.setMotorPowers(power, -power, power, -power); // strafe right
             sleep(1500);
-            driveTrain.setMotorPowers(0,0,0,0);
+            DriveTrain.setMotorPowers(0,0,0,0);
             endTime = (int) getRuntime();
             telemetry.addData("Time in Seconds: ", endTime - startTime);
             telemetry.update();

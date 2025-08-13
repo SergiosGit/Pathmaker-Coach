@@ -7,12 +7,12 @@ import java.util.ArrayList;
 
 public class Alignment {
 
-    private Servo alignmentServo;
+    private final Servo alignmentServo;
     public enum AlignmentPosition {RETRACTED, EXTENDED}
 
     private class AlignmentPreset {
-        private AlignmentPosition alignmentPosition;
-        private double position;
+        private final AlignmentPosition alignmentPosition;
+        private final double position;
 
         private AlignmentPreset(AlignmentPosition alignmentPosition, double position) {
             this.alignmentPosition = alignmentPosition;
@@ -27,7 +27,7 @@ public class Alignment {
             return this.position;
         }
     }
-        private ArrayList<AlignmentPreset> presets = new ArrayList<>();
+        private final ArrayList<AlignmentPreset> presets = new ArrayList<>();
         AlignmentPreset currentAlignmentPreset;
 
         public Alignment (HardwareMap hardwareMap){

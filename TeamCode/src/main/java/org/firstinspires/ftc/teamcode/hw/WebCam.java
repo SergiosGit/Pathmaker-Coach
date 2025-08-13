@@ -24,7 +24,8 @@ public class WebCam {
     public static double distanceToTarget = 0, offsetToTarget = 0, angleToTarget = 0;
     public static double fieldY_in = 0, fieldX_in = 0, fieldA_deg = 0;
     public static int targetID = 0;
-    public static enum WEBCAM {WEBCAM1, NONE, WEBCAM2};
+    public enum WEBCAM {WEBCAM1, NONE, WEBCAM2}
+
     private static WebcamName webcam1;
     private static WebcamName webcam2;
     private static double distanceCalibration = 1.0;
