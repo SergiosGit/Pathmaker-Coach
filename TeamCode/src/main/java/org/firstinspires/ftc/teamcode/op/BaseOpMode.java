@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.config.GameConfig;
 import org.firstinspires.ftc.teamcode.hw.DriveTrain;
 import org.firstinspires.ftc.teamcode.hw.MyIMU;
 import org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine;
@@ -22,7 +23,7 @@ public abstract class BaseOpMode extends LinearOpMode {
     protected MyIMU imu;
     protected RobotPose robotPose;
     protected Telemetry dashboardTelemetry;
-    protected ElapsedTime runtime;
+    protected ElapsedTime runtime = new ElapsedTime(); // Initialize immediately to prevent null pointer
     
     // ===== ABSTRACT METHODS =====
     /**
@@ -49,8 +50,7 @@ public abstract class BaseOpMode extends LinearOpMode {
      * Initialize common systems used by all OpModes.
      */
     protected void initializeCommon() throws InterruptedException {
-        // Initialize runtime timer
-        runtime = new ElapsedTime();
+        // Runtime timer is already initialized in field declaration
         
         // Initialize dashboard telemetry
         dashboardTelemetry = FtcDashboard.getInstance().getTelemetry();
@@ -128,7 +128,7 @@ public abstract class BaseOpMode extends LinearOpMode {
     /**
      * Get the current runtime in seconds.
      */
-    protected double getRuntime() {
+    public double getRuntime() {
         return runtime.seconds();
     }
     
