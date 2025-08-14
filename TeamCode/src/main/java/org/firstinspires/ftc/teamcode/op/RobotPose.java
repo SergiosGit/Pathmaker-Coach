@@ -37,6 +37,8 @@ import static org.firstinspires.ftc.teamcode.hw.DriveTrain.getEncoderValues;
 
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
+import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.config.GameConfig;
 
 @Config
 public class RobotPose {
@@ -83,7 +85,7 @@ public class RobotPose {
     private static Telemetry poseTelemetry;
     private static DriveTrain poseDriveTrain;
     private static final MyIMU imu = new MyIMU(null);
-    public enum ODOMETRY {DEADWHEEL, XYPLUSIMU}
+    public enum ODOMETRY {DEADWHEEL, XYPLUSIMU, SIMULATION}
 
     public static ODOMETRY odometry;
     public static int[] encoderValues = new int[4];
@@ -92,7 +94,23 @@ public class RobotPose {
 
     public static void initializePose(LinearOpMode opMode, DriveTrain driveTrain, Telemetry telemetry) throws InterruptedException {
         driveTrain.init();
-        odometry = ODOMETRY.DEADWHEEL;
+        
+        // Set odometry type from RobotConfig
+        switch (RobotConfig.Odometry.odometryType) {
+            case DEADWHEEL:
+                odometry = ODOMETRY.DEADWHEEL;
+                break;
+            case XYPLUSIMU:
+                odometry = ODOMETRY.XYPLUSIMU;
+                break;
+            case SIMULATION:
+                odometry = ODOMETRY.SIMULATION;
+                break;
+            default:
+                odometry = ODOMETRY.DEADWHEEL; // Default fallback
+                break;
+        }
+        
         imu.setOpMode(opMode);
         MyIMU.init(opMode);
         MyIMU.resetAngle();
@@ -121,15 +139,41 @@ public class RobotPose {
         PathDetails.yFieldGoal_in = 0;
         PathDetails.xFieldGoal_in = 0;
         PathDetails.lastTurnGoal = 0;
+        
+        // Configure odometry parameters based on RobotConfig
         if (odometry == ODOMETRY.DEADWHEEL) {
-//            L = 30.3; // distance between left and right encoders in cm - LATERAL DISTANCE
-//            B = 0; // distance between midpoints of left and right encoders and encoder aux
-            R = 2.4; // GoBilda odometry wheel radius in cm (48mm diameter)
-            N = 2000; // GoBilda odometry pod: 2000 Countable Events per Revolution
+            L = RobotConfig.Odometry.lateralDistance;
+            B = RobotConfig.Odometry.forwardOffset;
+            R = RobotConfig.Odometry.deadwheelRadius;
+            N = RobotConfig.Odometry.deadwheelTicksPerRevolution;
         } else if (odometry == ODOMETRY.XYPLUSIMU) {
-            R = 4.8; // Mecanum wheel radius in cm (OD=96mm)
-            N = 537.7; // 312 RPM motor encoder tics per revolution (PPR)
-            cm_per_tick_strafe = 73.2/1477; // measured with coach chassis
+            L = RobotConfig.Odometry.lateralDistance;
+            B = RobotConfig.Odometry.forwardOffset;
+            R = RobotConfig.Odometry.xyImuWheelRadius;
+            N = RobotConfig.Odometry.xyImuTicksPerRevolution;
+            cm_per_tick_strafe = RobotConfig.Odometry.xyImuStrafeCmPerTick;
+        } else if (odometry == ODOMETRY.SIMULATION) {
+            // Initialize simulation with current robot configuration
+            double startX = GameConfig.StartingPositions.getStartingX(
+                RobotConfig.Game.currentAlliance, 
+                RobotConfig.Game.startingPosition
+            );
+            double startY = GameConfig.StartingPositions.getStartingY(
+                RobotConfig.Game.currentAlliance, 
+                RobotConfig.Game.startingPosition
+            );
+            double startAngle = 0.0; // Default starting angle
+            
+            RobotPoseSimulation.initializeSimulation(startX, startY, startAngle);
+            RobotPoseSimulation.setSimulationParameters(
+                RobotConfig.Odometry.simulationForwardRate,
+                RobotConfig.Odometry.simulationStrafeRate,
+                RobotConfig.Odometry.simulationTurnRate
+            );
+            
+            // Set default values for simulation
+            R = 1;
+            N = 1;
         } else {
             R = 1;
             N = 1;
@@ -200,6 +244,46 @@ public class RobotPose {
             dy = (currentForwardTics - previousForwardTics) * cm_per_tick;
             previousStrafeTics = currentStrafeTics;
             previousForwardTics = currentForwardTics;
+        } else if (odometry == ODOMETRY.SIMULATION) {
+            // Use simulation for pose tracking
+            // Get current motor powers for simulation update
+            double currentForwardPower = 0.0;
+            double currentStrafePower = 0.0;
+            double currentTurnPower = 0.0;
+            
+            // Try to get current motor powers from PathManager if available
+            try {
+                currentForwardPower = PathManager.yPower;
+                currentStrafePower = PathManager.xPower;
+                currentTurnPower = PathManager.turnPower;
+            } catch (Exception e) {
+                // If PathManager is not available, use zero powers
+                currentForwardPower = 0.0;
+                currentStrafePower = 0.0;
+                currentTurnPower = 0.0;
+            }
+            
+            // Update simulation with current motor powers
+            RobotPoseSimulation.updateSimulatedPose(
+                currentForwardPower, 
+                currentStrafePower, 
+                currentTurnPower, 
+                DT_seconds * 1000.0 // Convert to milliseconds
+            );
+            
+            // Get simulated values
+            forward_in = RobotPoseSimulation.getSimulatedForward_in();
+            strafe_in = RobotPoseSimulation.getSimulatedStrafe_in();
+            headingAngle_rad = Math.toRadians(RobotPoseSimulation.getSimulatedAngle_deg());
+            
+            // Set field coordinates
+            poseX_in = RobotPoseSimulation.getSimulatedFieldX_in();
+            poseY_in = RobotPoseSimulation.getSimulatedFieldY_in();
+            
+            // Set velocities
+            dx = RobotPoseSimulation.getSimulatedFieldXVelocity_inPerSec(DT_seconds * 1000.0) * DT_seconds * 2.54; // Convert to cm
+            dy = RobotPoseSimulation.getSimulatedFieldYVelocity_inPerSec(DT_seconds * 1000.0) * DT_seconds * 2.54; // Convert to cm
+            
         } else {
             dx = 0;
             dy = 0;
@@ -341,5 +425,37 @@ public class RobotPose {
 //        double[] YOffset_in =  {0, 62, 62, 62, 62, 62, 62,-48,-48,-48,-48};
 //        double[] AOffset_deg = {0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0};
         return new double[]{YOffset_in[tagID], XOffset_in[tagID], AOffset_deg[tagID]};
+    }
+    
+    /**
+     * Update simulation with motor powers (for teleop mode).
+     * This method should be called from teleop modes to update the simulation.
+     */
+    public static void updateSimulationWithMotorPowers(double forwardPower, double strafePower, double turnPower) {
+        if (odometry == ODOMETRY.SIMULATION) {
+            RobotPoseSimulation.updateSimulatedPose(
+                forwardPower, 
+                strafePower, 
+                turnPower, 
+                DT_seconds * 1000.0 // Convert to milliseconds
+            );
+        }
+    }
+    
+    /**
+     * Get simulation visualization points for dashboard display.
+     */
+    public static double[] getSimulationRobotCornersX() {
+        if (odometry == ODOMETRY.SIMULATION) {
+            return RobotPoseSimulation.robotCornerX;
+        }
+        return new double[]{0, 0, 0, 0};
+    }
+    
+    public static double[] getSimulationRobotCornersY() {
+        if (odometry == ODOMETRY.SIMULATION) {
+            return RobotPoseSimulation.robotCornerY;
+        }
+        return new double[]{0, 0, 0, 0};
     }
 }

@@ -57,7 +57,6 @@ public class RefactoredAutoOpMode extends BaseOpMode {
         dashboardTelemetry.addData("Auto Mode", "Initialized");
         dashboardTelemetry.addData("Selected Path", selectedPathNumber);
         dashboardTelemetry.addData("April Tag Detection", enableAprilTagDetection);
-        dashboardTelemetry.update();
     }
     
     // ===== MAIN LOOP =====
@@ -134,6 +133,9 @@ public class RefactoredAutoOpMode extends BaseOpMode {
             // Update common telemetry
             updateCommonTelemetry();
             
+            // Add path goal telemetry
+            addPathGoalTelemetry();
+            
             // Add autonomous-specific telemetry
             dashboardTelemetry.addData("Path State", PathMakerStateMachine.pm_state);
             dashboardTelemetry.addData("Current Path", getCurrentPathDescription());
@@ -181,6 +183,20 @@ public class RefactoredAutoOpMode extends BaseOpMode {
         dashboardTelemetry.addData("April Tag Detection", PathMakerStateMachine.aprilTagDetectionOn);
         dashboardTelemetry.addData("Target Tag ID", PathMakerStateMachine.aprilTagDetectionID);
         dashboardTelemetry.addData("In Target Zone", PathManager.inTargetZone);
+    }
+    
+    /**
+     * Add path goal telemetry.
+     */
+    private void addPathGoalTelemetry() {
+        // Update field goals for telemetry display
+        PathDetails.updateFieldGoalsForTelemetry();
+        
+        dashboardTelemetry.addLine("=== PATH GOALS ===");
+        dashboardTelemetry.addData("Rotate Deg", PathDetails.getCurrentRotateDeg());
+        dashboardTelemetry.addData("Y Field Goal (in)", String.format("%.1f", PathDetails.yFieldGoal_in));
+        dashboardTelemetry.addData("X Field Goal (in)", String.format("%.1f", PathDetails.xFieldGoal_in));
+        dashboardTelemetry.addData("A Field Goal (deg)", String.format("%.1f", PathDetails.aFieldGoal_deg));
     }
     
     /**

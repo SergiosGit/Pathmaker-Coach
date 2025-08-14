@@ -68,6 +68,7 @@ public class PathDetails {
     public static double roombaRadius = 20;
 
     public static double lastTurnGoal;
+    public static int currentRotateDeg = 0; // Store the current rotation degree for telemetry
 
     public static void initializePath() {
         // initialize each new path
@@ -98,9 +99,9 @@ public class PathDetails {
         PathManager.approachPowerXY = 0.2;
         PathManager.breakPower = 0.05;
         PathManager.breakPowerScale = 0.5;
-        int rotateDeg = (int) (Math.random() * 360);
-        yFieldGoal_in = (int) (Math.sin(Math.toRadians(rotateDeg))) * roombaRadius;
-        xFieldGoal_in = (int) (Math.cos(Math.toRadians(rotateDeg))) * roombaRadius;
+        currentRotateDeg = (int) (Math.random() * 360);
+        yFieldGoal_in = (int) (Math.sin(Math.toRadians(currentRotateDeg))) * roombaRadius;
+        xFieldGoal_in = (int) (Math.cos(Math.toRadians(currentRotateDeg))) * roombaRadius;
         //WebCam.stopWebcam();
     }
     public enum Path {
@@ -201,5 +202,46 @@ public class PathDetails {
         PathManager.xRampReach_in = 12;
         PathManager.turnRampReach_deg = 45;
         //WebCam.stopWebcam();
+    }
+    
+    /**
+     * Get current path goal information for telemetry display.
+     * @return Array containing [rotateDeg, yFieldGoal_in, xFieldGoal_in]
+     */
+    public static double[] getCurrentPathGoals() {
+        return new double[]{currentRotateDeg, yFieldGoal_in, xFieldGoal_in};
+    }
+    
+    /**
+     * Get current rotation degree for telemetry.
+     * @return Current rotation degree (0-359)
+     */
+    public static int getCurrentRotateDeg() {
+        return currentRotateDeg;
+    }
+    
+    /**
+     * Update field goals for telemetry display.
+     * In teleop mode, this can be used to show current targets or robot position.
+     */
+    public static void updateFieldGoalsForTelemetry() {
+        // For telemetry display, we can set goals based on current robot position
+        // or use them to show intended movement direction
+        if (PathMakerStateMachine.control_mode == PathMakerStateMachine.CONTROL_MODE.TELEOP) {
+            // In teleop mode, set goals to current robot position for reference
+            yFieldGoal_in = RobotPose.getFieldY_in();
+            xFieldGoal_in = RobotPose.getFieldX_in();
+            aFieldGoal_deg = RobotPose.getFieldAngle_deg();
+        }
+        // In autonomous mode, goals are set by the path system
+    }
+    
+    /**
+     * Set field goals to a specific position (useful for testing).
+     */
+    public static void setFieldGoals(double yGoal, double xGoal, double aGoal) {
+        yFieldGoal_in = yGoal;
+        xFieldGoal_in = xGoal;
+        aFieldGoal_deg = aGoal;
     }
 }

@@ -76,6 +76,9 @@ public class RefactoredTeleOpMode extends BaseOpMode {
         // Handle driver input
         handleDriverInput();
         
+        // Update simulation with motor powers if in simulation mode
+        RobotPose.updateSimulationWithMotorPowers(lastYPower, lastXPower, lastTurnPower);
+        
         // Handle April Tag alignment if enabled
         if (enableAprilTagAlignment) {
             handleAprilTagAlignment();
@@ -209,6 +212,7 @@ public class RefactoredTeleOpMode extends BaseOpMode {
             // Add teleop-specific telemetry
             addDriverInputTelemetry();
             addMotorPowerTelemetry();
+            addPathGoalTelemetry();
             addAprilTagTelemetry();
             addPerformanceTelemetry();
             
@@ -239,6 +243,20 @@ public class RefactoredTeleOpMode extends BaseOpMode {
                 PathManager.yPower, PathManager.xPower, PathManager.turnPower));
         dashboardTelemetry.addLine(String.format("Last Y/X/A: %.2f / %.2f / %.2f",
                 PathManager.yPowerLast, PathManager.xPowerLast, PathManager.turnPowerLast));
+    }
+    
+    /**
+     * Add path goal telemetry.
+     */
+    private void addPathGoalTelemetry() {
+        // Update field goals for telemetry display
+        PathDetails.updateFieldGoalsForTelemetry();
+        
+        dashboardTelemetry.addLine("=== PATH GOALS ===");
+        dashboardTelemetry.addData("Rotate Deg", PathDetails.getCurrentRotateDeg());
+        dashboardTelemetry.addData("Y Field Goal (in)", String.format("%.1f", PathDetails.yFieldGoal_in));
+        dashboardTelemetry.addData("X Field Goal (in)", String.format("%.1f", PathDetails.xFieldGoal_in));
+        dashboardTelemetry.addData("A Field Goal (deg)", String.format("%.1f", PathDetails.aFieldGoal_deg));
     }
     
     /**
