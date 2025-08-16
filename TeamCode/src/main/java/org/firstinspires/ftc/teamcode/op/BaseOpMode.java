@@ -5,8 +5,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.config.RobotConfig;
-import org.firstinspires.ftc.teamcode.config.GameConfig;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
+import org.firstinspires.ftc.teamcode.configuration.GameConfig;
 import org.firstinspires.ftc.teamcode.hw.DriveTrain;
 import org.firstinspires.ftc.teamcode.hw.MyIMU;
 import org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine;

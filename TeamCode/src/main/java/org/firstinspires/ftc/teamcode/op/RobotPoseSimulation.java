@@ -8,8 +8,8 @@
 //
 package org.firstinspires.ftc.teamcode.op;
 
-import org.firstinspires.ftc.teamcode.config.RobotConfig;
-import org.firstinspires.ftc.teamcode.config.GameConfig;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
+import org.firstinspires.ftc.teamcode.configuration.GameConfig;
 
 /**
  * Simulated robot pose tracking for testing and debugging.

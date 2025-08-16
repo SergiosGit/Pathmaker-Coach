@@ -65,7 +65,7 @@ public class PathDetails {
     public static ElapsedTime elapsedTime_ms = new ElapsedTime();
     public static double pathTime_ms = 0;
     public  static PathMakerStateMachine.PM_STATE PMSMstate;
-    public static double roombaRadius = 20;
+    public static double roombaRadius = 200;
 
     public static double lastTurnGoal;
     public static int currentRotateDeg = 0; // Store the current rotation degree for telemetry
@@ -99,9 +99,10 @@ public class PathDetails {
         PathManager.approachPowerXY = 0.2;
         PathManager.breakPower = 0.05;
         PathManager.breakPowerScale = 0.5;
-        currentRotateDeg = (int) (Math.random() * 360);
-        yFieldGoal_in = (int) (Math.sin(Math.toRadians(currentRotateDeg))) * roombaRadius;
-        xFieldGoal_in = (int) (Math.cos(Math.toRadians(currentRotateDeg))) * roombaRadius;
+        double rotateDeg = Math.random() * 360;
+        yFieldGoal_in = Math.sin(Math.toRadians(rotateDeg)) * roombaRadius;
+        xFieldGoal_in = Math.cos(Math.toRadians(rotateDeg)) * roombaRadius;
+        currentRotateDeg = (int) rotateDeg;
         //WebCam.stopWebcam();
     }
     public enum Path {

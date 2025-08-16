@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.config;
+package org.firstinspires.ftc.teamcode.configuration;
 
 import com.acmerobotics.dashboard.config.Config;
 
@@ -105,6 +105,7 @@ public class RobotConfig {
     }
     
     // ===== ODOMETRY PARAMETERS =====
+    @Config
     public static class Odometry {
         public enum Type {
             DEADWHEEL, XYPLUSIMU, SIMULATION

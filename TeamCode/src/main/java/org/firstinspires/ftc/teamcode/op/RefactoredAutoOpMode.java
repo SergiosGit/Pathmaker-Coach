@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;

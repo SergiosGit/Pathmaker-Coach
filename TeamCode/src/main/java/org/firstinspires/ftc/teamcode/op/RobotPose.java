@@ -37,8 +37,8 @@ import static org.firstinspires.ftc.teamcode.hw.DriveTrain.getEncoderValues;
 
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
-import org.firstinspires.ftc.teamcode.config.RobotConfig;
-import org.firstinspires.ftc.teamcode.config.GameConfig;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
+import org.firstinspires.ftc.teamcode.configuration.GameConfig;
 
 @Config
 public class RobotPose {
@@ -181,27 +181,33 @@ public class RobotPose {
         cm_per_tick = (2.0 * Math.PI * R)/N;
     }
     public static void updatePose(double forwardDrive, double strafeDrive, double rotateDrive){
+        double[] fieldPowers = convertToFieldCentric(forwardDrive, strafeDrive);
+        double yPower = fieldPowers[0];
+        double xPower = fieldPowers[1];
         double powerFL, powerFR, powerBL, powerBR;
-        double radians = 0;
-        // get the angle in which the robot is actually headed
-        radians = getFieldAngle_rad();
-        // project the desired forwardDrive (which is relative to the original
-        // forward direction in the coordinate system at the beginning of the
-        // path) onto the the actual drive train. This will not change the
-        // maximum power seen at any of the Mecanum wheels
-        double forwardHeading = forwardDrive * Math.cos(radians) + strafeDrive * Math.sin(radians);
-        double strafeHeading = -forwardDrive * Math.sin(radians) + strafeDrive * Math.cos(radians);
-        // now add the power components for the drive train
-        // forward power is the same on all wheels
-        powerFL = forwardHeading; powerFR = forwardHeading;
-        powerBL = forwardHeading; powerBR = forwardHeading;
+        powerFL = yPower; powerFR = yPower;
+        powerBL = yPower; powerBR = yPower;
         // add strafe power
-        powerFL += strafeHeading; powerFR -= strafeHeading;
-        powerBL -= strafeHeading; powerBR += strafeHeading;
+        powerFL += xPower; powerFR -= xPower;
+        powerBL -= xPower; powerBR += xPower;
         // add turn power
         powerFL += rotateDrive; powerFR -= rotateDrive;
         powerBL += rotateDrive; powerBR -= rotateDrive;
         DriveTrain.setMotorPowers(powerFL,powerBL,powerBR,powerFR);
+    }
+    /**
+     * Convert robot-centric powers to field-centric powers.
+     */
+    public static double[] convertToFieldCentric(double yPower, double xPower) {
+        // get the angle in which the robot is actually headed
+        double headingRadians = getFieldAngle_rad();
+        double fieldYPower, fieldXPower;
+        
+        // Rotate the power vectors by the robot's heading
+        fieldYPower = yPower * Math.cos(headingRadians) + xPower * Math.sin(headingRadians);
+        fieldXPower =-yPower * Math.sin(headingRadians) + xPower * Math.cos(headingRadians);
+        
+        return new double[]{fieldYPower, fieldXPower};
     }
     public static void readPose() {
         // read robot pose from encoders and IMU in robot coordinate system

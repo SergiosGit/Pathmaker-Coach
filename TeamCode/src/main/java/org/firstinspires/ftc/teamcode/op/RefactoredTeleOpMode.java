@@ -6,8 +6,9 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.config.GameConfig;
-import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.configuration.GameConfig;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
+import org.firstinspires.ftc.teamcode.hw.DriveTrain;
 import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
 import org.firstinspires.ftc.teamcode.pathmaker.PathMakerStateMachine;
 import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
@@ -84,11 +85,8 @@ public class RefactoredTeleOpMode extends BaseOpMode {
             handleAprilTagAlignment();
         }
         
-        // Update path manager
+        // Update path manager including motor powers
         PathMakerStateMachine.updateTele(gamepad1, dashboardTelemetry);
-        
-        // Apply motor powers
-        applyMotorPowers();
         
         // Update telemetry periodically
         updateTelemetry();
@@ -162,40 +160,9 @@ public class RefactoredTeleOpMode extends BaseOpMode {
         }
     }
     
-    /**
-     * Apply motor powers to the drive train.
-     */
-    private void applyMotorPowers() {
-        // Get powers from path manager (may be modified by April Tag alignment)
-        double yPower = PathManager.yPower;
-        double xPower = PathManager.xPower;
-        double turnPower = PathManager.turnPower;
-        
-        // Apply field-centric transformation if enabled
-        if (enableFieldCentric && !aprilTagAlignmentActive) {
-            double[] fieldCentricPowers = convertToFieldCentric(yPower, xPower, turnPower);
-            yPower = fieldCentricPowers[0];
-            xPower = fieldCentricPowers[1];
-            turnPower = fieldCentricPowers[2];
-        }
-        
-        // Apply powers to drive train
-        WheelPowerManager.setDrivePower(driveTrain, yPower, xPower, turnPower, 0.0);
-    }
+
     
-    /**
-     * Convert robot-centric powers to field-centric powers.
-     */
-    private double[] convertToFieldCentric(double yPower, double xPower, double turnPower) {
-        double robotHeading = RobotPose.getFieldAngle_deg();
-        double headingRadians = Math.toRadians(robotHeading);
-        
-        // Rotate the power vectors by the robot's heading
-        double fieldYPower = yPower * Math.cos(headingRadians) - xPower * Math.sin(headingRadians);
-        double fieldXPower = yPower * Math.sin(headingRadians) + xPower * Math.cos(headingRadians);
-        
-        return new double[]{fieldYPower, fieldXPower, turnPower};
-    }
+
     
     // ===== TELEMETRY =====
     
@@ -209,12 +176,13 @@ public class RefactoredTeleOpMode extends BaseOpMode {
             // Update common telemetry
             updateCommonTelemetry();
             
-            // Add teleop-specific telemetry
-            addDriverInputTelemetry();
-            addMotorPowerTelemetry();
-            addPathGoalTelemetry();
-            addAprilTagTelemetry();
-            addPerformanceTelemetry();
+                    // Add teleop-specific telemetry
+        addDriverInputTelemetry();
+        addMotorPowerTelemetry();
+        addEncoderTelemetry();
+        addPathGoalTelemetry();
+        addAprilTagTelemetry();
+        addPerformanceTelemetry();
             
             dashboardTelemetry.update();
             telemetryUpdateCycles = 0;
@@ -240,9 +208,28 @@ public class RefactoredTeleOpMode extends BaseOpMode {
     private void addMotorPowerTelemetry() {
         dashboardTelemetry.addLine("=== MOTOR POWERS ===");
         dashboardTelemetry.addLine(String.format("Applied Y/X/A: %.2f / %.2f / %.2f",
-                PathManager.yPower, PathManager.xPower, PathManager.turnPower));
+                PathMakerStateMachine.yPower, PathMakerStateMachine.xPower, PathMakerStateMachine.turnPower));
         dashboardTelemetry.addLine(String.format("Last Y/X/A: %.2f / %.2f / %.2f",
-                PathManager.yPowerLast, PathManager.xPowerLast, PathManager.turnPowerLast));
+                PathMakerStateMachine.yPowerLast, PathMakerStateMachine.xPowerLast, PathMakerStateMachine.turnPowerLast));
+    }
+    
+    /**
+     * Add encoder telemetry.
+     */
+    private void addEncoderTelemetry() {
+        dashboardTelemetry.addLine("=== ENCODER VALUES ===");
+        dashboardTelemetry.addLine(String.format("Left: %d", RobotPose.encoderValues[0]));
+        dashboardTelemetry.addLine(String.format("Middle: %d", RobotPose.encoderValues[1]));
+        dashboardTelemetry.addLine(String.format("Right: %d", RobotPose.encoderValues[2]));
+        
+        // Also show motor currents and velocities if available
+        dashboardTelemetry.addLine("=== MOTOR DATA ===");
+        dashboardTelemetry.addLine(String.format("Currents (A): FL:%.2f FR:%.2f BL:%.2f BR:%.2f",
+                RobotPose.motorCurrents[0], RobotPose.motorCurrents[1], 
+                RobotPose.motorCurrents[2], RobotPose.motorCurrents[3]));
+        dashboardTelemetry.addLine(String.format("Velocities (deg/s): FL:%.1f FR:%.1f BL:%.1f BR:%.1f",
+                RobotPose.motorVelocities[0], RobotPose.motorVelocities[1], 
+                RobotPose.motorVelocities[2], RobotPose.motorVelocities[3]));
     }
     
     /**
@@ -326,7 +313,7 @@ public class RefactoredTeleOpMode extends BaseOpMode {
     @Override
     protected void cleanup() {
         // Stop all motors
-        WheelPowerManager.setDrivePower(driveTrain, 0, 0, 0, 0);
+        DriveTrain.setMotorPowers(0, 0, 0, 0);
         
         // Reset April Tag detection
         PathMakerStateMachine.aprilTagDetectionOn = false;

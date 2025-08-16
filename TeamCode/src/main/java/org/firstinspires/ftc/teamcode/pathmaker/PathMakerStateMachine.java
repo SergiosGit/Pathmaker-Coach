@@ -33,8 +33,7 @@ public class PathMakerStateMachine {
     public static int currentPath = -1, nextPath = -1;
     public static double yPower = 0, yPowerLast = 0;
     public static double xPower = 0, xPowerLast = 0;
-    public static double turnPower = 0;
-    static double turnPowerLast = 0;
+    public static double turnPower = 0, turnPowerLast = 0;
     static int xStoppingCounter = 1, yStoppingCounter = 1;
     public static double turnSensitivity = 0.4;
     private static final ElapsedTime switchToAutonomousTimer = new ElapsedTime();
