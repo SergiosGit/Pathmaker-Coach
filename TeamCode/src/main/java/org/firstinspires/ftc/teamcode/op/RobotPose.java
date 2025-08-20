@@ -42,6 +42,13 @@ import org.firstinspires.ftc.teamcode.configuration.GameConfig;
 
 @Config
 public class RobotPose {
+
+    public static boolean leftEncoderFlipped = false;
+    public static boolean rightEncoderFlipped = false;
+    public static boolean middleEncoderFlipped = false;
+    public static boolean flipTurnDirection = false;
+    public static boolean flipStrafeTurnCorrection = false;
+
     private static double headingAngle_rad = 0, lastHeadingAngle_rad = 0;
     private static double poseA_deg = 0, lastHeadingAngle_deg = 0;
     private static double forward_in = 0, lastForward_in = 0, strafe_in = 0, lastStrafe_in = 0;
@@ -226,18 +233,18 @@ public class RobotPose {
         motorVelocities = DriveTrain.getMotorVelocities();
 
         if (odometry == ODOMETRY.DEADWHEEL) {
-            currentRightPosition = encoderValues[0];
-            currentLeftPosition = encoderValues[2];
-            currentAuxPosition = encoderValues[1];
+            currentRightPosition = encoderValues[0] * (rightEncoderFlipped? -1:1);
+            currentLeftPosition = encoderValues[2] * (leftEncoderFlipped? -1:1);
+            currentAuxPosition = encoderValues[1] * (middleEncoderFlipped? -1:1);
 
             dn1 = currentLeftPosition - previousLeftPosition;
             dn2 = currentRightPosition - previousRightPosition;
             dn3 = currentAuxPosition - previousAuxPosition;
 
             //find out robot movement in cm
-            dtheta = -cm_per_tick * (dn2 - dn1) / L;
+            dtheta = (-cm_per_tick * (dn2 - dn1) / L) * (flipTurnDirection? -1: 1);
             dy = -cm_per_tick * (dn1 + dn2) / 2.0;
-            dx = -cm_per_tick * (-dn3 + (dn2 - dn1) * B / L);
+            dx = -cm_per_tick * (dn3 + ((dn2 - dn1) * (flipStrafeTurnCorrection? -1:1)) * B / L);
             lastHeadingAngle_rad = headingAngle_rad;
             headingAngle_rad += dtheta;
         } else if (odometry == ODOMETRY.XYPLUSIMU){

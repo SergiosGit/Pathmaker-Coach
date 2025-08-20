@@ -110,7 +110,7 @@ public class DriveTrain {
         } else if (RobotPose.odometry == RobotPose.ODOMETRY.DEADWHEEL) {
             // dead wheel odometry: 0: left encoder, 1: middle encoder, 2: right encoder
             // babybot: side encoders negative
-            return new int[]{-frontLeft.getCurrentPosition(), backRight.getCurrentPosition(), -frontRight.getCurrentPosition()};
+            return new int[]{-frontLeft.getCurrentPosition(), -backRight.getCurrentPosition(), -frontRight.getCurrentPosition()};
         } else {
             return new int[]{0, 0, 0, 0};
         }

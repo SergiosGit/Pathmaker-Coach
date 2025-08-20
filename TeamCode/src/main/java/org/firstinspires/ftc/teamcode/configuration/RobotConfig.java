@@ -18,9 +18,9 @@ public class RobotConfig {
         public static double encoderTicksPerRevolution = 537.6; // REV HD Hex Motor
         public static double inchesPerTick = wheelCircumferenceInches / encoderTicksPerRevolution;
         
-        // Odometry wheel distances (in cm)
-        public static double lateralDistance = 28.0; // Distance between left and right encoders
-        public static double forwardOffset = -6.90; // Distance from center to auxiliary encoder
+        // Odometry wheel distances (in cm) 30.16 lateral, -13.33 offset
+        public static double lateralDistance = 30.16; // Distance between left and right encoders
+        public static double forwardOffset = -13.3; // Distance from center to auxiliary encoder
     }
     
     // ===== DRIVE TRAIN PARAMETERS =====
@@ -111,7 +111,7 @@ public class RobotConfig {
             DEADWHEEL, XYPLUSIMU, SIMULATION
         }
         
-        public static Type odometryType = Type.SIMULATION;
+        public static Type odometryType = Type.DEADWHEEL;
         
         // Deadwheel odometry parameters
         public static double deadwheelRadius = 2.4; // GoBilda odometry wheel radius in cm (48mm diameter)

@@ -39,12 +39,12 @@ public class GameConfig {
     // ===== STARTING POSITIONS =====
     public static class StartingPositions {
         // Red Alliance starting positions (relative to field center)
-        public static double redLeftX = -Field.halfWidth + 18.0; // 18 inches from left edge
-        public static double redLeftY = -Field.halfLength + 18.0; // 18 inches from bottom edge
+        public static double redLeftX = 0; // 18 inches from left edge
+        public static double redLeftY = 0; // 18 inches from bottom edge
         public static double redCenterX = Field.centerX; // Center of field
         public static double redCenterY = -Field.halfLength + 18.0; // 18 inches from bottom edge
-        public static double redRightX = Field.halfWidth - 18.0; // 18 inches from right edge
-        public static double redRightY = -Field.halfLength + 18.0; // 18 inches from bottom edge
+        public static double redRightX = 0; // 18 inches from right edge
+        public static double redRightY = 0; // 18 inches from bottom edge
         
         // Blue Alliance starting positions (relative to field center)
         public static double blueLeftX = -Field.halfWidth + 18.0; // 18 inches from left edge

@@ -99,10 +99,10 @@ public class PathDetails {
         PathManager.approachPowerXY = 0.2;
         PathManager.breakPower = 0.05;
         PathManager.breakPowerScale = 0.5;
-        double rotateDeg = Math.random() * 360;
-        yFieldGoal_in = Math.sin(Math.toRadians(rotateDeg)) * roombaRadius;
-        xFieldGoal_in = Math.cos(Math.toRadians(rotateDeg)) * roombaRadius;
-        currentRotateDeg = (int) rotateDeg;
+        // double rotateDeg = Math.random() * 360;
+        // yFieldGoal_in = Math.sin(Math.toRadians(rotateDeg)) * roombaRadius;
+        // xFieldGoal_in = Math.cos(Math.toRadians(rotateDeg)) * roombaRadius;
+        // currentRotateDeg = (int) rotateDeg;
         //WebCam.stopWebcam();
     }
     public enum Path {
@@ -120,9 +120,9 @@ public class PathDetails {
         PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
         autoPathList = new ArrayList<PathDetails.Path>();
         autoPathList.add(PathDetails.Path.P1);
-//        autoPathList.add(PathDetails.Path.P2);
-//        autoPathList.add(PathDetails.Path.P3);
-//        autoPathList.add(PathDetails.Path.P4);
+        autoPathList.add(PathDetails.Path.P2);
+        autoPathList.add(PathDetails.Path.P3);
+        autoPathList.add(PathDetails.Path.P4);
 //        autoPathList.add(PathDetails.Path.P11);
 //        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
 //        autoPathList.add(PathDetails.Path.AUTO_BACKBOARD);
@@ -148,7 +148,37 @@ public class PathDetails {
             case P1:
                 PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
                 PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
-                powerScaling = 0.4;
+                xFieldGoal_in = 24;
+                yFieldGoal_in = 0;
+                aFieldGoal_deg = 0;
+                powerScaling = 0.7;
+                pathTime_ms = 10000;
+                break;
+            case P2:
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
+                xFieldGoal_in = 24;
+                yFieldGoal_in = 24;
+                aFieldGoal_deg = 0;
+                powerScaling = 0.7;
+                pathTime_ms = 10000;
+                break;
+            case P3:
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
+                xFieldGoal_in = 0;
+                yFieldGoal_in = 24;
+                aFieldGoal_deg = 0;
+                powerScaling = 0.7;
+                pathTime_ms = 10000;
+                break;
+            case P4:
+                PathMakerStateMachine.control_mode = PathMakerStateMachine.CONTROL_MODE.AUTONOMOUS;
+                PathMakerStateMachine.pm_state = PathMakerStateMachine.PM_STATE.AUTO_ExecutePath;
+                xFieldGoal_in = 0;
+                yFieldGoal_in = 0;
+                aFieldGoal_deg = 0;
+                powerScaling = 0.7;
                 pathTime_ms = 10000;
                 break;
             case DONE:
