@@ -132,12 +132,12 @@ public class PathMakerStateMachine {
         }
     }
     private static void getGamepadInput(Gamepad gamepad) {
-        xPower = -gamepad.left_stick_x;
-        yPower = gamepad.left_stick_y;
+        xPower = gamepad.left_stick_x;
+        yPower = -gamepad.left_stick_y;
         turnPower = gamepad.right_stick_x * turnSensitivity;
 
         double gamepadThreshold = 0.1;
-        // check if gampad input is below threshold
+        // check if gamepad input is below threshold
         // if so, we will ramp down the input to zero
         if (Math.abs(xPower) < gamepadThreshold) {
             // this ramp doesn't help as much as I wanted
