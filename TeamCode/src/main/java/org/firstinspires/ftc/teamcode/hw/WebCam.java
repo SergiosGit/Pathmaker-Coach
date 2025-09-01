@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.hw;
 
+import android.util.Size;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -67,6 +69,8 @@ public class WebCam {
         visionPortal = new VisionPortal.Builder()
                 .setCamera(switchableCamera)
                 .addProcessor(aprilTag)
+                .setStreamFormat(RobotConfig.Camera.getStreamFormat())
+                .setCameraResolution(new Size(RobotConfig.Camera.getResolutionWidth(), RobotConfig.Camera.getResolutionHeight()))
                 .build();
     }   // end method initAprilTag()
 

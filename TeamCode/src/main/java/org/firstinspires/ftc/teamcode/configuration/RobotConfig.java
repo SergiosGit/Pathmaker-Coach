@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.configuration;
 
 import com.acmerobotics.dashboard.config.Config;
 
+import org.firstinspires.ftc.vision.VisionPortal;
+
 /**
  * Centralized configuration for robot parameters.
  * This class consolidates all robot-specific settings for easy portability
@@ -71,8 +73,19 @@ public class RobotConfig {
     public static class Camera {
         public static String webcamOneName = "Webcam 1";
         public static String webcamTwoName = "Webcam 2";
+
         public static String getWebcamOneName() { return webcamOneName; }
         public static String getWebcamTwoName() { return webcamTwoName; }
+
+        public static int resolutionWidth = 640;
+        public static int resolutionHeight = 360;
+        public static VisionPortal.StreamFormat streamFormat = VisionPortal.StreamFormat.MJPEG;
+
+        public static int getResolutionWidth() { return resolutionWidth; }
+        public static int getResolutionHeight() { return resolutionHeight; }
+        public static VisionPortal.StreamFormat getStreamFormat() { return streamFormat; }
+
+
     }
 
 

@@ -29,6 +29,8 @@ package org.firstinspires.ftc.teamcode.op;/* Copyright (c) 2023 FIRST. All right
 
 //package org.firstinspires.ftc.robotcontroller.external.samples;
 
+import android.util.Size;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -39,8 +41,12 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
+import org.firstinspires.ftc.teamcode.configuration.GameConfig;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
@@ -84,6 +90,7 @@ public class ConceptAprilTag extends LinearOpMode {
     /**
      * The variable to store our instance of the vision portal.
      */
+
     private VisionPortal visionPortal;
     private int cycles;
     private final int TEST_CYCLES = 50;
@@ -145,13 +152,13 @@ public class ConceptAprilTag extends LinearOpMode {
                 //.setDrawCubeProjection(false)
                 //.setDrawTagOutline(true)
                 //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-                //.setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+                .setTagLibrary(GameConfig.AprilTags.getAprilTagLibrary())
                 //.setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
 
                 // == CAMERA CALIBRATION ==
                 // If you do not manually specify calibration parameters, the SDK will attempt
                 // to load a predefined calibration for your camera.
-                //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
+                .setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
                 // ... these parameters are fx, fy, cx, cy.
 
                 .build();
@@ -176,13 +183,13 @@ public class ConceptAprilTag extends LinearOpMode {
         }
 
         // Choose a camera resolution. Not all cameras support all resolutions.
-        //builder.setCameraResolution(new Size(640, 480));
+        builder.setCameraResolution(new Size(640, 360));
 
         // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
         //builder.enableLiveView(true);
 
         // Set the stream format; MJPEG uses less bandwidth than default YUY2.
-        //builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
+        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
 
         // Choose whether or not LiveView stops if no processors are enabled.
         // If set "true", monitor shows solid orange screen if no processors enabled.
@@ -211,11 +218,16 @@ public class ConceptAprilTag extends LinearOpMode {
 
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
+
             if (detection.metadata != null) {
+                VectorF tagPosition = detection.metadata.fieldPosition;
+                double[] tagPRY = quaternionToPRY(detection.metadata.fieldOrientation);
                 telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
                 telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
                 telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
                 telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+                telemetry.addLine(String.format("Tag Global XYZ %6.1f %6.1f %6.1f (inch)", tagPosition.get(0), tagPosition.get(1), tagPosition.get(2)));
+                telemetry.addLine(String.format("Tag Global PRY %6.1f %6.1f %6.1f (deg)", tagPRY[0], tagPRY[1], tagPRY[2]));
             } else {
                 telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
                 telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
@@ -228,5 +240,39 @@ public class ConceptAprilTag extends LinearOpMode {
         telemetry.addLine("RBE = Range, Bearing & Elevation");
 
     }   // end method telemetryAprilTag()
+
+    public static double[] quaternionToPRY(Quaternion quaternion) {
+        float w = quaternion.w;
+        float x = quaternion.x;
+        float y = quaternion.y;
+        float z = quaternion.z;
+
+        // Roll (X-axis)
+        double sinr_cosp = 2 * (w * x + y * z);
+        double cosr_cosp = 1 - 2 * (x*x + y*y);
+        double roll = Math.atan2(sinr_cosp, cosr_cosp);
+
+        // Pitch (Y-axis)
+        double sinp = 2 * (w * y - z * x);
+        double pitch;
+        if (Math.abs(sinp) >= 1)
+            pitch = Math.copySign(Math.PI/2, sinp); // use 90° if out of range
+        else
+            pitch = Math.asin(sinp);
+
+        // Yaw (Z-axis)
+        double siny_cosp = 2 * (w * z + x * y);
+        double cosy_cosp = 1 - 2 * (y*y + z*z);
+        double yaw = Math.atan2(siny_cosp, cosy_cosp);
+        // Convert to degrees
+        roll = Math.toDegrees(roll);
+        pitch = Math.toDegrees(pitch);
+        yaw = Math.toDegrees(yaw);
+        if(yaw < 0) {
+            yaw += 360;
+        }
+
+        return new double[]{pitch, roll, yaw}; // [roll, pitch, yaw] in degrees
+    }
 
 }   // end class

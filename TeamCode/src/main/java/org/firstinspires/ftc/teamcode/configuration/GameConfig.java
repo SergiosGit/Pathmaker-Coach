@@ -2,6 +2,14 @@ package org.firstinspires.ftc.teamcode.configuration;
 
 import com.acmerobotics.dashboard.config.Config;
 
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
+import org.firstinspires.ftc.vision.apriltag.AprilTagMetadata;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
 /**
  * Game-specific configuration for FTC competitions.
  * This class handles different game layouts and field elements
@@ -9,8 +17,9 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class GameConfig {
-    
-    // ===== FIELD DIMENSIONS =====
+
+
+    // Field Dimensions
     public static class Field {
         public static double widthInches = 144.0; // 12 feet
         public static double lengthInches = 144.0; // 12 feet
@@ -19,8 +28,9 @@ public class GameConfig {
         public static double halfWidth = widthInches / 2.0; // Distance from center to edge
         public static double halfLength = lengthInches / 2.0; // Distance from center to edge
     }
-    
-    // ===== STARTING POSITIONS =====
+
+
+    // Starting Positions for different OpModes
     // change how implemented later probably
     public static class StartingPositions {
 
@@ -78,7 +88,41 @@ public class GameConfig {
             return 0.0;
         }
     }
-    
+
+
+    // AprilTag configuration stuff
+    public static class AprilTags {
+
+        public enum LibraryType {
+            CURRENT_GAME, CUSTOM
+        }
+
+        // Set whether you want to create a custom library, or use the library from the current FTC game
+        // If custom, edit the createCustomTagLibrary method below
+        public static LibraryType libraryType = LibraryType.CURRENT_GAME;
+
+
+        public static AprilTagLibrary library = libraryType == LibraryType.CUSTOM? createCustomTagLibrary(): AprilTagGameDatabase.getCurrentGameTagLibrary();
+        public static AprilTagLibrary getAprilTagLibrary() { return library; }
+
+        // Create custom tags here
+        private static AprilTagLibrary createCustomTagLibrary() {
+            AprilTagLibrary.Builder builder = new AprilTagLibrary.Builder();
+
+            builder.addTag(
+                    0,
+                    "Tag1",
+                    6,
+                    new VectorF(0, 0, 0),
+                    DistanceUnit.INCH,
+                    new Quaternion(0F, 0F, 0F, 0F, 0)
+            );
+
+            return builder.build();
+        }
+    }
+
+    /*
     // ===== APRIL TAG POSITIONS =====
     public static class AprilTags {
         // Define April Tag positions for the current game
@@ -109,8 +153,11 @@ public class GameConfig {
             return new TagPosition(0, 0, 0, 0);
         }
     }
+
+     */
     
-    // ===== GAME ELEMENTS =====
+    // Positions of various game elements
+    // NOT YET CONNECTED TO PATHMAKER IN ANY WAY
     public static class GameElements {
         // Define positions of game elements (cones, pixels, etc.)
         // Update these for each new FTC season
