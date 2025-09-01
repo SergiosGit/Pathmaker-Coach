@@ -9,12 +9,15 @@ package org.firstinspires.ftc.teamcode.hw;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 import org.firstinspires.ftc.teamcode.pathmaker.GameSetup;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DriveTrain {
@@ -33,17 +36,20 @@ public class DriveTrain {
     }
     public void init() throws InterruptedException {
         // For bulk read make sure to use DcMotorEx when instantiating motors.
-        frontLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"front_left");
-        backLeft = myOpMode.hardwareMap.get(DcMotorEx.class,"back_left");
-        backRight = myOpMode.hardwareMap.get(DcMotorEx.class,"back_right");
-        frontRight = myOpMode.hardwareMap.get(DcMotorEx.class,"front_right");
+        frontLeft = myOpMode.hardwareMap.get(DcMotorEx.class, RobotConfig.DriveTrain.getFrontLeftMotorName());
+        backLeft = myOpMode.hardwareMap.get(DcMotorEx.class,RobotConfig.DriveTrain.getBackLeftMotorName());
+        backRight = myOpMode.hardwareMap.get(DcMotorEx.class,RobotConfig.DriveTrain.getBackRightMotorName());
+        frontRight = myOpMode.hardwareMap.get(DcMotorEx.class,RobotConfig.DriveTrain.getFrontRightMotorName());
         initMotor(frontLeft);
         initMotor(backLeft);
         initMotor(backRight);
         initMotor(frontRight);
-        // if all motors are plugged in the same you may need to do:
-        frontLeft.setDirection(DcMotorEx.Direction.REVERSE);
-        backLeft.setDirection(DcMotorEx.Direction.REVERSE);
+
+        if(RobotConfig.DriveTrain.isFrontLeftReversed()) {frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);}
+        if(RobotConfig.DriveTrain.isBackLeftReversed()) {backLeft.setDirection(DcMotorSimple.Direction.REVERSE);}
+        if(RobotConfig.DriveTrain.isBackRightReversed()) {backRight.setDirection(DcMotorSimple.Direction.REVERSE);}
+        if(RobotConfig.DriveTrain.isFrontRightReversed()) {frontRight.setDirection(DcMotorSimple.Direction.REVERSE);}
+
         // Get access to a list of Expansion Hub Modules to enable changing caching methods.
         allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
         // Set all Expansion hubs to use the MANUAL Bulk Caching mode

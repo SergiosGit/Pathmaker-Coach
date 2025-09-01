@@ -86,7 +86,7 @@ public class RefactoredAutoOpMode extends BaseOpMode {
      */
     private void runTestMode() throws InterruptedException {
         // Use dashboard parameters for testing
-        double forwardPower = RobotConfig.Autonomous.testCycles * 0.1; // Example
+        double forwardPower = 0.0; // Example
         double strafePower = 0.0;
         double turnPower = 0.2;
         double headingDrive = 0.0;
@@ -129,7 +129,7 @@ public class RefactoredAutoOpMode extends BaseOpMode {
     private void updateTelemetry() {
         telemetryUpdateCycles++;
         
-        if (telemetryUpdateCycles > RobotConfig.TeleOp.telemetryUpdateCycles) {
+        if (telemetryUpdateCycles > 10) {
             // Update common telemetry
             updateCommonTelemetry();
             
@@ -234,16 +234,6 @@ public class RefactoredAutoOpMode extends BaseOpMode {
     /**
      * Get the starting heading based on alliance and position.
      */
-    @Override
-    protected double getStartingHeading() {
-        // Calculate heading based on alliance and starting position
-        // This can be customized for different game strategies
-        if (RobotConfig.Game.currentAlliance == RobotConfig.Game.Alliance.RED) {
-            return 0.0; // Face forward for red alliance
-        } else {
-            return 180.0; // Face backward for blue alliance
-        }
-    }
     
     // ===== CLEANUP =====
     

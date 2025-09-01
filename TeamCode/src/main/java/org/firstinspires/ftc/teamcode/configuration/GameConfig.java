@@ -20,24 +20,18 @@ public class GameConfig {
         public static double halfLength = lengthInches / 2.0; // Distance from center to edge
     }
     
-    // ===== ALLIANCE STATIONS =====
-    public static class AllianceStation {
-        public static double redStationX = -Field.halfWidth; // Left edge of field
-        public static double redStationY = -Field.halfLength; // Bottom edge of field
-        public static double blueStationX = Field.halfWidth; // Right edge of field
-        public static double blueStationY = -Field.halfLength; // Bottom edge of field
-        
-        public static double getStationX(RobotConfig.Game.Alliance alliance) {
-            return alliance == RobotConfig.Game.Alliance.RED ? redStationX : blueStationX;
-        }
-        
-        public static double getStationY(RobotConfig.Game.Alliance alliance) {
-            return alliance == RobotConfig.Game.Alliance.RED ? redStationY : blueStationY;
-        }
-    }
-    
     // ===== STARTING POSITIONS =====
+    // change how implemented later probably
     public static class StartingPositions {
+
+        public enum Alliance {
+            RED, BLUE
+        }
+
+        public enum StartingPosition {
+            LEFT, RIGHT
+        }
+
         // Red Alliance starting positions (relative to field center)
         public static double redLeftX = 0; // 18 inches from left edge
         public static double redLeftY = 0; // 18 inches from bottom edge
@@ -53,35 +47,31 @@ public class GameConfig {
         public static double blueCenterY = Field.halfLength - 18.0; // 18 inches from top edge
         public static double blueRightX = Field.halfWidth - 18.0; // 18 inches from right edge
         public static double blueRightY = Field.halfLength - 18.0; // 18 inches from top edge
-        
-        public static double getStartingX(RobotConfig.Game.Alliance alliance, RobotConfig.Game.StartingPosition position) {
-            if (alliance == RobotConfig.Game.Alliance.RED) {
+
+        public static double getStartingX(Alliance alliance, StartingPosition position) {
+            if (alliance == Alliance.RED) {
                 switch (position) {
                     case LEFT: return redLeftX;
-                    case CENTER: return redCenterX;
                     case RIGHT: return redRightX;
                 }
             } else {
                 switch (position) {
                     case LEFT: return blueLeftX;
-                    case CENTER: return blueCenterX;
                     case RIGHT: return blueRightX;
                 }
             }
             return 0.0;
         }
         
-        public static double getStartingY(RobotConfig.Game.Alliance alliance, RobotConfig.Game.StartingPosition position) {
-            if (alliance == RobotConfig.Game.Alliance.RED) {
+        public static double getStartingY(Alliance alliance, StartingPosition position) {
+            if (alliance == Alliance.RED) {
                 switch (position) {
                     case LEFT: return redLeftY;
-                    case CENTER: return redCenterY;
                     case RIGHT: return redRightY;
                 }
             } else {
                 switch (position) {
                     case LEFT: return blueLeftY;
-                    case CENTER: return blueCenterY;
                     case RIGHT: return blueRightY;
                 }
             }
@@ -134,47 +124,6 @@ public class GameConfig {
                 this.y = y;
                 this.description = description;
             }
-        }
-        
-        // Example game element positions (relative to field center)
-        public static final ElementPosition[] elementPositions = {
-            new ElementPosition(Field.centerX, Field.centerY, "Center Element"),
-            new ElementPosition(-Field.halfWidth + 24.0, Field.centerY, "Left Side Element"),
-            new ElementPosition(Field.halfWidth - 24.0, Field.centerY, "Right Side Element"),
-            // Add more elements as needed
-        };
-    }
-    
-    // ===== AUTONOMOUS PATHS =====
-    public static class AutonomousPaths {
-        // Define common autonomous paths that can be reused
-        // across different starting positions and alliances
-        
-        public static class Path {
-            public final String name;
-            public final double[] waypoints; // [x1, y1, heading1, x2, y2, heading2, ...]
-            
-            public Path(String name, double[] waypoints) {
-                this.name = name;
-                this.waypoints = waypoints;
-            }
-        }
-        
-        // Example paths (update for current game)
-        public static final Path[] predefinedPaths = {
-            new Path("Forward", new double[]{0, 24, 0}),
-            new Path("Left Turn", new double[]{0, 24, 90}),
-            new Path("Right Turn", new double[]{0, 24, -90}),
-            // Add more paths as needed
-        };
-        
-        public static Path getPath(String pathName) {
-            for (Path path : predefinedPaths) {
-                if (path.name.equals(pathName)) {
-                    return path;
-                }
-            }
-            return predefinedPaths[0]; // Default to first path
         }
     }
 }

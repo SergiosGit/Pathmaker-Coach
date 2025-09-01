@@ -8,6 +8,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -57,8 +58,8 @@ public class WebCam {
         // Note: Decimation can be changed on-the-fly to adapt during a match.
         //aprilTag.setDecimation(2);
 
-        webcam1 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1");
-        webcam2 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 2");
+        webcam1 = myOpMode.hardwareMap.get(WebcamName.class, RobotConfig.Camera.getWebcamOneName());
+        webcam2 = myOpMode.hardwareMap.get(WebcamName.class, RobotConfig.Camera.getWebcamTwoName());
         CameraName switchableCamera = ClassFactory.getInstance()
                 .getCameraManager().nameForSwitchableCamera(webcam1, webcam2);
 

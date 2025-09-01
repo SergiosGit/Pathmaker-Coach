@@ -82,13 +82,14 @@ public abstract class BaseOpMode extends LinearOpMode {
      * Set the initial robot pose based on game configuration.
      */
     protected void setInitialPose() {
+
         double startX = GameConfig.StartingPositions.getStartingX(
-            RobotConfig.Game.currentAlliance, 
-            RobotConfig.Game.startingPosition
+            GameConfig.StartingPositions.Alliance.RED,
+            GameConfig.StartingPositions.StartingPosition.LEFT
         );
         double startY = GameConfig.StartingPositions.getStartingY(
-            RobotConfig.Game.currentAlliance, 
-            RobotConfig.Game.startingPosition
+            GameConfig.StartingPositions.Alliance.RED,
+            GameConfig.StartingPositions.StartingPosition.LEFT
         );
         double startHeading = getStartingHeading();
         
@@ -107,8 +108,8 @@ public abstract class BaseOpMode extends LinearOpMode {
      * Update telemetry with initial robot state.
      */
     protected void updateInitialTelemetry() {
-        dashboardTelemetry.addData("Alliance", RobotConfig.Game.currentAlliance);
-        dashboardTelemetry.addData("Starting Position", RobotConfig.Game.startingPosition);
+        // dashboardTelemetry.addData("Alliance", RobotConfig.Game.currentAlliance);
+        // dashboardTelemetry.addData("Starting Position", RobotConfig.Game.startingPosition);
         dashboardTelemetry.addData("Initial X", RobotPose.getFieldX_in());
         dashboardTelemetry.addData("Initial Y", RobotPose.getFieldY_in());
         dashboardTelemetry.addData("Initial Heading", RobotPose.getFieldAngle_deg());

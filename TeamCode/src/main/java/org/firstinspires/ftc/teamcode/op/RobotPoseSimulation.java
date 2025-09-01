@@ -109,17 +109,6 @@ public class RobotPoseSimulation {
         double fieldOffsetX = 0.0;
         double fieldOffsetY = 0.0;
         
-        // Apply team-specific offsets based on RobotConfig
-        if (RobotConfig.Game.currentAlliance == RobotConfig.Game.Alliance.RED) {
-            // Red alliance typically starts on one side
-            fieldOffsetX = -GameConfig.Field.halfWidth + 18.0; // 18 inches from edge
-            fieldOffsetY = -GameConfig.Field.halfLength + 18.0; // 18 inches from edge
-        } else {
-            // Blue alliance typically starts on the opposite side
-            fieldOffsetX = GameConfig.Field.halfWidth - 18.0; // 18 inches from edge
-            fieldOffsetY = GameConfig.Field.halfLength - 18.0; // 18 inches from edge
-        }
-        
         // Convert robot-centric to field-centric coordinates
         double angleRad = Math.toRadians(simulatedAngle_deg);
         double cos = Math.cos(angleRad);

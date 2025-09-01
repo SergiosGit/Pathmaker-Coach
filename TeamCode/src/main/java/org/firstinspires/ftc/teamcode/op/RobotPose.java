@@ -43,12 +43,6 @@ import org.firstinspires.ftc.teamcode.configuration.GameConfig;
 @Config
 public class RobotPose {
 
-    public static boolean leftEncoderFlipped = false;
-    public static boolean rightEncoderFlipped = false;
-    public static boolean middleEncoderFlipped = false;
-    public static boolean flipTurnDirection = false;
-    public static boolean flipStrafeTurnCorrection = false;
-
     private static double headingAngle_rad = 0, lastHeadingAngle_rad = 0;
     private static double poseA_deg = 0, lastHeadingAngle_deg = 0;
     private static double forward_in = 0, lastForward_in = 0, strafe_in = 0, lastStrafe_in = 0;
@@ -73,7 +67,7 @@ public class RobotPose {
     public static int currentForwardTics = 0;
     public static int currentTurn_rad = 0;
 
-    public static double robot_mass_kg = 10.0; // mass of baby bot in kg
+    public static double robot_mass_kg = RobotConfig.Physical.getRobotMassKg(); // mass of baby bot in kg
     public static double robot_energy_f = 0; // forward kinetic energy in arbitrary units (E_kin = m * (in/sec)^2)
     public static double robot_energy_s = 0; // strafe kinetic energy in arbitrary units
     public static double robot_energy_a = 0; // angular kinetic energy in arbitrary units (E_rot = 1/25 * m * (deg/sec)^2)
@@ -103,7 +97,7 @@ public class RobotPose {
         driveTrain.init();
         
         // Set odometry type from RobotConfig
-        switch (RobotConfig.Odometry.odometryType) {
+        switch (RobotConfig.Odometry.getOdometryType()) {
             case DEADWHEEL:
                 odometry = ODOMETRY.DEADWHEEL;
                 break;
@@ -149,38 +143,16 @@ public class RobotPose {
         
         // Configure odometry parameters based on RobotConfig
         if (odometry == ODOMETRY.DEADWHEEL) {
-            L = RobotConfig.Odometry.lateralDistance;
-            B = RobotConfig.Odometry.forwardOffset;
-            R = RobotConfig.Odometry.deadwheelRadius;
-            N = RobotConfig.Odometry.deadwheelTicksPerRevolution;
+            L = RobotConfig.Odometry.getLateralDistance();
+            B = RobotConfig.Odometry.getForwardOffset();
+            R = RobotConfig.Odometry.getDeadwheelRadius();
+            N = RobotConfig.Odometry.getDeadwheelTicksPerRevolution();
         } else if (odometry == ODOMETRY.XYPLUSIMU) {
-            L = RobotConfig.Odometry.lateralDistance;
-            B = RobotConfig.Odometry.forwardOffset;
-            R = RobotConfig.Odometry.xyImuWheelRadius;
-            N = RobotConfig.Odometry.xyImuTicksPerRevolution;
-            cm_per_tick_strafe = RobotConfig.Odometry.xyImuStrafeCmPerTick;
-        } else if (odometry == ODOMETRY.SIMULATION) {
-            // Initialize simulation with current robot configuration
-            double startX = GameConfig.StartingPositions.getStartingX(
-                RobotConfig.Game.currentAlliance, 
-                RobotConfig.Game.startingPosition
-            );
-            double startY = GameConfig.StartingPositions.getStartingY(
-                RobotConfig.Game.currentAlliance, 
-                RobotConfig.Game.startingPosition
-            );
-            double startAngle = 0.0; // Default starting angle
-            
-            RobotPoseSimulation.initializeSimulation(startX, startY, startAngle);
-            RobotPoseSimulation.setSimulationParameters(
-                RobotConfig.Odometry.simulationForwardRate,
-                RobotConfig.Odometry.simulationStrafeRate,
-                RobotConfig.Odometry.simulationTurnRate
-            );
-            
-            // Set default values for simulation
-            R = 1;
-            N = 1;
+            L = RobotConfig.Odometry.getLateralDistance();
+            B = RobotConfig.Odometry.getForwardOffset();
+            R = RobotConfig.Odometry.getImuWheelRadius();
+            N = RobotConfig.Odometry.getImuTicksPerRevolution();
+            cm_per_tick_strafe = RobotConfig.Odometry.getImuStrafePerTick();
         } else {
             R = 1;
             N = 1;
@@ -233,18 +205,18 @@ public class RobotPose {
         motorVelocities = DriveTrain.getMotorVelocities();
 
         if (odometry == ODOMETRY.DEADWHEEL) {
-            currentRightPosition = encoderValues[0] * (rightEncoderFlipped? -1:1);
-            currentLeftPosition = encoderValues[2] * (leftEncoderFlipped? -1:1);
-            currentAuxPosition = encoderValues[1] * (middleEncoderFlipped? -1:1);
+            currentRightPosition = encoderValues[0] * (RobotConfig.Odometry.isRightEncoderFlipped()? -1:1);
+            currentLeftPosition = encoderValues[2] * (RobotConfig.Odometry.isLeftEncoderFlipped()? -1:1);
+            currentAuxPosition = encoderValues[1] * (RobotConfig.Odometry.isMiddleEncoderFlipped()? -1:1);
 
             dn1 = currentLeftPosition - previousLeftPosition;
             dn2 = currentRightPosition - previousRightPosition;
             dn3 = currentAuxPosition - previousAuxPosition;
 
             //find out robot movement in cm
-            dtheta = (-cm_per_tick * (dn2 - dn1) / L) * (flipTurnDirection? -1: 1);
+            dtheta = (-cm_per_tick * (dn2 - dn1) / L) * (RobotConfig.Odometry.isTurnDirectionFlipped()? -1: 1);
             dy = -cm_per_tick * (dn1 + dn2) / 2.0;
-            dx = -cm_per_tick * (dn3 + ((dn2 - dn1) * (flipStrafeTurnCorrection? -1:1)) * B / L);
+            dx = -cm_per_tick * (dn3 + ((dn2 - dn1) * (RobotConfig.Odometry.isStrafeTurnCorrectionFlipped()? -1:1)) * B / L);
             lastHeadingAngle_rad = headingAngle_rad;
             headingAngle_rad += dtheta;
         } else if (odometry == ODOMETRY.XYPLUSIMU){

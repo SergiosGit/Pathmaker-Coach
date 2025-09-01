@@ -172,7 +172,7 @@ public class RefactoredTeleOpMode extends BaseOpMode {
     private void updateTelemetry() {
         telemetryUpdateCycles++;
         
-        if (telemetryUpdateCycles > RobotConfig.TeleOp.telemetryUpdateCycles) {
+        if (telemetryUpdateCycles > 10) {
             // Update common telemetry
             updateCommonTelemetry();
             
