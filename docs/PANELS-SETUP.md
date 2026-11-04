@@ -1,6 +1,8 @@
 # Panels + Kotlin setup
 
 **Repo:** `sw/FtcRobotController` — FTC SDK 11.2.1, Gradle wrapper 9.1.0, AGP 8.13.2
+
+> Since 3 Nov 2026 the project is on FTC SDK 12.0. 12.0 kept Gradle 9.1.0 and AGP 8.13.2, so everything below still applies.
 **Robot:** REV Control Hub · **Set up:** 2026-08-18
 
 ## What was changed

@@ -21,7 +21,9 @@ import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
 import org.firstinspires.ftc.teamcode.op.RobotPose;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagClusterDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
@@ -188,9 +190,18 @@ public class VisionSystem {
             return aprilTag.getDetections();
         }
 
+        // SDK 12.0: a detection is either a single tag (has an ID) or a cluster of tags (has a name,
+        // no ID). This code looks tags up by ID, so clusters get -1 and are never matched.
+        public static int idOf(AprilTagDetection detection) {
+            if (detection instanceof AprilTagSingleDetection) {
+                return ((AprilTagSingleDetection) detection).id;
+            }
+            return -1;
+        }
+
         public static AprilTagDetection getAprilTagByID(int id) {
             for(AprilTagDetection detection: getAprilTagDetections()) {
-                if(detection.id == id) {
+                if(idOf(detection) == id) {
                     return detection;
                 }
             }
@@ -198,7 +209,12 @@ public class VisionSystem {
         }
 
         public static boolean isValidAprilTag(AprilTagDetection detection) {
-            if(detection != null && detection.metadata != null) { return true; }
+            if (detection instanceof AprilTagSingleDetection) {
+                return ((AprilTagSingleDetection) detection).metadata != null;
+            }
+            if (detection instanceof AprilTagClusterDetection) {
+                return ((AprilTagClusterDetection) detection).metadata != null;
+            }
             return false;
         }
 
@@ -215,7 +231,7 @@ public class VisionSystem {
         public static List<Integer> getAprilTagIDs() {
             List<Integer> IDs = new ArrayList<>();
             for (AprilTagDetection detection: getAprilTagDetections()) {
-                IDs.add(detection.id);
+                if (idOf(detection) >= 0) IDs.add(idOf(detection));
             }
             return IDs;
         }
@@ -262,7 +278,7 @@ public class VisionSystem {
             double bestRange = Double.POSITIVE_INFINITY;
             int bestId = -1;
             for (AprilTagDetection d : dets) {
-                if (d == null) continue;
+                if (d == null || idOf(d) < 0) continue;
                 double range = Double.NaN;
                 if (d.ftcPose != null && !Double.isNaN(d.ftcPose.range)) {
                     range = d.ftcPose.range;
@@ -272,7 +288,7 @@ public class VisionSystem {
                 }
                 if (Double.isFinite(range) && range < bestRange) {
                     bestRange = range;
-                    bestId = d.id;
+                    bestId = idOf(d);
                 }
             }
             return bestId;

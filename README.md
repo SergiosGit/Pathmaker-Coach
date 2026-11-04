@@ -10,13 +10,13 @@ A coach's FTC robot software workspace for the 2026–27 **BIOBUZZ** season. It 
 
 It is used to prepare and explain changes that the students then bring into their team repo ([bayrobotics/3rd-Gear-26-27](https://github.com/bayrobotics/3rd-Gear-26-27)).
 
-> **Status (3 Nov 2026):** The TeamCode compiles against the FTC SDK 11.2.1 and Panels libraries, checked with `javac`. A full Gradle build has not been run. Nothing has run on a robot yet. The next planned step is to move to SDK 12.0 and merge the bay-b bot code. See the roadmap below.
+> **Status (3 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ). The TeamCode compiles against the SDK 12.0 and Panels libraries, checked with `javac`. A full Gradle build has not been run. Nothing has run on a robot yet. The next planned step is to merge the bay-b bot code. See the roadmap below.
 
 ## Layout
 
 ```
 ├── FtcRobotController/          Android Studio project (open THIS folder in Android Studio)
-│   ├── FtcRobotController/      FTC SDK module (unchanged from FIRST, v11.2.1)
+│   ├── FtcRobotController/      FTC SDK module (unchanged from FIRST, v12.0)
 │   ├── TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 │   │   ├── pathmaker/           PathMaker: PathManager (control), PathDetails (paths),
 │   │   │                        PathMakerStateMachine (sequencing), RobotPoseSimulation
@@ -51,7 +51,7 @@ It is used to prepare and explain changes that the students then bring into thei
 3. Connect to the Control Hub's Wi-Fi and run the `TeamCode` configuration.
 4. Open Panels at http://192.168.43.1:8001 while connected to the robot.
 
-Versions: FTC SDK 11.2.1, Gradle 9.1.0, AGP 8.13.2, Kotlin plugin 2.4.10, Panels `com.bylazar:fullpanels:1.0.12`.
+Versions: FTC SDK 12.0, Gradle 9.1.0, AGP 8.13.2, Kotlin plugin 2.4.10, Panels `com.bylazar:fullpanels:1.0.12`.
 
 ### Robot configuration names used by the code
 
@@ -77,7 +77,7 @@ java -cp out TrajectorySim          # takes a few minutes
 
 ## Roadmap
 
-1. Move to **FTC SDK 12.0** (the BIOBUZZ release, needed by Pedro Pathing 3). This also requires updating the AprilTag code for the new detection types.
+1. ~~Move to **FTC SDK 12.0**~~ (done 3 Nov 2026: `VisionSystem` updated for the new single-tag and cluster detection types). After deploying, also update the Driver Hub app to 12.0.
 2. Merge the bay-b bot code. Pedro's OctoQuad localizer uses ports 0 and 1, so the shooter encoder moves to another channel.
 3. Allow either PathMaker or Pedro Pathing to drive the same routes, and run the benchmark plan.
 4. PathMaker 2: non-blocking update, pluggable localizer, paths as data with alliance mirroring, braking from measured stopping distance, and a short self-measuring tuning OpMode.
