@@ -84,15 +84,18 @@ public class LocalizingClump extends LinearOpMode {
     }
 
     public void driveToPollen(Pose2D pose) {
-        Pose currentPose = PoseFactory.degrees().of(
-                follower.pose().x(),
-                follower.pose().y(),
-                follower.pose().heading());
-        Pose targetPose = PoseFactory.degrees().of(
-                follower.pose().x() + pose.getX(DistanceUnit.INCH),
-                follower.pose().y() + pose.getY(DistanceUnit.INCH),
-                follower.pose().heading()
-                );
+        // follower.pose() is already in radians, so use it as is (it used to go through
+        // PoseFactory.degrees(), which treated radians as degrees). The ball offset is measured
+        // relative to the robot (forward, left), so rotate it by the robot heading before adding
+        // it to the field position.
+        Pose currentPose = follower.pose();
+        double heading = currentPose.heading();
+        double forward = pose.getX(DistanceUnit.INCH);
+        double left = pose.getY(DistanceUnit.INCH);
+        Pose targetPose = new Pose(
+                currentPose.x() + forward * Math.cos(heading) - left * Math.sin(heading),
+                currentPose.y() + forward * Math.sin(heading) + left * Math.cos(heading),
+                heading);
 
         Path path = Paths.line(currentPose, targetPose);
 

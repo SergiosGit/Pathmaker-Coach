@@ -9,10 +9,7 @@ import com.pedropathing.follower.ManualDrive;
 import com.pedropathing.ivy.Command;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
-
-import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 public class Drivetrain {
 
@@ -36,12 +33,8 @@ public class Drivetrain {
         backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-
-        // follower = Constants.create(robot.hw);
-
-        telemetry = robot.telemetry;
+        // Motor directions come from Constants.drivetrainConfig (set by AutoTune). Setting them
+        // here as well would override the tuned values.
     }
 
     public void setPose(Pose pose) {
@@ -61,6 +54,8 @@ public class Drivetrain {
             // if(Math.abs(gamepad.right_stick_x) < 0.1) powers = ManualDrive.headingLock(follower, Constants.foresightConfig.headingFeedback.get(), powers, targetHeading);
             // else targetHeading = follower.pose().heading();
             ManualDrive.driveOrHold(follower, powers);
+            // driveOrHold only chooses the mode; update() reads the localizer and powers the motors.
+            follower.update();
 
             telemetry.addLine(String.format("Robot Pose x/y/a %6.1f %6.1f %6.1f",
                     follower.pose().x(),

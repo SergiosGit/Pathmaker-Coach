@@ -236,7 +236,7 @@ OctoQuad boards running firmware v3 need an FTC SDK whose driver supports it. Al
 
 ### Wiring
 
-1. **Plug the Through Bore into OctoQuad channel 0**, using the REV 6-pin to 4-pin cable included with the encoder (REV-31-1815). The stock cable is correct for quadrature; only absolute pulse-width signals need a modified one. Don't use the 6-pin to 6-pin cable or the PWM cable.
+1. **Plug the Through Bore into OctoQuad channel 2**, because channels 0 and 1 are used by the odometry pods, using the REV 6-pin to 4-pin cable included with the encoder (REV-31-1815). The stock cable is correct for quadrature; only absolute pulse-width signals need a modified one. Don't use the 6-pin to 6-pin cable or the PWM cable.
 2. **Leave the motor's power cable on the hub**, on the `outtake_motor` port. The motor's own encoder is no longer used, so it can stay unplugged.
 3. **Connect the OctoQuad to an I2C port on the hub.** Its I2C and encoder connections are **3.3 V only, not 5 V tolerant**. The encoder accepts 3.3–5 V, so powering it from the OctoQuad's connector is correct. Don't power it from a 5 V source.
 4. **Add the OctoQuad to the robot configuration** as an I2C device named exactly `octoquad`.

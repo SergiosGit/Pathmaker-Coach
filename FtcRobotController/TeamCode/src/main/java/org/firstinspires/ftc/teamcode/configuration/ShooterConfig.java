@@ -48,7 +48,8 @@ public class ShooterConfig {
 
     // ---- Hardware ----
     public static String octoQuadName = "octoquad"; // name in the robot configuration
-    public static int encoderChannel = 0;           // OctoQuad channel, 0 to 7
+    public static int encoderChannel = 2;           // OctoQuad channel, 0 to 7. 0 and 1 are the
+                                                    // odometry pods (Pedro OctoQuadLocalizer)
     public static boolean reverseMotor = false;     // flip if the wheel spins the wrong way
     public static boolean reverseEncoder = false;   // flip if measured RPM is negative
     public static int velocityWindowMs = 20;        // OctoQuad counts encoder steps for this long.
