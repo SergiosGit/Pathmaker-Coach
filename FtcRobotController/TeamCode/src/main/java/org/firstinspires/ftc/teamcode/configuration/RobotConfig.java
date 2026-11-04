@@ -1,0 +1,263 @@
+package org.firstinspires.ftc.teamcode.configuration;
+
+import com.bylazar.configurables.annotations.Configurable;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.vision.VisionPortal;
+import android.content.Context;
+import android.provider.Settings;
+/**
+ * Centralized configuration for robot parameters.
+ * This class consolidates all robot-specific settings for easy portability
+ * between different robot configurations and game layouts.
+ */
+
+@Configurable
+public class RobotConfig {
+
+    // Physical parameters
+    @Configurable
+    public static class Physical {
+        public static double robotMassKg = 10.0;
+        public static double wheelDiameterInches = 4.0;
+        public static double wheelCircumferenceInches = wheelDiameterInches * Math.PI;
+        public static double encoderTicksPerRevolution = 537.6; // REV HD Hex Motor
+
+
+
+        // Accessor methods
+        public static double getRobotMassKg() { return robotMassKg; }
+        public static double getWheelCircumferenceInches() { return wheelCircumferenceInches; }
+        public static double getEncoderTicksPerRevolution() { return encoderTicksPerRevolution; }
+    }
+
+
+    // Drive train parameters
+    @Configurable
+    public static class DriveTrain {
+        
+        // Motor direction configuration
+        public static boolean reverseFrontLeft = true;
+        public static boolean reverseBackLeft = true;
+        public static boolean reverseFrontRight = false;
+        public static boolean reverseBackRight = false;
+        
+        // Hardware names
+        public static String frontLeftMotorName = "front_left";
+        public static String backLeftMotorName = "back_left";
+        public static String backRightMotorName = "back_right";
+        public static String frontRightMotorName = "front_right";
+
+
+
+        // Accessor methods
+        public static boolean isFrontLeftReversed() { return reverseFrontLeft; }
+        public static boolean isBackLeftReversed() { return reverseBackLeft; }
+        public static boolean isBackRightReversed() { return reverseBackRight; }
+        public static boolean isFrontRightReversed() { return reverseFrontRight; }
+
+        public static String getFrontLeftMotorName() { return frontLeftMotorName; }
+        public static String getBackLeftMotorName() { return backLeftMotorName; }
+        public static String getBackRightMotorName() { return backRightMotorName; }
+        public static String getFrontRightMotorName() { return frontRightMotorName; }
+    }
+
+
+    // IMU parameters
+    public static class IMU {
+        public static String imuName = "imu";
+        public static String getImuName() { return imuName; }
+    }
+
+
+    // Camera parameters
+    @Configurable
+    public static class Camera {
+
+        public static boolean useCamera = false;
+        public static boolean multipleCameras = false;
+        public static boolean enableAprilTagDetection = false;
+        public static boolean enableLivePreview = false;
+
+        public static String webcamOneName = "Webcam 1";
+        public static String webcamTwoName = "Webcam 2";
+
+        public static int resolutionWidth = 640;
+        public static int resolutionHeight = 360;
+        public static VisionPortal.StreamFormat streamFormat = VisionPortal.StreamFormat.MJPEG;
+
+        public static double cameraOffsetX = 0;
+        public static double cameraOffsetY = 0;
+        public static double cameraOffsetZ = 0;
+
+        public static double cameraYawOffset = 0;
+        public static double cameraPitchOffset = 0;
+        public static double cameraRollOffset = 0;
+
+        public static boolean useCustomExposure = false;
+        public static int exposure = 0;
+        public static int gain = 0;
+
+        public static boolean useCustomCameraCalibration = false;
+        public static double fx = 0;
+        public static double fy = 0;
+        public static double cx = 0;
+        public static double cy = 0;
+
+
+
+        public static boolean useCamera() { return useCamera; }
+        public static boolean multipleCameras() { return multipleCameras; }
+        public static boolean enableAprilTagDetection() { return enableAprilTagDetection; }
+        public static boolean enableLivePreview() { return enableLivePreview; }
+
+        public static String getWebcamOneName() { return webcamOneName; }
+        public static String getWebcamTwoName() { return webcamTwoName; }
+
+        public static int getResolutionWidth() { return resolutionWidth; }
+        public static int getResolutionHeight() { return resolutionHeight; }
+        public static VisionPortal.StreamFormat getStreamFormat() { return streamFormat; }
+
+        public static Position getCameraPosition() { return new Position(DistanceUnit.INCH, cameraOffsetX, cameraOffsetY, cameraOffsetZ, 0); }
+
+        public static YawPitchRollAngles getCameraOrientation() { return new YawPitchRollAngles(AngleUnit.DEGREES, cameraYawOffset, cameraPitchOffset, cameraRollOffset, 0); }
+
+        public static boolean useCustomExposure() { return useCustomExposure; }
+        public static int getExposure() { return exposure; }
+        public static int getGain() { return gain; }
+
+        public static boolean customCameraCalibration() { return customCameraCalibration(); }
+        public static double getFx() { return fx; }
+        public static double getFy() { return fy; }
+        public static double getCx() { return cx; }
+        public static double getCy() { return cy; }
+    }
+    public static void initializeRobotType(Context context, boolean autonomous) {
+        String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        // Determine robot type based on Android ID
+
+        if ("a937995b89b47fbb".equals(androidId)) {
+            RobotConfig.Odometry.robotType = RobotConfig.Odometry.RobotType.ScootBot;
+        } else if ("da51c852feb02774".equals(androidId)) {
+            RobotConfig.Odometry.robotType = Odometry.RobotType.SeasonRobot;
+        } else {
+            RobotConfig.Odometry.robotType = RobotConfig.Odometry.RobotType.Default;
+        }
+        // Set odometry parameters based on robot type
+
+        if (autonomous) {
+            if (RobotConfig.Odometry.robotType == Odometry.RobotType.ScootBot) {
+                RobotConfig.Odometry.lateralDistance = 28; // Distance between left and right encoders
+                RobotConfig.Odometry.forwardOffset = -6.4; // Distance from center to auxiliary encoder
+                RobotConfig.Odometry.flipLeftEncoder = true;
+                RobotConfig.Odometry.flipRightEncoder = true;
+                RobotConfig.Odometry.flipMiddleEncoder = true;
+                RobotConfig.Odometry.flipTurnDirection = false;
+                RobotConfig.Camera.useCamera = true;
+                RobotConfig.Camera.enableLivePreview = true;
+                RobotConfig.Camera.multipleCameras = false;
+                RobotConfig.Odometry.odometryType = Odometry.OdometryType.DEADWHEEL;
+            } else if (RobotConfig.Odometry.robotType == Odometry.RobotType.SeasonRobot) {
+                RobotConfig.Odometry.lateralDistance = 43; // Distance between left and right encoders
+                RobotConfig.Odometry.forwardOffset = 16; // Distance from center to auxiliary encoder
+                RobotConfig.Odometry.flipMiddleEncoder = true;
+                RobotConfig.Odometry.flipLeftEncoder = false;
+                RobotConfig.Odometry.flipRightEncoder = false;
+                RobotConfig.Odometry.flipTurnDirection = false;
+            } else {
+
+            }
+        }
+        else {
+            if (RobotConfig.Odometry.robotType == Odometry.RobotType.ScootBot) {
+                RobotConfig.Odometry.lateralDistance = 28; // Distance between left and right encoders
+                RobotConfig.Odometry.forwardOffset = -6.4; // Distance from center to auxiliary encoder
+                RobotConfig.Odometry.flipLeftEncoder = true;
+                RobotConfig.Odometry.flipRightEncoder = true;
+                RobotConfig.Odometry.flipMiddleEncoder = true;
+                RobotConfig.Odometry.flipTurnDirection = false;
+                RobotConfig.Camera.useCamera = true;
+                RobotConfig.Camera.enableLivePreview = true;
+                RobotConfig.Camera.multipleCameras = false;
+                RobotConfig.Odometry.odometryType = Odometry.OdometryType.DEADWHEEL;
+            } else if (RobotConfig.Odometry.robotType == Odometry.RobotType.SeasonRobot) {
+                RobotConfig.Odometry.lateralDistance = 43; // Distance between left and right encoders
+                RobotConfig.Odometry.forwardOffset = 16; // Distance from center to auxiliary encoder
+                RobotConfig.Odometry.flipMiddleEncoder = true;
+                RobotConfig.Odometry.flipLeftEncoder = false;
+                RobotConfig.Odometry.flipRightEncoder = false;
+                RobotConfig.Odometry.flipTurnDirection = false;
+            } else {
+
+            }
+        }
+
+    }
+
+    // Odometry parameters
+    @Configurable
+    public static class Odometry {
+
+        public enum OdometryType {
+            DEADWHEEL, XYPLUSIMU, SIMULATION
+        }
+        public enum RobotType {
+            ScootBot, SeasonRobot, Default
+        }
+        public static RobotType robotType = RobotType.Default;
+        // Type of odometry being used
+        public static OdometryType odometryType = OdometryType.DEADWHEEL;
+
+        // Odometry wheel distances (in cm)
+        public static double lateralDistance = 30.16; // Distance between left and right encoders
+        public static double forwardOffset = -13.3; // Distance from center to auxiliary encoder
+
+        public static boolean flipLeftEncoder = false;
+        public static boolean flipMiddleEncoder = false;
+        public static boolean flipRightEncoder = false;
+        public static boolean flipTurnDirection = false;
+        public static boolean flipStrafeTurnCorrection = false;
+        
+        // Deadwheel odometry parameters
+        public static double deadwheelRadius = 2.4; // GoBilda odometry wheel radius in cm (48mm diameter)
+        public static int deadwheelTicksPerRevolution = 2000; // GoBilda odometry pod: 2000 Countable Events per Revolution
+        
+        // XY+IMU odometry parameters
+        public static double xyImuWheelRadius = 4.8; // Mecanum wheel radius in cm (OD=96mm)
+        public static double xyImuTicksPerRevolution = 537.7; // 312 RPM motor encoder tics per revolution (PPR)
+        public static double xyImuStrafeCmPerTick = 73.2/1477; // measured with coach chassis
+
+        // Simulation parameters
+        public static double simulationForwardRate = 0.035; // inches per ms per power unit
+        public static double simulationStrafeRate = 0.035;  // inches per ms per power unit
+        public static double simulationTurnRate = 0.4;      // degrees per ms per power unit
+
+
+
+        // Accessor methods
+        public static OdometryType getOdometryType() { return odometryType; }
+
+        public static double getLateralDistance() { return lateralDistance; }
+        public static double getForwardOffset() { return forwardOffset; }
+
+        public static boolean isLeftEncoderFlipped() { return flipLeftEncoder; }
+        public static boolean isMiddleEncoderFlipped() { return flipMiddleEncoder; }
+        public static boolean isRightEncoderFlipped() { return flipRightEncoder; }
+        public static boolean isTurnDirectionFlipped() { return flipTurnDirection; }
+        public static boolean isStrafeTurnCorrectionFlipped() { return flipStrafeTurnCorrection; }
+
+        public static double getDeadwheelRadius() { return deadwheelRadius; }
+        public static double getDeadwheelTicksPerRevolution() { return deadwheelTicksPerRevolution; }
+
+        public static double getImuWheelRadius() { return xyImuWheelRadius; }
+        public static double getImuTicksPerRevolution() { return xyImuTicksPerRevolution; }
+        public static double getImuStrafePerTick() { return xyImuStrafeCmPerTick; }
+
+        public static double simulationForwardRate() { return simulationForwardRate; }
+        public static double getSimulationStrafeRate() { return simulationStrafeRate; }
+        public static double getSimulationTurnRate() { return simulationTurnRate; }
+    }
+}

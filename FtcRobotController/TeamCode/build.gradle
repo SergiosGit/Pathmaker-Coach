@@ -1,0 +1,49 @@
+apply plugin: 'com.android.application'
+
+// --- Added: Kotlin support so .kt and .java files can live side by side ---
+apply plugin: 'org.jetbrains.kotlin.android'
+
+//
+// build.gradle in TeamCode
+//
+// Most of the definitions for building your module reside in a common, shared
+// file 'build.common.gradle'. Being factored in this way makes it easier to
+// integrate updates to the FTC into your code. If you really need to customize
+// the build definitions, you can place those customizations in this file, but
+// please think carefully as to whether such customizations are really necessary
+// before doing so.
+
+// Custom definitions may go here
+
+// Include common definitions from above.
+apply from: '../build.common.gradle'
+apply from: '../build.dependencies.gradle'
+
+android {
+    namespace = 'org.firstinspires.ftc.teamcode'
+
+    // --- Added for Panels ---
+    // The stock FTC build.common.gradle compiles against API 30; the Panels AAR
+    // requires its consumers to compile against a newer platform. This only
+    // raises the *compile* SDK - minSdk / targetSdk are untouched, so the app
+    // still runs on the Control Hub exactly as before.
+    compileSdk 35
+
+    packagingOptions {
+        jniLibs.useLegacyPackaging true
+    }
+}
+
+// --- Added for Kotlin: match the Java 1.8 bytecode level the FTC SDK uses ---
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+    }
+}
+
+dependencies {
+    implementation project(':FtcRobotController')
+
+    // --- Panels (FTControl) dashboard: all core plugins in one artifact ---
+    implementation 'com.bylazar:fullpanels:1.0.12'
+}

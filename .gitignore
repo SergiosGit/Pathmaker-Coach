@@ -1,0 +1,15 @@
+# Editor and OS files
+.DS_Store
+.obsidian/
+.idea/
+*.iml
+
+# Android / Gradle build output (FtcRobotController/.gitignore has the full FTC list)
+.gradle/
+.kotlin/
+build/
+local.properties
+*.apk
+
+# Laptop-only simulation output
+docs/shooter_sim/out/

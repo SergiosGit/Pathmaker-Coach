@@ -1,0 +1,436 @@
+// RobotPose.java
+//
+// This method keeps track of where the robot is on the field. It uses the robot centric
+// coordinate system (COS) that is defined as Y in forward direction, X in strafe direction, and
+// right turns measured in positive degrees.
+//
+// initializePose:
+//      Create COS that is referenced by path parameters defined in PathDetails.
+//
+// updatePose:
+//      apply power calculated in PowerManager towards reaching goals for Y (forward in original COS),
+//      X (strafe in original COS) and turn (also with respect to original COS).
+//      updatePose maps those powers according to the actual pose of the robot (super-position).
+//
+// readPose:
+//      Reads encoder values and computes the values in inches and degrees. This is only done once
+//      per time step.
+//
+// getHeadingAngle_deg, getForward_in, getStrafe_in:
+//      Functions to query the actual pose parameters. These function can be called as much as
+//      needed within a time step without actually reading encoder values. They just store the
+//      values obtained by the prior readPose() call
+//
+// MIT License
+// Copyright (c) 2023 bayrobotics.org
+//
+package org.firstinspires.ftc.teamcode.op;
+import com.bylazar.configurables.annotations.Configurable;
+import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.hw.DriveTrain;
+import org.firstinspires.ftc.teamcode.hw.MyIMU;
+import static org.firstinspires.ftc.teamcode.hw.DriveTrain.getEncoderValues;
+
+import org.firstinspires.ftc.teamcode.pathmaker.PathDetails;
+import org.firstinspires.ftc.teamcode.pathmaker.PathManager;
+import org.firstinspires.ftc.teamcode.configuration.RobotConfig;
+import org.firstinspires.ftc.teamcode.configuration.GameConfig;
+
+@Configurable
+public class RobotPose {
+
+    private static double headingAngle_rad = 0, lastHeadingAngle_rad = 0;
+    private static double poseA_deg = 0, lastHeadingAngle_deg = 0;
+    private static double forward_in = 0, lastForward_in = 0, strafe_in = 0, lastStrafe_in = 0;
+    private static double poseY_in = 0, lastPoseY_in, poseX_in, lastPoseX_in = 0;
+    private static double imuAngle_rad = 0;
+    private static final double lastImuAngle_rad = 0;
+    private static double imuAngle_deg = 0;
+    private static final double lastImuAngle_deg = 0;
+
+    private static int currentRightPosition = 0;
+    private static int currentLeftPosition = 0;
+    public static int currentAuxPosition = 0;
+
+    //to keep track of the previous encoder values
+    private static int previousRightPosition = 0;
+    private static int previousLeftPosition = 0;
+    private static int previousAuxPosition = 0;
+    private static int previousStrafeTics = 0;
+    private static int previousForwardTics = 0;
+    private static final int previousTurn_rad = 0;
+    public static int currentStrafeTics = 0;
+    public static int currentForwardTics = 0;
+    public static int currentTurn_rad = 0;
+
+    public static double robot_mass_kg = RobotConfig.Physical.getRobotMassKg(); // mass of baby bot in kg
+    public static double robot_energy_f = 0; // forward kinetic energy in arbitrary units (E_kin = m * (in/sec)^2)
+    public static double robot_energy_s = 0; // strafe kinetic energy in arbitrary units
+    public static double robot_energy_a = 0; // angular kinetic energy in arbitrary units (E_rot = 1/25 * m * (deg/sec)^2)
+    public static double testrobot_energy_threshold = 8000; // kinetic energy threshold to switch from full breaking to slow driving until stop at goal
+    public static double robot_energy_threshold = testrobot_energy_threshold; // 5760, kinetic energy threshold to switch from full breaking to slow driving until stop at goal
+
+    public static double L = 28.0; // Baby Bot, distance between left and right encoders in cm - LATERAL DISTANCE
+    public static double B = -6.90; // Baby Bot, distance between midpoints of left and right encoders and encoder aux
+    private static double R; // odometry wheel radius in cm
+    private static double N; // REV encoders tic per revolution
+    private static double cm_per_tick, cm_per_tick_strafe;
+    private static final ElapsedTime timer = new ElapsedTime();
+
+    public static double DT_seconds = 1;
+
+    private static Telemetry poseTelemetry;
+    private static DriveTrain poseDriveTrain;
+    private static final MyIMU imu = new MyIMU(null);
+    public enum ODOMETRY {DEADWHEEL, XYPLUSIMU, SIMULATION}
+
+    public static ODOMETRY odometry;
+    public static int[] encoderValues = new int[4];
+    public static double[] motorCurrents = new double[4];
+    public static double[] motorVelocities = new double[4];
+
+    public static void initializePose(LinearOpMode opMode, DriveTrain driveTrain, Telemetry telemetry) throws InterruptedException {
+        driveTrain.init();
+        
+        // Set odometry type from RobotConfig
+        switch (RobotConfig.Odometry.getOdometryType()) {
+            case DEADWHEEL:
+                odometry = ODOMETRY.DEADWHEEL;
+                break;
+            case XYPLUSIMU:
+                odometry = ODOMETRY.XYPLUSIMU;
+                break;
+            case SIMULATION:
+                odometry = ODOMETRY.SIMULATION;
+                break;
+            default:
+                odometry = ODOMETRY.DEADWHEEL; // Default fallback
+                break;
+        }
+        
+        imu.setOpMode(opMode);
+        MyIMU.init(opMode);
+        MyIMU.resetAngle();
+        imuAngle_rad = imu.getAngle_rad();
+        imuAngle_deg = MyIMU.thisAngle_deg; // initialized after call getAngle_rad()
+        poseTelemetry = telemetry;
+        poseDriveTrain = driveTrain;
+        readPose();
+        headingAngle_rad = 0; // PathDetails.turnOffset_deg / 180. * Math.PI;
+        lastHeadingAngle_rad = 0;
+        poseA_deg = 0;
+        lastHeadingAngle_deg = 0;
+        forward_in = 0;
+        lastForward_in = 0;
+        strafe_in = 0;
+        lastStrafe_in = 0;
+        poseY_in = getFieldY_in(); // PathDetails.forwardOffset_in;
+        poseX_in = getFieldX_in(); // PathDetails.strafeOffset_in;
+        currentAuxPosition = 0;
+        currentRightPosition = 0;
+        currentLeftPosition = 0;
+        previousAuxPosition = 0;
+        previousRightPosition = 0;
+        previousLeftPosition = 0;
+        PathDetails.aFieldGoal_deg = 0;
+        PathDetails.yFieldGoal_in = 0;
+        PathDetails.xFieldGoal_in = 0;
+        PathDetails.lastTurnGoal = 0;
+        
+        // Configure odometry parameters based on RobotConfig
+        if (odometry == ODOMETRY.DEADWHEEL) {
+            L = RobotConfig.Odometry.getLateralDistance();
+            B = RobotConfig.Odometry.getForwardOffset();
+            R = RobotConfig.Odometry.getDeadwheelRadius();
+            N = RobotConfig.Odometry.getDeadwheelTicksPerRevolution();
+        } else if (odometry == ODOMETRY.XYPLUSIMU) {
+            L = RobotConfig.Odometry.getLateralDistance();
+            B = RobotConfig.Odometry.getForwardOffset();
+            R = RobotConfig.Odometry.getImuWheelRadius();
+            N = RobotConfig.Odometry.getImuTicksPerRevolution();
+            cm_per_tick_strafe = RobotConfig.Odometry.getImuStrafePerTick();
+        } else {
+            R = 1;
+            N = 1;
+        }
+        cm_per_tick = (2.0 * Math.PI * R)/N;
+    }
+    public static void updatePose(double forwardDrive, double strafeDrive, double rotateDrive){
+        double[] fieldPowers = convertToFieldCentric(forwardDrive, strafeDrive);
+        double yPower = fieldPowers[0];
+        double xPower = fieldPowers[1];
+        double powerFL, powerFR, powerBL, powerBR;
+        powerFL = yPower; powerFR = yPower;
+        powerBL = yPower; powerBR = yPower;
+        // add strafe power
+        powerFL += xPower; powerFR -= xPower;
+        powerBL -= xPower; powerBR += xPower;
+        // add turn power
+        powerFL += rotateDrive; powerFR -= rotateDrive;
+        powerBL += rotateDrive; powerBR -= rotateDrive;
+        DriveTrain.setMotorPowers(powerFL,powerBL,powerBR,powerFR);
+    }
+    /**
+     * Convert robot-centric powers to field-centric powers.
+     */
+    public static double[] convertToFieldCentric(double yPower, double xPower) {
+        // get the angle in which the robot is actually headed
+        double headingRadians = getFieldAngle_rad();
+        double fieldYPower, fieldXPower;
+        
+        // Rotate the power vectors by the robot's heading
+        fieldYPower = yPower * Math.cos(headingRadians) + xPower * Math.sin(headingRadians);
+        fieldXPower =-yPower * Math.sin(headingRadians) + xPower * Math.cos(headingRadians);
+        
+        return new double[]{fieldYPower, fieldXPower};
+    }
+    public static void readPose() {
+        // read robot pose from encoders and IMU in robot coordinate system
+        double dtheta, dx_in, dy_in, dx, dy, x, y;
+        int dn1, dn2, dn3, dn4;
+
+        DT_seconds = timer.seconds(); // time since last call, we use this to calculate velocities
+        timer.reset();
+        // Clear the BulkCache once at the beginning of each control cycle
+        for (LynxModule module : DriveTrain.allHubs) {
+            module.clearBulkCache();
+        }
+
+        encoderValues = getEncoderValues();
+        // motorCurrents = DriveTrain.getMotorCurrents(); // off: unused, and 4 slow non-bulk reads every loop
+        motorVelocities = DriveTrain.getMotorVelocities();
+
+        if (odometry == ODOMETRY.DEADWHEEL) {
+            currentRightPosition = encoderValues[0] * (RobotConfig.Odometry.isRightEncoderFlipped()? -1:1);
+            currentLeftPosition = encoderValues[2] * (RobotConfig.Odometry.isLeftEncoderFlipped()? -1:1);
+            currentAuxPosition = encoderValues[1] * (RobotConfig.Odometry.isMiddleEncoderFlipped()? -1:1);
+
+            dn1 = currentLeftPosition - previousLeftPosition;
+            dn2 = currentRightPosition - previousRightPosition;
+            dn3 = currentAuxPosition - previousAuxPosition;
+
+            dn1 *= -1;
+            dn2 *= -1;
+            dn3 *= -1;
+
+            //find out robot movement in cm
+            dtheta = (-cm_per_tick * (dn2 - dn1) / L) * (RobotConfig.Odometry.isTurnDirectionFlipped()? -1: 1);
+            dy = -cm_per_tick * (dn1 + dn2) / 2.0;
+            dx = -cm_per_tick * (dn3 + ((dn2 - dn1) * (RobotConfig.Odometry.isStrafeTurnCorrectionFlipped()? -1:1)) * B / L);
+            lastHeadingAngle_rad = headingAngle_rad;
+            headingAngle_rad += dtheta;
+            if(headingAngle_rad > (2 * Math.PI)) { headingAngle_rad -= (2 * Math.PI); } // wraparound handling
+            if(headingAngle_rad < 0) { headingAngle_rad += (2 * Math.PI); } // wraparound handling
+        } else if (odometry == ODOMETRY.XYPLUSIMU){
+            lastHeadingAngle_rad = headingAngle_rad;
+            headingAngle_rad = imu.getAngle_rad();
+            // dy is the average of all 4 encoders
+            currentForwardTics = (encoderValues[0] + encoderValues[1] + encoderValues[2] + encoderValues[3]) / 4;
+            currentStrafeTics = (encoderValues[0] - encoderValues[1] + encoderValues[2] - encoderValues[3]) / 4;
+            dx = (currentStrafeTics - previousStrafeTics) * cm_per_tick_strafe;
+            dy = (currentForwardTics - previousForwardTics) * cm_per_tick;
+            previousStrafeTics = currentStrafeTics;
+            previousForwardTics = currentForwardTics;
+        } else if (odometry == ODOMETRY.SIMULATION) {
+            // Use simulation for pose tracking
+            // Get current motor powers for simulation update
+            double currentForwardPower = 0.0;
+            double currentStrafePower = 0.0;
+            double currentTurnPower = 0.0;
+            
+            // Try to get current motor powers from PathManager if available
+            try {
+                currentForwardPower = PathManager.yPower;
+                currentStrafePower = PathManager.xPower;
+                currentTurnPower = PathManager.turnPower;
+            } catch (Exception e) {
+                // If PathManager is not available, use zero powers
+                currentForwardPower = 0.0;
+                currentStrafePower = 0.0;
+                currentTurnPower = 0.0;
+            }
+            
+            // Update simulation with current motor powers
+            RobotPoseSimulation.updateSimulatedPose(
+                currentForwardPower, 
+                currentStrafePower, 
+                currentTurnPower, 
+                DT_seconds * 1000.0 // Convert to milliseconds
+            );
+            
+            // Get simulated values
+            forward_in = RobotPoseSimulation.getSimulatedForward_in();
+            strafe_in = RobotPoseSimulation.getSimulatedStrafe_in();
+            headingAngle_rad = Math.toRadians(RobotPoseSimulation.getSimulatedAngle_deg());
+            
+            // Set field coordinates
+            poseX_in = RobotPoseSimulation.getSimulatedFieldX_in();
+            poseY_in = RobotPoseSimulation.getSimulatedFieldY_in();
+            
+            // Set velocities
+            dx = RobotPoseSimulation.getSimulatedFieldXVelocity_inPerSec(DT_seconds * 1000.0) * DT_seconds * 2.54; // Convert to cm
+            dy = RobotPoseSimulation.getSimulatedFieldYVelocity_inPerSec(DT_seconds * 1000.0) * DT_seconds * 2.54; // Convert to cm
+            
+        } else {
+            dx = 0;
+            dy = 0;
+            forward_in = 0;
+            strafe_in = 0;
+            headingAngle_rad = 0;
+        }
+        dx_in = dx / 2.54;
+        dy_in = dy / 2.54;
+
+        lastForward_in = forward_in;
+        forward_in += dy_in;
+
+        lastStrafe_in = strafe_in;
+        strafe_in += dx_in;
+
+        previousLeftPosition = currentLeftPosition;
+        previousRightPosition = currentRightPosition;
+        previousAuxPosition = currentAuxPosition;
+
+        // book keeping for forward and strafe direction movement in the
+        // robot coordinate system (COS at start)
+        double deltaPathForward_in = forward_in - lastForward_in;
+        double deltaPathStrafe_in = strafe_in - lastStrafe_in;
+        double useHeadingAngle_rad = headingAngle_rad ;
+        double sin = Math.sin(useHeadingAngle_rad);
+        double cos = Math.cos(useHeadingAngle_rad);
+        // translate pose to field coordinate system
+        lastPoseX_in = poseX_in;
+        lastPoseY_in = poseY_in;
+        poseY_in += deltaPathForward_in * cos - deltaPathStrafe_in * sin;
+        poseX_in += deltaPathStrafe_in * cos + deltaPathForward_in * sin;
+    }
+    public static double getFieldAngle_rad(){
+        // call readPose first (but only once for all encoders, imu)
+        return headingAngle_rad + PathDetails.aFieldOffset_deg / 180. * Math.PI;
+    }
+    public static double getFieldAngle_deg(){
+        return headingAngle_rad / Math.PI * 180 + PathDetails.aFieldOffset_deg;
+    }
+    public static double getIMUAngle_rad() {
+        return imuAngle_rad;
+    }
+    public static double getFieldY_in(){
+        // call readPose first (but only once for all encoders, imu)
+        // get actual forward position of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return poseY_in + PathDetails.yFieldOffset_in;
+    }
+    public static double getFieldX_in(){
+        // call readPose first (but only once for all encoders, imu)
+        // get actual strafe (lateral) position of the robot in the
+        // coordinate system defined at the beginning of the path
+        return poseX_in + PathDetails.xFieldOffset_in;
+    }
+    public static double getXVelocity_inPerSec(){
+        // field centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual strafe (lateral) velocity of the robot in the
+        // coordinate system defined at the beginning of the path
+        return (poseX_in - lastPoseX_in) / DT_seconds;
+    }
+    public static double getYVelocity_inPerSec(){
+        // field centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual forward velocity of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return (poseY_in - lastPoseY_in) / DT_seconds;
+    }
+    public static double getForwardVelocity_inPerSec(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual forward velocity of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return (forward_in - lastForward_in) / DT_seconds;
+    }
+    public static double getForwardEnergy(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual forward kinetic energy of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return robot_mass_kg * Math.pow(getForwardVelocity_inPerSec(), 2);
+    }
+    public static double getStrafeEnergy(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual strafe kinetic energy of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return robot_mass_kg * Math.pow(getStrafeVelocity_inPerSec(), 2);
+    }
+    public static double getAngularEnergy(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual angular kinetic energy of the robot in the coordinate system
+        // defined at the beginning of the path.
+        return robot_mass_kg * Math.pow(getHeadingVelocity_degPerSec(), 2) / 25;
+    }
+    public static double getStrafeVelocity_inPerSec(){
+        // robot centric coordinate system
+        // call readPose first (but only once for all encoders, imu)
+        // get actual strafe (lateral) velocity of the robot in the
+        // coordinate system defined at the beginning of the path
+        return (strafe_in - lastStrafe_in) / DT_seconds;
+    }
+    public static double getHeadingVelocity_degPerSec(){
+        // call readPose first (but only once for all encoders, imu)
+        // get actual heading velocity of the robot in the
+        // coordinate system defined at the beginning of the path
+        return (headingAngle_rad - lastHeadingAngle_rad) / DT_seconds * 180 / Math.PI;
+    }
+
+    public static boolean isRobotAtRest() {
+        return (Math.abs(getXVelocity_inPerSec()) < PathManager.xMinVelocity_InchPerSec &&
+                Math.abs(getYVelocity_inPerSec()) < PathManager.yMinVelocity_InchPerSec &&
+                Math.abs(getHeadingVelocity_degPerSec()) < PathManager.turnMinVelocity_degPerSec);
+    }
+
+    public static boolean setPose(double X_in, double Y_in, double A_deg, boolean ignoreCorrectionAmount) {
+        if(ignoreCorrectionAmount || (Math.abs(getFieldX_in() - X_in) < 5 && Math.abs(getFieldY_in() - Y_in) < 5 && Math.abs(getFieldAngle_deg() - A_deg) < 30)) {
+            strafe_in = lastStrafe_in = lastPoseX_in = poseX_in = X_in;
+            forward_in = lastForward_in = lastPoseY_in = poseY_in = Y_in;
+            lastHeadingAngle_rad = headingAngle_rad = A_deg / 180. * Math.PI;
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Update simulation with motor powers (for teleop mode).
+     * This method should be called from teleop modes to update the simulation.
+     */
+    public static void updateSimulationWithMotorPowers(double forwardPower, double strafePower, double turnPower) {
+        if (odometry == ODOMETRY.SIMULATION) {
+            RobotPoseSimulation.updateSimulatedPose(
+                forwardPower, 
+                strafePower, 
+                turnPower, 
+                DT_seconds * 1000.0 // Convert to milliseconds
+            );
+        }
+    }
+    
+    /**
+     * Get simulation visualization points for dashboard display.
+     */
+    public static double[] getSimulationRobotCornersX() {
+        if (odometry == ODOMETRY.SIMULATION) {
+            return RobotPoseSimulation.robotCornerX;
+        }
+        return new double[]{0, 0, 0, 0};
+    }
+    
+    public static double[] getSimulationRobotCornersY() {
+        if (odometry == ODOMETRY.SIMULATION) {
+            return RobotPoseSimulation.robotCornerY;
+        }
+        return new double[]{0, 0, 0, 0};
+    }
+}
