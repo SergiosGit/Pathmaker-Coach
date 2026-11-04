@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.hw;
+package org.firstinspires.ftc.teamcode.babybot.hw;
 
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -6,7 +6,7 @@ import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.teamcode.math.ControlManager;
+import org.firstinspires.ftc.teamcode.babybot.math.ControlManager;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 public class Robot {

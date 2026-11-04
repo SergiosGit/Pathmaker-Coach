@@ -1,21 +1,18 @@
-package org.firstinspires.ftc.teamcode.op.test;
+package org.firstinspires.ftc.teamcode.babybot.op;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 
 import com.pedropathing.ivy.Scheduler;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.hw.Robot;
+import org.firstinspires.ftc.teamcode.babybot.hw.Robot;
 
 
-@TeleOp (name = "Drive test", group = "test")
-public class DriveTest extends OpMode {
+public class BaseOpMode extends OpMode {
 
     protected Robot robot;
 
-    @Override
     public void init() {
         Scheduler.reset();
         robot = new Robot(this);
@@ -27,15 +24,12 @@ public class DriveTest extends OpMode {
         );
     }
 
-    @Override
     public void init_loop() {
         Scheduler.execute();
     }
 
-    @Override
     public void loop() {
         Scheduler.execute();
         robot.telemetry.update(this.telemetry);
     }
 }
-

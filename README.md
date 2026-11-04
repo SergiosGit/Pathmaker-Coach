@@ -10,7 +10,7 @@ A coach's FTC robot software workspace for the 2026–27 **BIOBUZZ** season. It 
 
 It is used to prepare and explain changes that the students then bring into their team repo ([bayrobotics/3rd-Gear-26-27](https://github.com/bayrobotics/3rd-Gear-26-27)).
 
-> **Status (3 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ). The TeamCode compiles against the SDK 12.0 and Panels libraries, checked with `javac`. A full Gradle build has not been run. Nothing has run on a robot yet. The next planned step is to merge the bay-b bot code. See the roadmap below.
+> **Status (3 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ), with the bay-b bot's Pedro Pathing code imported. All TeamCode Java compiles against the SDK 12.0, Panels and Pedro libraries, checked with `javac`. A full Gradle build has not been run. Nothing has run on a robot yet. The next step is AutoTune on the bay-b bot. See the roadmap below.
 
 ## Layout
 
@@ -25,13 +25,15 @@ It is used to prepare and explain changes that the students then bring into thei
 │   │   ├── op/                  OpModes: TeleOpMode, AutoOp_* (red/blue, close/far), ShooterTuning,
 │   │   │                        RobotPose (odometry)
 │   │   ├── configuration/       RobotConfig, GameConfig, ShooterConfig (all live-editable in Panels)
+│   │   ├── pedro/               Pedro Pathing 3 setup: Constants (builds the Follower), Tuning
+│   │   │                        (AutoTune procedure list), procedures/ (AutoTune steps)
+│   │   ├── babybot/             Bay-b bot code as imported (Ivy TeleOp skeleton, test OpModes).
+│   │   │                        Needs pedro/Constants filled in by AutoTune before it can drive
 │   │   └── panelsdemo/          Small Java and Kotlin Panels examples
 │   └── _panels_backup/          Gradle files from before Panels was added
-├── docs/                        Studies and guides (see below)
-│   ├── shooter_sim/             Laptop simulations (plain Java, no Android needed)
-│   └── shooter_img/             Figures used by the documents
-└── BabyBot/teamcode/            Bay-b bot code, for reference (Pedro Pathing 3, Ivy, AutoTune
-                                 procedures). Not part of the build yet
+└── docs/                        Studies and guides (see below)
+    ├── shooter_sim/             Laptop simulations (plain Java, no Android needed)
+    └── shooter_img/             Figures used by the documents
 ```
 
 ## Documents
@@ -51,7 +53,9 @@ It is used to prepare and explain changes that the students then bring into thei
 3. Connect to the Control Hub's Wi-Fi and run the `TeamCode` configuration.
 4. Open Panels at http://192.168.43.1:8001 while connected to the robot.
 
-Versions: FTC SDK 12.0, Gradle 9.1.0, AGP 8.13.2, Kotlin plugin 2.4.10, Panels `com.bylazar:fullpanels:1.0.12`.
+Versions: FTC SDK 12.0, Gradle 9.1.0, AGP 8.13.2, Kotlin plugin 2.4.10, Panels `com.bylazar:fullpanels:1.0.12`, Pedro Pathing `revhub` 3.0.2 with AutoTune (`tuning`) 1.0.3 and Ivy 1.1.1.
+
+Pedro's AutoTune page is at http://192.168.43.1:10158 while connected to the robot.
 
 ### Robot configuration names used by the code
 
@@ -78,7 +82,7 @@ java -cp out TrajectorySim          # takes a few minutes
 ## Roadmap
 
 1. ~~Move to **FTC SDK 12.0**~~ (done 3 Nov 2026: `VisionSystem` updated for the new single-tag and cluster detection types). After deploying, also update the Driver Hub app to 12.0.
-2. Merge the bay-b bot code. Pedro's OctoQuad localizer uses ports 0 and 1, so the shooter encoder moves to another channel.
+2. ~~Merge the bay-b bot code~~ (done 3 Nov 2026: imported unchanged into `pedro/` and `babybot/`, and it compiles). Next: run AutoTune on the bay-b bot and commit `pedro/Constants.java`. Pedro's OctoQuad localizer uses ports 0 and 1, so the shooter encoder moves to another channel.
 3. Allow either PathMaker or Pedro Pathing to drive the same routes, and run the benchmark plan.
 4. PathMaker 2: non-blocking update, pluggable localizer, paths as data with alliance mirroring, braking from measured stopping distance, and a short self-measuring tuning OpMode.
 
@@ -93,4 +97,4 @@ Earlier versions of PathMaker (2023–2025: field-centric driving, AprilTag navi
 
 - PathMaker and the TeamCode in this repo: MIT, © bayrobotics.org (see the file headers).
 - `FtcRobotController/` SDK: FIRST's license, in `FtcRobotController/LICENSE`.
-- `BabyBot/teamcode/pedro/procedures`: AutoTune procedures copied from the Pedro Pathing Quickstart (github.com/Pedro-Pathing/Quickstart). The Pedro Pathing library is BSD 3-Clause.
+- `TeamCode/.../pedro/procedures`: AutoTune procedures copied from the Pedro Pathing Quickstart (github.com/Pedro-Pathing/Quickstart). The Pedro Pathing library is BSD 3-Clause.

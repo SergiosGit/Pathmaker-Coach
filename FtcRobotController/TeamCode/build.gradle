@@ -46,4 +46,13 @@ dependencies {
 
     // --- Panels (FTControl) dashboard: all core plugins in one artifact ---
     implementation 'com.bylazar:fullpanels:1.0.12'
+
+    // --- Pedro Pathing 3 (bay-b bot). Pinned: Pedro 3 is new, so upgrade on purpose ---
+    // revhub brings the core library. tuning is the AutoTune web page (port 10158).
+    // ivy is the command framework used by the bay-b bot OpModes.
+    // Kept here rather than in build.dependencies.gradle for the same reason as Panels:
+    // the FtcRobotController module that also reads that file compiles against API 30.
+    implementation 'com.pedropathing:revhub:3.0.2'
+    implementation 'com.pedropathing:tuning:1.0.3'
+    implementation 'com.pedropathing.ivy:pedro:1.1.1'
 }

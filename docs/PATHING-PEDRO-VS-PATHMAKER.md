@@ -4,7 +4,7 @@
 **Covers:** a review of the plan to merge the bay-b bot code into our TeamCode, a technical comparison of PathMaker and Pedro Pathing 3, and a roadmap for making PathMaker a lower-friction alternative.
 **Companion:** [PATHING-BENCHMARK-PLAN.md](PATHING-BENCHMARK-PLAN.md), which tests the claims made here on the robot.
 
-Sources: our TeamCode, the bay-b bot code in `BabyBot/teamcode`, and Pedro's library source, Quickstart and documentation as of 3 Nov 2026 (`com.pedropathing:revhub:3.0.2`, `com.pedropathing:tuning:1.0.3`, `com.pedropathing.ivy:pedro:1.1.1`). Nothing in this document has been built or run.
+Sources: our TeamCode, the bay-b bot code (then in `BabyBot/teamcode`, now imported into TeamCode's `pedro/` and `babybot/` packages), and Pedro's library source, Quickstart and documentation as of 3 Nov 2026 (`com.pedropathing:revhub:3.0.2`, `com.pedropathing:tuning:1.0.3`, `com.pedropathing.ivy:pedro:1.1.1`). Nothing in this document has been built or run.
 
 ## The short version
 
