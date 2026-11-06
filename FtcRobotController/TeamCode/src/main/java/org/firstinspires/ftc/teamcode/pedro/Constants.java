@@ -45,21 +45,22 @@ public class Constants {
         c.backRightDirection.set(DcMotorSimple.Direction.FORWARD);
     });
 
-    // AutoTune OctoQuad Tuner result, second run (6 Nov 2026): goBILDA four-bar pods on ports 0
-    // and 1. The first run was half a turn short, which also flipped its y pod direction.
+    // AutoTune OctoQuad Tuner result, third run (6 Nov 2026): goBILDA four-bar pods. The forward
+    // pod is plugged into port 1 and the strafe pod into port 0. Earlier runs assumed the
+    // opposite and measured the wrong pod in each step.
     public static OctoQuadConfig localizerConfig = new OctoQuadConfig(c -> {
         c.name.set("octoquad");
-        c.xPodPort.set(0);
-        c.yPodPort.set(1);
+        c.xPodPort.set(1);
+        c.yPodPort.set(0);
         c.ticksPerUnit.set(505.316944406);
-        c.xPodOffset.set(6.594488188976379);
-        c.yPodOffset.set(-5.039370078740157);
+        c.xPodOffset.set(4.468503937007874);
+        c.yPodOffset.set(6.850393700787401);
         c.xPodDirection.set(OctoQuad.EncoderDirection.REVERSE);
-        c.yPodDirection.set(OctoQuad.EncoderDirection.REVERSE);
+        c.yPodDirection.set(OctoQuad.EncoderDirection.FORWARD);
         c.globalDistanceUnit.set(DistanceUnit.INCH);
         c.offsetUnits.set(DistanceUnit.INCH);
         c.i2cRecoveryMode.set(OctoQuad.I2cRecoveryMode.MODE_1_PERIPH_RST_ON_FRAME_ERR);
-        c.headingScalar.set(1.0518035195987139);
+        c.headingScalar.set(1.0521839720139383);
     });
 
     // Stand-ins until the Foresight Tuner runs. Pedro has no defaults for these, and the Follower

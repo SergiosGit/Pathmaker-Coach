@@ -64,7 +64,7 @@ Pedro's AutoTune page is at http://192.168.43.1:10158 while connected to the rob
 | `front_left`, `front_right`, `back_left`, `back_right` | Drive motors |
 | `intake_motor`, `outtake_motor` | Intake and shooter motors |
 | `intake_servo` | Intake servo |
-| `octoquad` | OctoQuad: odometry pods on channels 0 and 1 (Pedro), shooter Through Bore encoder on channel 2 (`ShooterConfig.encoderChannel`) |
+| `octoquad` | OctoQuad: odometry pods on channels 0 (strafe) and 1 (forward) on the bay-b bot, shooter Through Bore encoder on channel 2 (`ShooterConfig.encoderChannel`) |
 | `imu` | Control Hub IMU |
 | `Webcam 1` | Webcam (optional) |
 
