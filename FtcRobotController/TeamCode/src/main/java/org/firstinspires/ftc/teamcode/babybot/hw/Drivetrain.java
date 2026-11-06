@@ -46,10 +46,12 @@ public class Drivetrain {
     public Command update() {
         return infinite(() -> {
 
+            // Pedro: +strafe is to the left and +turn is counterclockwise. The gamepad reports
+            // +x when a stick is pushed right (and +y when pushed down), so all three are negated.
             DrivePowers powers = ManualDrive.fieldCentric(
                     -signedSquare(gamepad.left_stick_y),
-                    signedSquare(gamepad.left_stick_x),
-                    signedSquare(gamepad.right_stick_x),
+                    -signedSquare(gamepad.left_stick_x),
+                    -signedSquare(gamepad.right_stick_x),
                     follower.pose().heading()
             );
 
