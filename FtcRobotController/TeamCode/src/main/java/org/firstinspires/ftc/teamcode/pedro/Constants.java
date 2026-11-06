@@ -26,12 +26,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class Constants {
 
     // Set each flag to true after pasting that block's AutoTune result.
-    public static boolean drivetrainTuned = false;
-    public static boolean localizerTuned = false;
+    public static boolean drivetrainTuned = true;
+    public static boolean localizerTuned = true;
     public static boolean foresightTuned = false;
 
-    // Starting values: the motor names from the robot configuration and the directions the old
-    // Drivetrain code used (left side reversed). AutoTune's Mecanum Tuner confirms them.
+    // AutoTune Mecanum Tuner result (6 Nov 2026).
     public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
         c.frontLeftName.set("front_left");
         c.frontRightName.set("front_right");
@@ -43,21 +42,20 @@ public class Constants {
         c.backRightDirection.set(DcMotorSimple.Direction.FORWARD);
     });
 
-    // Placeholder until the OctoQuad Tuner runs: goBILDA four-bar pods on ports 0 and 1, no
-    // offsets. Heading scale, pod directions and offsets are unknown until measured.
+    // AutoTune OctoQuad Tuner result (6 Nov 2026): goBILDA four-bar pods on ports 0 and 1.
     public static OctoQuadConfig localizerConfig = new OctoQuadConfig(c -> {
         c.name.set("octoquad");
         c.xPodPort.set(0);
         c.yPodPort.set(1);
         c.ticksPerUnit.set(505.316944406);
-        c.xPodOffset.set(0.0);
-        c.yPodOffset.set(0.0);
-        c.xPodDirection.set(OctoQuad.EncoderDirection.FORWARD);
+        c.xPodOffset.set(6.633858267716536);
+        c.yPodOffset.set(5.393700787401576);
+        c.xPodDirection.set(OctoQuad.EncoderDirection.REVERSE);
         c.yPodDirection.set(OctoQuad.EncoderDirection.FORWARD);
         c.globalDistanceUnit.set(DistanceUnit.INCH);
         c.offsetUnits.set(DistanceUnit.INCH);
         c.i2cRecoveryMode.set(OctoQuad.I2cRecoveryMode.MODE_1_PERIPH_RST_ON_FRAME_ERR);
-        c.headingScalar.set(1.0);
+        c.headingScalar.set(1.0944894704186825);
     });
 
     // Library defaults until the Foresight Tuner runs. Manual driving works without it;
