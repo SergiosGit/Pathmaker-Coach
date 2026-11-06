@@ -11,6 +11,8 @@ import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
+import org.firstinspires.ftc.teamcode.pedro.Constants;
+
 public class Drivetrain {
 
     private Follower follower;
@@ -53,7 +55,9 @@ public class Drivetrain {
 
             // if(Math.abs(gamepad.right_stick_x) < 0.1) powers = ManualDrive.headingLock(follower, Constants.foresightConfig.headingFeedback.get(), powers, targetHeading);
             // else targetHeading = follower.pose().heading();
-            ManualDrive.driveOrHold(follower, powers);
+            // Holding position needs the Foresight tuning, so drive purely by hand until then.
+            if (Constants.foresightTuned) ManualDrive.driveOrHold(follower, powers);
+            else follower.manual(powers);
             // driveOrHold only chooses the mode; update() reads the localizer and powers the motors.
             follower.update();
 

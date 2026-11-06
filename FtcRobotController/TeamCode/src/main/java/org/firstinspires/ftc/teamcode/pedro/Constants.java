@@ -2,7 +2,10 @@ package org.firstinspires.ftc.teamcode.pedro;
 
 import com.pedropathing.algorithm.Foresight;
 import com.pedropathing.algorithm.ForesightConfig;
+import com.pedropathing.controllers.Controller;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.math.Matrix;
+import com.pedropathing.math.Vector2D;
 import com.pedropathing.revhub.drivetrains.Mecanum;
 import com.pedropathing.revhub.drivetrains.MecanumConfig;
 import com.pedropathing.revhub.localizers.OctoQuadConfig;
@@ -59,9 +62,23 @@ public class Constants {
         c.headingScalar.set(1.0518035195987139);
     });
 
-    // Library defaults until the Foresight Tuner runs. Manual driving works without it;
-    // following paths and holding position need it.
-    public static ForesightConfig foresightConfig = new ForesightConfig(c -> { });
+    // Stand-ins until the Foresight Tuner runs. Pedro has no defaults for these, and the Follower
+    // cannot be built without them. Every controller is zero, so following a path or holding a
+    // position does nothing yet; Drive test drives manually while foresightTuned is false.
+    public static ForesightConfig foresightConfig = new ForesightConfig(c -> {
+        c.forwardTranslational.set(Controller.zero);
+        c.strafeTranslational.set(Controller.zero);
+        c.headingFeedback.set(Controller.zero);
+        c.coast.set(Controller.zero);
+        c.brake.set(Controller.zero);
+        c.linearBrakeCoefficients.set(Matrix.diag(0.0, 0.0));
+        c.quadraticBrakeCoefficients.set(Matrix.diag(0.0, 0.0));
+        c.headingBrakeCoefficients.set(Vector2D.zero());
+        c.maxAchievableForwardVelocity.set(60.0);
+        c.maxAchievableStrafeVelocity.set(50.0);
+        c.naturalForwardDeceleration.set(60.0);
+        c.naturalStrafeDeceleration.set(60.0);
+    });
 
     public static Follower create(HardwareMap hardwareMap) {
         if (!drivetrainTuned || !localizerTuned) {
