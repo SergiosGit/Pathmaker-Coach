@@ -42,20 +42,22 @@ public class Constants {
         c.backRightDirection.set(DcMotorSimple.Direction.FORWARD);
     });
 
-    // AutoTune OctoQuad Tuner result (6 Nov 2026): goBILDA four-bar pods on ports 0 and 1.
+    // AutoTune OctoQuad Tuner result, second run (6 Nov 2026): goBILDA four-bar pods on ports 0
+    // and 1. The first run gave headingScalar 1.094 and the opposite y pod direction and y offset
+    // sign. Check both on the robot (strafe left: y must increase; 5 turns: heading back near 0).
     public static OctoQuadConfig localizerConfig = new OctoQuadConfig(c -> {
         c.name.set("octoquad");
         c.xPodPort.set(0);
         c.yPodPort.set(1);
         c.ticksPerUnit.set(505.316944406);
-        c.xPodOffset.set(6.633858267716536);
-        c.yPodOffset.set(5.393700787401576);
+        c.xPodOffset.set(6.594488188976379);
+        c.yPodOffset.set(-5.039370078740157);
         c.xPodDirection.set(OctoQuad.EncoderDirection.REVERSE);
-        c.yPodDirection.set(OctoQuad.EncoderDirection.FORWARD);
+        c.yPodDirection.set(OctoQuad.EncoderDirection.REVERSE);
         c.globalDistanceUnit.set(DistanceUnit.INCH);
         c.offsetUnits.set(DistanceUnit.INCH);
         c.i2cRecoveryMode.set(OctoQuad.I2cRecoveryMode.MODE_1_PERIPH_RST_ON_FRAME_ERR);
-        c.headingScalar.set(1.0944894704186825);
+        c.headingScalar.set(1.0518035195987139);
     });
 
     // Library defaults until the Foresight Tuner runs. Manual driving works without it;
