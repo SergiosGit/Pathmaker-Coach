@@ -43,8 +43,7 @@ public class Constants {
     });
 
     // AutoTune OctoQuad Tuner result, second run (6 Nov 2026): goBILDA four-bar pods on ports 0
-    // and 1. The first run gave headingScalar 1.094 and the opposite y pod direction and y offset
-    // sign. Check both on the robot (strafe left: y must increase; 5 turns: heading back near 0).
+    // and 1. The first run was half a turn short, which also flipped its y pod direction.
     public static OctoQuadConfig localizerConfig = new OctoQuadConfig(c -> {
         c.name.set("octoquad");
         c.xPodPort.set(0);
