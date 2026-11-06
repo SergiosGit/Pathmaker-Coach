@@ -31,7 +31,7 @@ public class Constants {
     // Set each flag to true after pasting that block's AutoTune result.
     public static boolean drivetrainTuned = true;
     public static boolean localizerTuned = true;
-    public static boolean foresightTuned = false;
+    public static boolean foresightTuned = true;
 
     // AutoTune Mecanum Tuner result (6 Nov 2026).
     public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
@@ -63,22 +63,29 @@ public class Constants {
         c.headingScalar.set(1.0521839720139383);
     });
 
-    // Stand-ins until the Foresight Tuner runs. Pedro has no defaults for these, and the Follower
-    // cannot be built without them. Every controller is zero, so following a path or holding a
-    // position does nothing yet; Drive test drives manually while foresightTuned is false.
+    // AutoTune Foresight Tuner result (6 Nov 2026).
     public static ForesightConfig foresightConfig = new ForesightConfig(c -> {
-        c.forwardTranslational.set(Controller.zero);
-        c.strafeTranslational.set(Controller.zero);
-        c.headingFeedback.set(Controller.zero);
-        c.coast.set(Controller.zero);
-        c.brake.set(Controller.zero);
-        c.linearBrakeCoefficients.set(Matrix.diag(0.0, 0.0));
-        c.quadraticBrakeCoefficients.set(Matrix.diag(0.0, 0.0));
-        c.headingBrakeCoefficients.set(Vector2D.zero());
-        c.maxAchievableForwardVelocity.set(60.0);
-        c.maxAchievableStrafeVelocity.set(50.0);
-        c.naturalForwardDeceleration.set(60.0);
-        c.naturalStrafeDeceleration.set(60.0);
+        Controller primaryTranslationalForward = Controller.proportional(0.1912510589131322);
+        Controller secondaryTranslationalForward = Controller.proportional(0.07066215594599003);
+        Controller primaryTranslationalLateral = Controller.proportional(0.22345115371010554);
+        Controller secondaryTranslationalLateral = Controller.proportional(0.08255923057109245);
+
+        c.forwardTranslational.set(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward));
+        c.strafeTranslational.set(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral));
+
+        c.coast.set(Controller.proportionalFeedforward(0.016068837025916338));
+        c.brake.set(Controller.proportionalFeedforward(0.013658511472028886));
+
+        c.headingFeedback.set(Controller.proportional(2.427462770182534));
+        c.headingBrakeCoefficients.set(Vector2D.cartesian(0.028103842539870735, 0.005619561123838429));
+
+        c.linearBrakeCoefficients.set(Matrix.diag(0.030382513987097765, 0.04831570754977478));
+        c.quadraticBrakeCoefficients.set(Matrix.diag(0.002088581762850105, 0.0016405745909135573));
+
+        c.maxAchievableForwardVelocity.set(62.05122551694287);
+        c.maxAchievableStrafeVelocity.set(47.99371093640487);
+        c.naturalForwardDeceleration.set(30.74715869191283);
+        c.naturalStrafeDeceleration.set(56.511232824202615);
     });
 
     public static Follower create(HardwareMap hardwareMap) {

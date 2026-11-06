@@ -10,7 +10,7 @@ A coach's FTC robot software workspace for the 2026–27 **BIOBUZZ** season. It 
 
 It is used to prepare and explain changes that the students then bring into their team repo ([bayrobotics/3rd-Gear-26-27](https://github.com/bayrobotics/3rd-Gear-26-27)).
 
-> **Status (3 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ), with the bay-b bot's Pedro Pathing code imported. All TeamCode Java compiles against the SDK 12.0, Panels and Pedro libraries, checked with `javac`. A full Gradle build has not been run. Nothing has run on a robot yet. The robot app has been deployed from Android Studio and Panels connects. The next step is AutoTune on the bay-b bot. See the roadmap below.
+> **Status (6 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ), with the bay-b bot's Pedro Pathing code imported and tuned with AutoTune (drivetrain, OctoQuad localizer, Foresight). The app builds and deploys from Android Studio, Panels connects, and the bay-b bot's Drive test reports the expected pose. Next: the refactor that lets PathMaker and Pedro drive the same routes, then the benchmark. See the roadmap below.
 
 ## Layout
 
@@ -82,7 +82,7 @@ java -cp out TrajectorySim          # takes a few minutes
 ## Roadmap
 
 1. ~~Move to **FTC SDK 12.0**~~ (done 3 Nov 2026: `VisionSystem` updated for the new single-tag and cluster detection types). After deploying, also update the Driver Hub app to 12.0.
-2. ~~Merge the bay-b bot code~~ (done 3 Nov 2026: imported unchanged into `pedro/` and `babybot/`, and it compiles). `pedro/Constants.java` now has the three AutoTune config blocks with placeholder values, and the shooter encoder has moved to OctoQuad channel 2. Next: run AutoTune on the bay-b bot (Mecanum → OctoQuad → Foresight), paste each result into `Constants` and set its `*Tuned` flag.
+2. ~~Merge the bay-b bot code and tune Pedro~~ (done 6 Nov 2026: imported into `pedro/` and `babybot/`; AutoTune results are in `pedro/Constants.java`; the shooter encoder moved to OctoQuad channel 2).
 3. Allow either PathMaker or Pedro Pathing to drive the same routes, and run the benchmark plan.
 4. PathMaker 2: non-blocking update, pluggable localizer, paths as data with alliance mirroring, braking from measured stopping distance, and a short self-measuring tuning OpMode.
 
