@@ -186,7 +186,7 @@ obstacle:
 | `waitForShooter(maxSeconds)` | Wait until the shooter is at speed. |
 | `intake(power)` | Set the intake power, −1 to 1. |
 | `servo(position)` | Move the intake servo, 0 to 1. |
-| `feed(seconds)` | Shoot: servo to its feed position and run the intake, wait, then servo back and the intake as it was. The positions and power are in `RobotConfig.Intake` (the same as TeleOp's dpad left/right and left trigger). |
+| `feed(seconds)` | Shoot: servo to its feed position and the intake at `feedIntakePower` (0, as in the old autonomous), wait, then servo back and the intake as it was. The values are in `RobotConfig.Intake`. |
 | `pause(seconds)` | Wait; the robot holds its position. (Not called `wait`: Java already has a `wait()` that would be used instead and crash.) |
 
 Shooter, intake and servo steps happen at the moment the step is reached and stay set until
@@ -213,17 +213,20 @@ end), that's not the route: tell the coach, it's a calibration or PathMaker issu
 
 ## 6. Example: our close route, from the old PathMaker
 
-This is what `AutoOp_BlueClose` (paths B11 to B15) did, written the new way. In the old
-version each step's speed was set with `powerScaling` and its end with `pathTime_ms`. Steps
-that should not move used a delay longer than the step. None of that is needed now.
+This is what `AutoOp_BlueClose` (paths B21 to B27 on `main`, commit ad48162) did, written the
+new way. In the old version each step's speed was set with `powerScaling` and its end with
+`pathTime_ms`. A step with `powerScaling = 0` stood still, so the robot only waited there.
+None of that is needed now.
 
 | Old | What it does | New |
 |---|---|---|
-| B11 | 4 in to the left, shooter on | `.shooter(RPM).to(s.x - 4, s.y, 90)` |
-| B12 | back up 11 in | `.to(s.x - 4, s.y - 11, 90)` |
-| B13 | wait 5 s with the intake servo at 0 (shoot) | `.waitForShooter(2).feed(5)` |
-| B14 | turn 85° to the left, shooter off | `.shooter(0).turnTo(175)` |
-| B15 | to 40 in left and 25 in up the field | `.to(s.x - 44, s.y + 14, 175)` |
+| B21 | stand still 4 s while the shooter spins up | `.shooter(RPM)`; the wheel spins up during the next move |
+| B22 | back up 11 in | `.to(s.x, s.y - 11, 90)` |
+| B23 | stand still 4 s with the servo open (shoot) | `.waitForShooter(4).feed(4)` |
+| B24 | 25 in to the right, shooter off | `.shooter(0).to(s.x + 25, s.y - 11, 90)` |
+| B25 | back 70 in | `.to(s.x + 25, s.y - 81, 90)` |
+| B26 | back 6 in and turn 83° to the left (the old −83°) | `.to(s.x + 25, s.y - 87, 173)` |
+| B27 | 20 in to the right | `.to(s.x + 45, s.y - 87, 173)` |
 
 ```java
 public static Route close() {
@@ -231,27 +234,36 @@ public static Route close() {
     return Route.start(s)
             .speed(0.5)                         // first tests: raise to 1 once it drives well
             .shooter(ShooterConfig.autoTargetRpm)
-            .to(s.x - 4, s.y, 90)               // B11: 4 in left
-            .to(s.x - 4, s.y - 11, 90)          // B12: back 11 in
-            .waitForShooter(2)
-            .feed(5)                            // B13: shoot
+            .to(s.x, s.y - 11, 90)              // B22: back 11 in
+            .waitForShooter(4)
+            .feed(4)                            // B23: shoot
             .shooter(0)
-            .turnTo(175)                        // B14: 85° left (the old -85°). 180° meant?
-            .to(s.x - 44, s.y + 14, 175)        // B15
+            .to(s.x + 25, s.y - 11, 90)         // B24: 25 in right
+            .to(s.x + 25, s.y - 81, 90)         // B25: back 70 in
+            .to(s.x + 25, s.y - 87, 173)        // B26: turn left (old -83). 180° meant?
+            .to(s.x + 45, s.y - 87, 173)        // B27: 20 in right
             .build();
 }
 ```
 
-The far route (B21 to B28) is converted the same way in `Routes.far()`.
+The far route (B11 to B15) is converted the same way in `Routes.far()`.
 
 Things found while converting:
 
-- **Red and blue close were the same.** R11 to R15 are identical to B11 to B15, so one of them
-  went the wrong way. Making red from blue fixes this.
-- **In the old code the autonomous never ran the shooter.** `Extra_Stuff` was called with the
-  shooter and intake values swapped, so the shooter got 0 and the intake 0.95.
-- **85° instead of 90°.** The old PathMaker stopped turning up to 10° early, which may be why
-  85° was used. PathMaker 2 stops within 1°, so use the angle you actually want (probably 180°
+- **Close and far were swapped.** In ad48162, `AutoOp_BlueClose` runs the B2x paths and
+  `AutoOp_BlueFar` the B1x paths; before that it was the other way round. `Routes.java` follows
+  the new version.
+- **Red and blue are the same again.** R11 to R15 equal B11 to B15, and R21 to R27 equal B21 to
+  B27 (only the shooter speed in R23 differs). On a mirrored field one of them drives the wrong
+  way. Making red from blue fixes this, but only if the blue paths are the ones that were tested
+  on the blue side. If they were tested on red, mirror them first.
+- **Blue close shot with the shooter off.** B23 sets `targetRpm = 0` while the servo is open (R23
+  keeps 4500). The new route keeps the shooter on until the feed is done.
+- **The autonomous fed with the intake off** (`intake_power = 0.001`). `feed()` does the same:
+  `RobotConfig.Intake.feedIntakePower` is 0. Raise it if the balls don't reach the wheel.
+- **83° instead of 90°.** The old PathMaker stopped turning up to 10° early, which may be why
+  83° was used. PathMaker 2 stops within 1°, so use the angle you actually want (probably 180°
   here, and 0° in the far route).
-- **B11 and B12 can be one move** (`to(s.x - 4, s.y - 11, 90)`) unless the robot has to clear
-  something first.
+- **The waits at the start (B11, B21) are not needed:** the shooter spins up while the robot
+  backs up, and `waitForShooter` waits for whatever time is left. If the wait was there for
+  another reason (to let a partner robot go first), add `.pause(seconds)` at the top.
