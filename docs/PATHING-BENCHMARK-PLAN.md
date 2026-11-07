@@ -149,7 +149,7 @@ All computed by `analyze.py`. Report each as mean, standard deviation and worst 
 | Metric | Definition |
 |---|---|
 | **Time to done** | Start command to the engine's "done" flag (`!isBusy()` for Pedro, target zone for PathMaker) |
-| **Time to settle** | Start command to the first moment the externally measured (video) pose stays within 0.5 in and 1° of the target, and speed stays < 1 in/s, for 0.25 s |
+| **Time to settle** | Start command to the first moment the externally measured (video) pose stays within 0.5 in and 1° of the target, and speed stays < 1 in/s, for 0.25 s. `analyze.py` also computes it from the log, at 0.5 in / 1° and at 1 in / 2°. Use it rather than "time to done" to compare engines: Pedro reports done while still moving and then holds, PathMaker 2 only once it has stopped. On the first robot runs Pedro often held 0.5–0.8 in away and so never "settled" at 0.5 in |
 | **End error, measured** | Distance in x/y and heading difference between the tape-measured end pose and the target |
 | **End error, logged** | The same from the localizer. Measured minus logged shows the localizer's share |
 | **Repeatability** | Standard deviation of the measured end positions (spread of the 10 dots) |

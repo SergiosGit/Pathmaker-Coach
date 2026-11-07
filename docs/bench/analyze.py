@@ -85,8 +85,21 @@ def metrics(rows):
                 for r in rows)
     loops = [r["loop_ms"] for r in rows[1:]] or [math.nan]
     loops_sorted = sorted(loops)
+    # time to settle (from the log): from then on within the distance and angle, slower than 1 in/s
+    # and 3°/s, for at least 0.25 s. Fairer than "done": Pedro reports done while still moving, then
+    # holds. Two tolerances: the plan's 0.5 in / 1°, and a looser 1 in / 2°.
+    def settle_time(dist, ang):
+        ok = lambda q: (math.hypot(q["pose_x"] - tx, q["pose_y"] - ty) < dist and abs(wrap(q["pose_h_deg"] - th)) < ang
+                        and math.hypot(q["vel_x"], q["vel_y"]) < 1 and abs(q["vel_h_degs"]) < 3)
+        good = [ok(r) for r in rows]
+        for i in range(len(rows)):
+            if all(good[i:]) and end["t_s"] - rows[i]["t_s"] >= 0.25:
+                return rows[i]["t_s"]
+        return math.nan
     return {
         "time_to_done_s": done["t_s"] if done else math.nan,
+        "settle_0.5in_s": settle_time(0.5, 1),
+        "settle_1in_s": settle_time(1.0, 2),
         "end_err_logged_in": math.hypot(end["pose_x"] - tx, end["pose_y"] - ty),
         "end_err_logged_deg": abs(wrap(end["pose_h_deg"] - th)),
         "overshoot_in": max(overshoot, 0),
@@ -131,7 +144,7 @@ def main():
             m["measured_x"], m["measured_y"] = float(s["end_x"]), float(s["end_y"])
         groups[(test, engine, speed)].append(m)
 
-    keys = ["time_to_done_s", "end_err_logged_in", "end_err_logged_deg", "end_err_measured_in",
+    keys = ["time_to_done_s", "settle_0.5in_s", "settle_1in_s", "end_err_logged_in", "end_err_logged_deg", "end_err_measured_in",
             "end_err_measured_deg", "overshoot_in", "offline_max_in", "power_used", "loop_p95_ms"]
     print("test engine     speed    n  " + "  ".join(f"{k:>22}" for k in keys) + "  repeatability_in")
     for (test, engine, speed), runs in sorted(groups.items()):

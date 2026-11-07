@@ -39,6 +39,8 @@ public final class PathMaker2 {
          * speed, and drive again only when this much slower. Stops the power switching on and off.
          */
         public double brakeSlack = 2;
+        /** Below this speed (in/s) the robot never cuts power to brake: the final approach stays smooth. */
+        public double brakeMinSpeed = 20;
         /** Speed-up limit, in/s² and deg/s², so the wheels don't slip at the start. */
         public double accel = 250, accelTurnDeg = 1200;
         /** Final approach: speed per inch (per degree) of remaining error, 1/s. */
@@ -138,7 +140,8 @@ public final class PathMaker2 {
         double kVF = (1 - p.kSForward) / p.maxSpeedForward, kVS = (1 - p.kSStrafe) / p.maxSpeedStrafe;
         double fwd, left;
         double vAlong = vFwd * uf + vLeft * ul;
-        if (braking ? vAlong > cmdSpeed - p.brakeSlack : vAlong > cmdSpeed + p.brakeSlack) {
+        boolean tooFast = braking ? vAlong > cmdSpeed - p.brakeSlack : vAlong > cmdSpeed + p.brakeSlack;
+        if (tooFast && vAlong > p.brakeMinSpeed) {
             braking = true;
             // Too fast for the stopping distance: no power along the path, so the motors brake as
             // hard as the calibration measured (positive power only lets the robot coast down).
