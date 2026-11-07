@@ -33,11 +33,14 @@ public final class PathMaker2 {
         public double brakeTurnDeg = 1700;                         // deg/s²
         // settings
         /** Use this fraction of the measured braking, so the robot stops in time with margin. */
-        public double brakeMargin = 0.6;
-        /** Brake (power off) when this much faster than the planned speed, in/s. */
+        public double brakeMargin = 0.75;
+        /**
+         * Dead band for braking, in/s: brake (power off) when this much faster than the planned
+         * speed, and drive again only when this much slower. Stops the power switching on and off.
+         */
         public double brakeSlack = 2;
         /** Speed-up limit, in/s² and deg/s², so the wheels don't slip at the start. */
-        public double accel = 150, accelTurnDeg = 1200;
+        public double accel = 250, accelTurnDeg = 1200;
         /** Final approach: speed per inch (per degree) of remaining error, 1/s. */
         public double approachGain = 4, approachGainTurn = 4;
         /** Feedback on speed: power per in/s (per deg/s) of speed error. */
@@ -82,6 +85,7 @@ public final class PathMaker2 {
 
     private final Params p;
     private double cmdSpeed = 0, cmdTurn = 0; // ramped speed commands, carried across targets
+    private boolean braking = false;
 
     public PathMaker2(Params params) {
         this.p = params;
@@ -93,6 +97,7 @@ public final class PathMaker2 {
     public void reset() {
         cmdSpeed = 0;
         cmdTurn = 0;
+        braking = false;
     }
 
     /**
@@ -133,7 +138,8 @@ public final class PathMaker2 {
         double kVF = (1 - p.kSForward) / p.maxSpeedForward, kVS = (1 - p.kSStrafe) / p.maxSpeedStrafe;
         double fwd, left;
         double vAlong = vFwd * uf + vLeft * ul;
-        if (vAlong > cmdSpeed + p.brakeSlack) {
+        if (braking ? vAlong > cmdSpeed - p.brakeSlack : vAlong > cmdSpeed + p.brakeSlack) {
+            braking = true;
             // Too fast for the stopping distance: no power along the path, so the motors brake as
             // hard as the calibration measured (positive power only lets the robot coast down).
             // Only steer back onto the line sideways.
@@ -141,6 +147,7 @@ public final class PathMaker2 {
             fwd = -p.speedGain * crossF;
             left = -p.speedGain * crossL;
         } else {
+            braking = false;
             fwd = (pushXY ? p.kSForward * uf : 0) + kVF * cmdF + p.speedGain * (cmdF - vFwd);
             left = (pushXY ? p.kSStrafe * ul : 0) + kVS * cmdL + p.speedGain * (cmdL - vLeft);
         }

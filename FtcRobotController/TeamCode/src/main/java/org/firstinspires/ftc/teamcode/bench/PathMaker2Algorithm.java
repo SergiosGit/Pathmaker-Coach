@@ -17,8 +17,8 @@ public class PathMaker2Algorithm extends PathMakerAlgorithm {
     /** Settings that are choices rather than measurements. Live-editable in Panels. */
     @Configurable
     public static class Settings {
-        public static double brakeMargin = 0.6, brakeSlack = 2;
-        public static double accel = 150, accelTurnDeg = 1200;
+        public static double brakeMargin = 0.75, brakeSlack = 2;
+        public static double accel = 250, accelTurnDeg = 1200;
         public static double approachGain = 4, approachGainTurn = 4;
         public static double speedGain = 0.01, speedGainTurnDeg = 0.001;
         public static double positionTolerance = 0.5, headingToleranceDeg = 1;
