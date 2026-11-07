@@ -18,8 +18,9 @@ import java.io.File;
 
 /**
  * Runs one benchmark test (docs/PATHING-BENCHMARK-PLAN.md) and writes one CSV per run.
- * Choose engine, test, speed and run number in Panels (Configurables → BenchOpMode.Settings)
- * during INIT; they are read when ▶ is pressed. Place the robot at (72, 24) facing up the field.
+ * Choose engine, test, speed and run number during INIT with gamepad 1's dpad (shown on the
+ * Driver Hub), or in Panels (Configurables → BenchOpMode.Settings); they are read when ▶ is
+ * pressed. Place the robot at (72, 24) facing up the field.
  */
 @Autonomous(name = "Bench", group = "bench")
 public class BenchOpMode extends LinearOpMode {
@@ -39,6 +40,26 @@ public class BenchOpMode extends LinearOpMode {
         public static double matchedSpeed = 0.6;
     }
 
+    /** Dpad up/down chooses the line, left/right changes it. Returns the selected line. */
+    private int chooseWithGamepad(int row) {
+        if (gamepad1.dpadUpWasPressed()) row = (row + 3) % 4;
+        if (gamepad1.dpadDownWasPressed()) row = (row + 1) % 4;
+        int step = gamepad1.dpadRightWasPressed() ? 1 : gamepad1.dpadLeftWasPressed() ? -1 : 0;
+        if (step != 0) {
+            switch (row) {
+                case 0: Settings.engine = cycle(BenchEngine.Kind.values(), Settings.engine, step); break;
+                case 1: Settings.test = cycle(BenchRoutes.Test.values(), Settings.test, step); break;
+                case 2: Settings.speed = cycle(Speed.values(), Settings.speed, step); break;
+                default: Settings.run = Math.max(1, Settings.run + step);
+            }
+        }
+        return row;
+    }
+
+    private static <E extends Enum<E>> E cycle(E[] all, E current, int step) {
+        return all[(current.ordinal() + step + all.length) % all.length];
+    }
+
     @Override
     public void runOpMode() throws InterruptedException {
         Telemetry tele = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
@@ -50,12 +71,17 @@ public class BenchOpMode extends LinearOpMode {
         Mecanum drivetrain = new Mecanum(hardwareMap, Constants.drivetrainConfig());
         localizer.setPose(new Pose(BenchRoutes.START_X, BenchRoutes.START_Y, Math.toRadians(BenchRoutes.START_H)));
 
+        int row = 0;
         while (!isStarted() && !isStopRequested()) {
             localizer.update();
             Pose p = localizer.pose();
-            tele.addLine("Bench: set engine, test, speed and run in Panels, then press ▶");
-            tele.addData("engine / test / speed / run", "%s / %s / %s / %d",
-                    Settings.engine, Settings.test, Settings.speed, Settings.run);
+            row = chooseWithGamepad(row);
+            tele.addLine("Gamepad 1: dpad ▲▼ picks a line, ◀▶ changes it. Then press ▶.");
+            String[] names = {"engine", "test", "speed", "run"};
+            Object[] values = {Settings.engine, Settings.test, Settings.speed, Settings.run};
+            for (int i = 0; i < names.length; i++) {
+                tele.addData((i == row ? "▶ " : "   ") + names[i], values[i]);
+            }
             tele.addData("pose (should be 72, 24, 90)", "%.1f, %.1f, %.1f", p.x(), p.y(), Math.toDegrees(p.heading()));
             tele.addData("battery", "%.2f V", battery.getVoltage());
             tele.update();

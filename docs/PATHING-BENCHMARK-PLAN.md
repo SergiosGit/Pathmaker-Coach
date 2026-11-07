@@ -84,7 +84,7 @@ Start pose for all tests: **(72, 24, 90°)** in Pedro coordinates. That is the m
 
 1. Calibrate first (docs/CALIBRATION.md). Both PathMaker engines take their constants from it.
 2. On the Driver Hub, choose **Bench** (Autonomous, group "bench") and press INIT.
-3. In Panels → Configurables → `BenchOpMode.Settings`, set `engine` (PEDRO, PATHMAKER1, PATHMAKER2), `test` (A1–A6, HOLD), `speed` (MAX, MATCHED) and `run`. The Driver Hub shows them, the pose (it must read 72, 24, 90) and the battery voltage.
+3. With gamepad 1, choose `engine` (PEDRO, PATHMAKER1, PATHMAKER2), `test` (A1–A6, HOLD), `speed` (MAX, MATCHED) and `run`: dpad ▲▼ picks a line, ◀▶ changes it. (They can also be set in Panels as `BenchOpMode.Settings`.) The Driver Hub also shows the pose (it must read 72, 24, 90) and the battery voltage.
 4. Press ▶. The route runs, then the robot keeps holding for `afterSeconds` (PathMaker 1 lets go: it has no hold). A route that takes longer than `timeoutSeconds` is stopped.
 5. The log is `/sdcard/FIRST/bench/<test>_<engine>_<speed>_<run>.csv`. Copy the folder to a laptop (Android Studio → Device Explorer, or `adb pull /sdcard/FIRST/bench`), then run `python3 docs/bench/analyze.py bench sheet.csv`.
 
