@@ -20,6 +20,8 @@ public class SimRobot implements Localizer, Drivetrain {
     public double kSF = 0.10, kSS = 0.14, kST = 0.10;
     public double vMaxF = 62, vMaxS = 48, wMaxDeg = 330;   // in/s, deg/s
     public double brakeF = 149, brakeS = 159, brakeTDeg = 1730;
+    /** Slowing down while power still drives the wheels forward: about the coasting rate. */
+    public double coastF = 31, coastS = 57, coastTDeg = 400;
     public double lag = 0.12;                               // s
     public double volts = 12.5, nominalVolts = 12.5;
 
@@ -32,24 +34,28 @@ public class SimRobot implements Localizer, Drivetrain {
         double sum = Math.abs(f) + Math.abs(s) + Math.abs(t);
         if (sum > 1) { f /= sum; s /= sum; t /= sum; }
         double v = volts / nominalVolts;
-        vf = axis(vf, f * v, kSF, vMaxF, brakeF, dt);
-        vs = axis(vs, s * v, kSS, vMaxS, brakeS, dt);
-        w = Math.toRadians(axis(Math.toDegrees(w), t * v, kST, wMaxDeg, brakeTDeg, dt));
+        vf = axis(vf, f * v, kSF, vMaxF, brakeF, coastF, dt);
+        vs = axis(vs, s * v, kSS, vMaxS, brakeS, coastS, dt);
+        w = Math.toRadians(axis(Math.toDegrees(w), t * v, kST, wMaxDeg, brakeTDeg, coastTDeg, dt));
         double c = Math.cos(h), sn = Math.sin(h);
         x += (vf * c - vs * sn) * dt;
         y += (vf * sn + vs * c) * dt;
         h = Math.atan2(Math.sin(h + w * dt), Math.cos(h + w * dt));
     }
 
-    private double axis(double vel, double p, double kS, double vMax, double brake, double dt) {
+    private double axis(double vel, double p, double kS, double vMax, double brake, double coast, double dt) {
         if (Math.abs(p) < kS) { // not enough power to drive: brake toward zero
             double dv = brake * dt;
             return Math.abs(vel) <= dv ? 0 : vel - Math.signum(vel) * dv;
         }
         double target = Math.signum(p) * (Math.abs(p) - kS) / (1 - kS) * vMax;
         double next = vel + (target - vel) * Math.min(dt / lag, 1);
-        // slowing down can't be faster than braking
-        if (Math.abs(next) < Math.abs(vel)) next = vel + Math.max(-brake * dt, Math.min(brake * dt, next - vel));
+        // Slowing down: with power still pushing the same way the wheels turn, the robot only
+        // coasts down (seen on the bay-b bot); reverse power brakes at most as hard as braking.
+        if (Math.abs(next) < Math.abs(vel)) {
+            double limit = (Math.signum(p) == Math.signum(vel) ? coast : brake) * dt;
+            next = vel + Math.max(-limit, Math.min(limit, next - vel));
+        }
         return next;
     }
 

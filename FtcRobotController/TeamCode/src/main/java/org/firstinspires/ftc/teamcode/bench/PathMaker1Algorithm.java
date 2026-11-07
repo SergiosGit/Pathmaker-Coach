@@ -45,12 +45,16 @@ public class PathMaker1Algorithm extends PathMakerAlgorithm {
 
     private final double[] last = new double[3];
     private final int[] initialSign = new int[3];
+    private final boolean[] axisPassed = new boolean[3];
 
     @Override
     protected void startStep(StepSpec s, MotionState state) {
         double[] e = errors(s, state.pose());
         double[] zone = zones();
-        for (int i = 0; i < 3; i++) initialSign[i] = Math.abs(e[i]) > zone[i] ? (int) Math.signum(e[i]) : 0;
+        for (int i = 0; i < 3; i++) {
+            initialSign[i] = Math.abs(e[i]) > zone[i] ? (int) Math.signum(e[i]) : 0;
+            axisPassed[i] = false;
+        }
     }
 
     @Override
@@ -70,13 +74,14 @@ public class PathMaker1Algorithm extends PathMakerAlgorithm {
         double scaling = Math.max(powerScaling, 0.05);
 
         double[] p = new double[3];
-        boolean passed = false;
         for (int i = 0; i < 3; i++) {
             if (elapsedMs < delay[i]) { // axis not started yet: keep the previous power (rolling start)
                 p[i] = last[i];
                 continue;
             }
-            boolean pass = s.passThrough && initialSign[i] != 0;
+            if (s.passThrough && initialSign[i] != 0 && (int) Math.signum(e[i]) != initialSign[i]) axisPassed[i] = true;
+            // An axis that has passed its goal holds it while the other axes finish.
+            boolean pass = s.passThrough && initialSign[i] != 0 && !axisPassed[i];
             double power;
             if (!pass) {
                 if (Math.abs(e[i]) > reach[i]) {
@@ -90,7 +95,6 @@ public class PathMaker1Algorithm extends PathMakerAlgorithm {
                     }
                 }
             } else {
-                if ((int) Math.signum(e[i]) != initialSign[i]) passed = true;
                 power = Math.abs(e[i]) > reach[i] ? initialSign[i]
                         : initialSign[i] * Math.max(kS[i] / (i < 2 ? scaling : 1), Math.abs(e[i] / reach[i]));
             }
@@ -109,7 +113,14 @@ public class PathMaker1Algorithm extends PathMakerAlgorithm {
         boolean inZone = Math.abs(e[0]) < zone[0] && Math.abs(e[1]) < zone[1] && Math.abs(e[2]) < zone[2];
         boolean slow = Math.hypot(tw.vx, tw.vy) < Settings.minVelocityXY_inPerSec
                 && Math.abs(deg(tw.omega)) < Settings.minVelocityTurn_degPerSec;
-        atEnd = s.passThrough ? (passed || inZone) : inZone && (!Settings.speedCheckFix || slow);
+        // Pass-through: done when every axis that had to move has passed its goal or reached its zone.
+        // (PathMaker 1 let the path author mark single axes as pass-through; a shared route can't,
+        // and ending at the first axis cut corners, e.g. A5 left its second leg 30 in early.)
+        boolean allPassed = true;
+        for (int i = 0; i < 3; i++) {
+            if (initialSign[i] != 0 && !axisPassed[i] && Math.abs(e[i]) >= zone[i]) allPassed = false;
+        }
+        atEnd = s.passThrough ? (allPassed || inZone) : inZone && (!Settings.speedCheckFix || slow);
         remaining = Math.hypot(e[0], e[1]);
         debug.put("err_x", e[0]);
         debug.put("err_y", e[1]);

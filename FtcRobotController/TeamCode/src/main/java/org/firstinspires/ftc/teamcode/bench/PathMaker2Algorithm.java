@@ -17,7 +17,7 @@ public class PathMaker2Algorithm extends PathMakerAlgorithm {
     /** Settings that are choices rather than measurements. Live-editable in Panels. */
     @Configurable
     public static class Settings {
-        public static double brakeMargin = 0.6;
+        public static double brakeMargin = 0.6, brakeSlack = 2;
         public static double accel = 150, accelTurnDeg = 1200;
         public static double approachGain = 4, approachGainTurn = 4;
         public static double speedGain = 0.01, speedGainTurnDeg = 0.001;
@@ -50,6 +50,7 @@ public class PathMaker2Algorithm extends PathMakerAlgorithm {
         p.stoppedSpeed = Math.max(1.0, 3 * Calibration.getDouble("pathmaker.stillNoiseXY"));
         p.stoppedTurnDeg = Math.max(3.0, 3 * Calibration.getDouble("pathmaker.stillNoiseTurn"));
         p.brakeMargin = Settings.brakeMargin;
+        p.brakeSlack = Settings.brakeSlack;
         p.accel = Settings.accel;
         p.accelTurnDeg = Settings.accelTurnDeg;
         p.approachGain = Settings.approachGain;

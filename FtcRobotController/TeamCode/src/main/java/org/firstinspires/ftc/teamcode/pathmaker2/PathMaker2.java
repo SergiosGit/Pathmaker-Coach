@@ -11,7 +11,10 @@ package org.firstinspires.ftc.teamcode.pathmaker2;
  *
  * Each loop it picks a speed: the lowest of the top speed, the speed from which the robot can
  * still brake to a stop at the target (v = √(2·a·d)), and a gentle final approach (v = kP·d).
- * Power = kS + kV·speed + a little feedback on the measured speed. The same for heading.
+ * Power = kS + kV·speed + a little feedback on the measured speed. When the robot is faster than
+ * that speed, the power along the path is cut to zero so the motors brake: the braking rate was
+ * measured that way (with positive power the robot only coasts down, about 5 times slower).
+ * The same for heading.
  * Translation is one 2D vector, so the robot drives a straight line (PathMaker 1 controls x and y
  * separately). Wheel powers are scaled by the largest wheel, and battery voltage is compensated.
  *
@@ -31,6 +34,8 @@ public final class PathMaker2 {
         // settings
         /** Use this fraction of the measured braking, so the robot stops in time with margin. */
         public double brakeMargin = 0.6;
+        /** Brake (power off) when this much faster than the planned speed, in/s. */
+        public double brakeSlack = 2;
         /** Speed-up limit, in/s² and deg/s², so the wheels don't slip at the start. */
         public double accel = 150, accelTurnDeg = 1200;
         /** Final approach: speed per inch (per degree) of remaining error, 1/s. */
@@ -126,8 +131,19 @@ public final class PathMaker2 {
         double cmdF = cmdSpeed * uf, cmdL = cmdSpeed * ul;
         boolean pushXY = d > p.positionTolerance;
         double kVF = (1 - p.kSForward) / p.maxSpeedForward, kVS = (1 - p.kSStrafe) / p.maxSpeedStrafe;
-        double fwd = (pushXY ? p.kSForward * uf : 0) + kVF * cmdF + p.speedGain * (cmdF - vFwd);
-        double left = (pushXY ? p.kSStrafe * ul : 0) + kVS * cmdL + p.speedGain * (cmdL - vLeft);
+        double fwd, left;
+        double vAlong = vFwd * uf + vLeft * ul;
+        if (vAlong > cmdSpeed + p.brakeSlack) {
+            // Too fast for the stopping distance: no power along the path, so the motors brake as
+            // hard as the calibration measured (positive power only lets the robot coast down).
+            // Only steer back onto the line sideways.
+            double crossF = vFwd - vAlong * uf, crossL = vLeft - vAlong * ul;
+            fwd = -p.speedGain * crossF;
+            left = -p.speedGain * crossL;
+        } else {
+            fwd = (pushXY ? p.kSForward * uf : 0) + kVF * cmdF + p.speedGain * (cmdF - vFwd);
+            left = (pushXY ? p.kSStrafe * ul : 0) + kVS * cmdL + p.speedGain * (cmdL - vLeft);
+        }
 
         // ---- heading
         double hTarget = t.heading;
