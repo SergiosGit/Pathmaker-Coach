@@ -1,0 +1,56 @@
+package org.firstinspires.ftc.teamcode.calibration;
+
+import java.util.Map;
+
+/**
+ * Calibrated values for this robot, committed to git. Replace this file with the calibration
+ * page's Export → Java after a calibration session. Values measured later on the Control Hub
+ * override these; defaults are in CalibrationKeys.
+ *
+ * Seeded with the bay-b bot's AutoTune results of 6 Nov 2026.
+ */
+public final class RobotCalibration {
+
+    private RobotCalibration() { }
+
+    static void apply(Map<String, Object> v) {
+        // Drivetrain motors
+        v.put("mecanum.frontLeftName", "front_left");
+        v.put("mecanum.frontRightName", "front_right");
+        v.put("mecanum.backLeftName", "back_left");
+        v.put("mecanum.backRightName", "back_right");
+        v.put("mecanum.frontLeftDirection", "REVERSE");
+        v.put("mecanum.frontRightDirection", "FORWARD");
+        v.put("mecanum.backLeftDirection", "REVERSE");
+        v.put("mecanum.backRightDirection", "FORWARD");
+        // Odometry (OctoQuad): forward pod on port 1, strafe pod on port 0
+        v.put("octoquad.name", "octoquad");
+        v.put("octoquad.xPodPort", 1);
+        v.put("octoquad.yPodPort", 0);
+        v.put("octoquad.xPodDirection", "REVERSE");
+        v.put("octoquad.yPodDirection", "FORWARD");
+        v.put("octoquad.ticksPerUnit", 505.316944406);
+        v.put("octoquad.xPodOffset", 4.468503937007874);
+        v.put("octoquad.yPodOffset", 6.850393700787401);
+        v.put("octoquad.headingScalar", 1.0521839720139383);
+        v.put("octoquad.i2cRecoveryMode", "MODE_1_PERIPH_RST_ON_FRAME_ERR");
+        // Pedro Foresight
+        v.put("foresight.maxAchievableForwardVelocity", 62.05122551694287);
+        v.put("foresight.maxAchievableStrafeVelocity", 47.99371093640487);
+        v.put("foresight.naturalForwardDeceleration", 30.74715869191283);
+        v.put("foresight.naturalStrafeDeceleration", 56.511232824202615);
+        v.put("foresight.headingBrakingLinearCoefficient", 0.028103842539870735);
+        v.put("foresight.headingBrakingQuadraticCoefficient", 0.005619561123838429);
+        v.put("foresight.heading kP", 2.427462770182534);
+        v.put("foresight.forwardBrakingLinearCoefficient", 0.030382513987097765);
+        v.put("foresight.forwardBrakingQuadraticCoefficient", 0.002088581762850105);
+        v.put("foresight.strafeBrakingLinearCoefficient", 0.04831570754977478);
+        v.put("foresight.strafeBrakingQuadraticCoefficient", 0.0016405745909135573);
+        v.put("foresight.forwardTranslational Primary kP", 0.1912510589131322);
+        v.put("foresight.forwardTranslational Secondary kP", 0.07066215594599003);
+        v.put("foresight.strafeTranslational Primary kP", 0.22345115371010554);
+        v.put("foresight.strafeTranslational Secondary kP", 0.08255923057109245);
+        v.put("foresight.coast kV", 0.016068837025916338);
+        v.put("foresight.brake kV", 0.013658511472028886);
+    }
+}

@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Calibration</title>
+<style>
+  /* Everything is inline: the laptop is on the robot's Wi-Fi, without internet. */
+  :root {
+    --bg: #f4f4f1; --surface: #fcfcfb; --surface-2: #efeee9; --border: #d9d8d0;
+    --text: #1f1f1d; --text-2: #55554f; --muted: #7a7a72;
+    --accent: #2a78d6; --accent-ink: #ffffff;
+    --good: #0d7a3a; --good-bg: #e3f3e8; --warn: #8a5a00; --warn-bg: #fbefd2;
+    --bad: #b3261e; --bad-bg: #fbe4e2; --info-bg: #e5eefb;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --grid: #e6e5df; --wheel: #8d8c84; --wheel-on: #eb6834;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121211; --surface: #1a1a19; --surface-2: #242422; --border: #3a3a36;
+      --text: #f0efec; --text-2: #c3c2b7; --muted: #94938a;
+      --accent: #3987e5; --accent-ink: #ffffff;
+      --good: #5cc48a; --good-bg: #16301f; --warn: #e5b14a; --warn-bg: #33280f;
+      --bad: #f2867e; --bad-bg: #3a1a17; --info-bg: #17263b;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --grid: #2c2c29; --wheel: #6d6c66; --wheel-on: #d95926;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121211; --surface: #1a1a19; --surface-2: #242422; --border: #3a3a36;
+    --text: #f0efec; --text-2: #c3c2b7; --muted: #94938a;
+    --accent: #3987e5; --accent-ink: #ffffff;
+    --good: #5cc48a; --good-bg: #16301f; --warn: #e5b14a; --warn-bg: #33280f;
+    --bad: #f2867e; --bad-bg: #3a1a17; --info-bg: #17263b;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --grid: #2c2c29; --wheel: #6d6c66; --wheel-on: #d95926;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+    padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 5;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  header .spacer { flex: 1; }
+  main { max-width: 1280px; margin: 0 auto; padding: 16px; display: grid; gap: 16px;
+         grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); }
+  @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } .panel-card { order: -1; } }
+  section.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  h2 { font-size: 15px; margin: 0 0 10px; font-weight: 650; }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 550; white-space: nowrap; }
+  .chip.good { background: var(--good-bg); color: var(--good); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); }
+  .chip.bad { background: var(--bad-bg); color: var(--bad); }
+  .chip.info { background: var(--info-bg); color: var(--accent); }
+  .chip.plain { background: var(--surface-2); color: var(--text-2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  button, .button {
+    font: inherit; font-weight: 600; border-radius: 8px; padding: 7px 14px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text); text-decoration: none; display: inline-block;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.big { font-size: 17px; padding: 10px 26px; }
+  button.danger { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.small, .button.small { padding: 3px 9px; font-size: 13px; }
+  button:focus-visible, .button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .step { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface); }
+  .step.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .step .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+  .step .num { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+  .step .title { font-weight: 600; }
+  .step p { margin: 4px 0 8px; color: var(--text-2); font-size: 13.5px; }
+  .muted { color: var(--muted); }
+  .notice { border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; }
+  .notice.warn { background: var(--warn-bg); color: var(--warn); }
+  .notice.bad { background: var(--bad-bg); color: var(--bad); }
+  .notice.info { background: var(--info-bg); }
+  .notice.good { background: var(--good-bg); color: var(--good); }
+  .prompt-title { font-size: 18px; font-weight: 650; margin: 0 0 6px; }
+  .prompt-msg { white-space: pre-wrap; margin: 0 0 12px; color: var(--text-2); }
+  .panel-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 170px; align-items: start; }
+  @media (max-width: 560px) { .panel-grid { grid-template-columns: minmax(0, 1fr); } }
+  form.inputs { display: grid; gap: 10px; max-width: 460px; }
+  form.inputs label { display: grid; gap: 4px; font-size: 13.5px; color: var(--text-2); }
+  form.inputs label.check { display: flex; align-items: center; gap: 8px; }
+  input[type=text], input[type=number], select {
+    font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); width: 100%;
+  }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12.5px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  #values td.num { max-width: 150px; overflow-wrap: anywhere; }
+  #values td:first-child { min-width: 180px; }
+  .table-wrap { overflow-x: auto; }
+  .live { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 10px 0; }
+  .live div { background: var(--surface-2); border-radius: 6px; padding: 6px 8px; }
+  .live .k { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+  .live .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .swatch { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+  .chart { position: relative; }
+  .chart canvas { width: 100%; height: 220px; display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12.5px; box-shadow: 0 2px 8px rgba(0,0,0,.15); display: none; white-space: nowrap; }
+  details summary { cursor: pointer; color: var(--text-2); margin-top: 12px; }
+  pre.log { max-height: 220px; overflow: auto; background: var(--surface-2); padding: 8px; border-radius: 6px; font-size: 12.5px; margin: 6px 0 0; }
+  textarea.code { width: 100%; height: 280px; font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  .values-card { grid-column: 1 / -1; }
+  .group-row td { background: var(--surface-2); font-weight: 650; color: var(--text); }
+  .hist { color: var(--muted); font-size: 12.5px; }
+  .edit { display: flex; gap: 6px; }
+  .edit input { width: 140px; }
+  svg.robot { width: 170px; height: 170px; }
+  svg.robot .body { fill: var(--surface-2); stroke: var(--border); stroke-width: 2; }
+  svg.robot .front { fill: var(--accent); }
+  svg.robot .wheel { fill: var(--wheel); }
+  svg.robot .wheel.on { fill: var(--wheel-on); }
+  svg.robot .arrow { stroke: var(--wheel-on); stroke-width: 6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  svg.robot text { fill: var(--text-2); font-size: 12px; }
+  .sr { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Robot calibration</h1>
+  <span id="conn" class="chip plain"><span class="dot"></span>Connecting…</span>
+  <span class="spacer"></span>
+  <a class="button small" href="/api/export/java" download>Export Java</a>
+  <a class="button small" href="/api/export/json" download>Download file</a>
+  <button class="small" id="theme" type="button" aria-label="Switch light or dark">◐</button>
+</header>
+
+<main>
+  <section class="card" aria-labelledby="steps-h">
+    <h2 id="steps-h">Steps</h2>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <section class="card panel-card" aria-labelledby="panel-h" aria-live="polite">
+    <h2 id="panel-h" class="sr">Current step</h2>
+    <div id="panel"></div>
+    <div id="liveArea" hidden>
+      <div class="live" id="live"></div>
+      <div class="chart" id="chartWrap">
+        <canvas id="chart" aria-label="Live values over time"></canvas>
+        <div class="tip" id="tip"></div>
+      </div>
+    </div>
+    <details>
+      <summary>Log</summary>
+      <pre class="log" id="log"></pre>
+    </details>
+  </section>
+
+  <section class="card values-card" aria-labelledby="values-h">
+    <h2 id="values-h">All values</h2>
+    <p class="muted" id="fileInfo" style="margin-top:0"></p>
+    <div class="table-wrap"><table id="values"></table></div>
+    <details>
+      <summary>Java for <code>calibration/RobotCalibration.java</code> (commit this to keep the values in git)</summary>
+      <p class="muted">Download it with <b>Export Java</b> and replace the file in Android Studio, or copy it from here.</p>
+      <textarea class="code" id="java" readonly></textarea>
+    </details>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let state = null, steps = [], values = [], valuesVersion = -1, renderedPrompt = null, renderedSteps = null, online = false, busy = false;
+const POLL_MS = 400;
+
+// ---------------------------------------------------------------- theme (a per-viewer convenience)
+(function () {
+  let t = null;
+  try { t = localStorage.getItem("calTheme"); } catch (e) {}
+  if (t) document.documentElement.dataset.theme = t;
+  $("theme").onclick = () => {
+    const dark = getComputedStyle(document.documentElement).colorScheme === "dark";
+    const next = dark ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("calTheme", next); } catch (e) {}
+    drawChart();
+  };
+})();
+
+// ---------------------------------------------------------------- talking to the robot
+async function getJson(url) {
+  const r = await fetch(url, {cache: "no-store"});
+  if (!r.ok) throw new Error(r.status + " " + r.statusText);
+  return r.json();
+}
+async function act(body) {
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await fetch("/api/action", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+    const j = await r.json();
+    if (!j.ok && j.error) alert(j.error);
+  } catch (e) {
+    alert("The robot did not answer: " + e.message);
+  } finally {
+    busy = false;
+    poll();
+  }
+}
+
+async function poll() {
+  try {
+    const s = await getJson("/api/state");
+    if (!online) { steps = await getJson("/api/steps"); }
+    online = true;
+    state = s;
+    if (s.valuesVersion !== valuesVersion) {
+      values = await getJson("/api/values");
+      valuesVersion = s.valuesVersion;
+      renderValues();
+      $("java").value = await (await fetch("/api/export/java", {cache: "no-store"})).text();
+    }
+    render();
+  } catch (e) {
+    online = false;
+    setConn("bad", "Robot not reachable. Join the robot's Wi-Fi; the robot app must be running.");
+  }
+}
+setInterval(poll, POLL_MS);
+poll();
+
+function setConn(kind, text) {
+  $("conn").className = "chip " + kind;
+  $("conn").innerHTML = '<span class="dot"></span>' + esc(text);
+}
+
+// ---------------------------------------------------------------- status of each step
+function valueById(id) { return values.find(v => v.id === id); }
+function stepStatus(st) {
+  if (!st.keys.length) return {kind: "plain", text: "Check"};
+  const vs = st.keys.map(valueById).filter(Boolean);
+  if (!vs.length) return {kind: "plain", text: ""};
+  const unconfirmed = vs.some(v => v.needsConfirm && !v.confirmed);
+  const anyDefault = vs.some(v => v.source === "default");
+  const measured = vs.filter(v => v.source === "measured");
+  if (unconfirmed) return {kind: "warn", text: "Run again to confirm"};
+  if (anyDefault && measured.length) return {kind: "warn", text: "Partly measured"};
+  if (anyDefault) return {kind: "warn", text: "Defaults"};
+  if (measured.length === vs.length) {
+    const newest = measured.map(v => v.history[v.history.length - 1].at).sort().pop();
+    return {kind: "good", text: "Measured " + newest};
+  }
+  if (measured.length) return {kind: "good", text: "Measured, partly committed"};
+  return {kind: "info", text: "Committed values"};
+}
+
+// ---------------------------------------------------------------- rendering
+function render() {
+  if (!state) return;
+  const running = state.step != null;
+  if (!state.opModeRunning) setConn("warn", "Start the Calibrate OpMode on the Driver Hub (INIT, then ▶)");
+  else if (running) setConn("info", "Running: " + state.title);
+  else setConn("good", "Ready");
+
+  // Steps list (rebuilt only when it changes, so clicks aren't lost)
+  const stepsHtml = steps.map((st, i) => {
+    const s = stepStatus(st);
+    const disabled = !state.opModeRunning || running;
+    const why = !state.opModeRunning ? "Start the Calibrate OpMode first" : running ? "A step is running" : "Run " + st.title;
+    return `<li class="step ${state.step === st.id ? "active" : ""}">
+      <div class="row"><span class="title"><span class="num">${i + 1}.</span>${esc(st.title)}</span>
+      ${s.text ? `<span class="chip ${s.kind}">${esc(s.text)}</span>` : ""}</div>
+      <p>${esc(st.summary)}</p>
+      <button class="small ${disabled ? "" : "primary"}" data-run="${esc(st.id)}" ${disabled ? "disabled" : ""} title="${esc(why)}">Run</button>
+    </li>`;
+  }).join("");
+  if (stepsHtml !== renderedSteps) {
+    renderedSteps = stepsHtml;
+    $("steps").innerHTML = stepsHtml;
+    document.querySelectorAll("[data-run]").forEach(b => b.onclick = () => act({action: "run", step: b.dataset.run}));
+  }
+
+  // The prompt is rebuilt only when it changes, so typing in a form survives polling.
+  const key = state.promptId + ":" + state.phase + ":" + (state.canFinish ? 1 : 0) + ":" + JSON.stringify(state.display) + ":" + state.opModeRunning;
+  if (key !== renderedPrompt) { renderedPrompt = key; renderPanel(); }
+
+  const showLive = state.phase === "running" || (state.samples && state.samples.length && ["done", "failed"].includes(state.phase));
+  $("liveArea").hidden = !showLive;
+  if (showLive) { renderLive(); drawChart(); }
+  $("log").textContent = (state.log || []).join("\n");
+  $("fileInfo").textContent = "Measured values are saved on the Control Hub in " + state.file + " the moment a step finishes. "
+    + "A value comes from the first of: measured, committed (RobotCalibration.java), default.";
+  if (state.fileError) $("fileInfo").innerHTML += `<br><span class="chip bad">${esc(state.fileError)}</span>`;
+}
+
+function renderPanel() {
+  const s = state, p = $("panel");
+  const abort = `<button class="danger" id="abort">Abort</button>`;
+  let html = "";
+  switch (s.phase) {
+    case "idle":
+      html = s.opModeRunning
+        ? `<p class="prompt-title">Choose a step</p><p class="prompt-msg">Run the steps in order the first time. Each one saves its results as soon as it finishes, so you can close this page at any time.</p>`
+        : `<p class="prompt-title">Start the Calibrate OpMode</p>
+           <p class="prompt-msg">On the Driver Hub, choose <b>Calibrate</b> (TeleOp, group "calibration"), press INIT, then ▶.
+Steps run only while it is running. Stop on the Driver Hub stops any step immediately.</p>`;
+      break;
+    case "starting":
+      html = `<p class="prompt-title">${esc(s.title)}</p><p class="prompt-msg">Starting…</p><div class="actions">${abort}</div>`;
+      break;
+    case "inputs":
+      html = `<p class="prompt-title">${esc(s.title)}</p><p class="prompt-msg">${esc(s.message)}</p>
+        <form class="inputs" id="form">${(s.inputs || []).map(fieldHtml).join("")}
+        <div class="actions"><button class="primary" type="submit">Continue</button>${abort}</div></form>`;
+      break;
+    case "confirm":
+      html = `<p class="prompt-title">${esc(s.title)}</p><p class="prompt-msg">${esc(s.message)}</p>
+        <div class="actions"><button class="primary" id="confirm">Continue</button>${abort}</div>`;
+      break;
+    case "ready":
+      html = `<p class="prompt-title">${esc(s.title)}</p><p class="prompt-msg">${esc(s.message)}</p>
+        <div class="notice warn">Put the robot in place and stand clear. When you press Start, the run begins${s.display && s.display.kind === "arrow" ? " and the robot may move" : ""}. Stop on the Driver Hub ends it at once.</div>
+        <div class="actions"><button class="primary big" id="start">Start</button>${abort}</div>`;
+      break;
+    case "running":
+      html = `<p class="prompt-title">${esc(s.title)}</p><p class="prompt-msg">${esc(s.message)}</p>
+        <div class="actions">${s.canFinish ? `<button class="primary big" id="finish">Finish</button>` : `<span class="chip info">Running…</span>`}${abort}</div>`;
+      break;
+    case "done":
+    case "failed":
+      html = `<p class="prompt-title">${esc(s.title)}</p>
+        <div class="notice ${s.phase === "done" ? "good" : "bad"}">${esc(s.outcome)}</div>
+        ${resultsHtml(s.results)}
+        <div class="actions"><button id="dismiss">Close</button></div>`;
+      break;
+  }
+  const pic = displayHtml(s.display);
+  p.innerHTML = pic ? `<div class="panel-grid"><div>${html}</div><div>${pic}</div></div>` : html;
+
+  const on = (id, f) => { const e = $(id); if (e) e.onclick = f; };
+  on("abort", () => act({action: "abort"}));
+  on("confirm", () => act({action: "confirm", promptId: s.promptId}));
+  on("start", () => act({action: "start", promptId: s.promptId}));
+  on("finish", () => act({action: "finish", promptId: s.promptId}));
+  on("dismiss", () => act({action: "dismiss"}));
+  const form = $("form");
+  if (form) {
+    form.onsubmit = ev => {
+      ev.preventDefault();
+      const vals = {};
+      (s.inputs || []).forEach((f, i) => {
+        const el = form.querySelector(`[data-i="${i}"]`);
+        vals[f.name] = f.type === "boolean" ? el.checked : el.value;
+      });
+      act({action: "inputs", promptId: s.promptId, values: vals});
+    };
+    const first = form.querySelector("input,select");
+    if (first) first.focus();
+  }
+}
+
+function fieldHtml(f, i) {
+  const d = f.default == null ? "" : f.default;
+  if (f.type === "boolean") return `<label class="check"><input type="checkbox" data-i="${i}" ${d === true ? "checked" : ""}> ${esc(f.name)}</label>`;
+  if (f.type === "choice") return `<label>${esc(f.name)}<select data-i="${i}">${f.options.map(o =>
+      `<option value="${esc(o.id)}" ${o.id === d ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select></label>`;
+  const num = f.type === "integer" || f.type === "double";
+  return `<label>${esc(f.name)}<input type="${num ? "number" : "text"}" ${num ? `step="${f.type === "integer" ? 1 : "any"}"` : ""} data-i="${i}" value="${esc(d)}" required></label>`;
+}
+
+function fmt(v) {
+  if (typeof v === "number") {
+    if (!isFinite(v)) return "—";
+    const a = Math.abs(v);
+    return a !== 0 && (a < 0.01 || a >= 1e5) ? v.toExponential(3) : (+v.toFixed(a < 1 ? 4 : a < 100 ? 3 : 1)).toString();
+  }
+  return v == null ? "—" : String(v);
+}
+
+function resultsHtml(results) {
+  if (!results || !results.length) return "";
+  return `<h3>Results</h3><div class="table-wrap"><table><tr><th>Result</th><th class="num">Value</th><th>Saved as</th></tr>${
+    results.map(r => `<tr><td>${esc(r.name)}</td><td class="num">${esc(fmt(r.value))}</td><td>${r.key
+      ? `<span class="chip good">${esc((valueById(r.key) || {}).label || r.key)}</span>` : `<span class="muted">shown only</span>`}</td></tr>`).join("")
+  }</table></div>`;
+}
+
+function displayHtml(d) {
+  if (!d) return "";
+  const wheels = {FRONT_LEFT: [38, 28], FRONT_RIGHT: [118, 28], BACK_LEFT: [38, 118], BACK_RIGHT: [118, 118]};
+  let inner = `<rect class="body" x="45" y="30" width="80" height="110" rx="8"/><rect class="front" x="55" y="30" width="60" height="6" rx="3"/>
+    <text x="85" y="22" text-anchor="middle">front</text>`;
+  for (const [w, [x, y]] of Object.entries(wheels)) {
+    inner += `<rect class="wheel ${d.kind === "fourWheelBot" && d.wheel === w ? "on" : ""}" x="${x}" y="${y}" width="14" height="26" rx="3"/>`;
+  }
+  let label = "";
+  if (d.kind === "fourWheelBot") label = "Watch the highlighted wheel: " + d.wheel.replace("_", " ").toLowerCase();
+  if (d.kind === "arrow") {
+    const a = {forward: "M85 115 L85 55 M70 70 L85 55 L100 70", back: "M85 55 L85 115 M70 100 L85 115 L100 100",
+      left: "M115 85 L55 85 M70 70 L55 85 L70 100", right: "M55 85 L115 85 M100 70 L115 85 L100 100",
+      turn: "M110 85 A25 25 0 1 1 85 60 M75 50 L85 60 L75 70"}[d.direction] || "";
+    inner += `<path class="arrow" d="${a}"/>`;
+    label = d.direction === "turn" ? "The robot turns in place" : "Robot moves " + d.direction;
+  }
+  return `<svg class="robot" viewBox="0 0 170 170" role="img" aria-label="${esc(label)}">${inner}</svg><div class="muted" style="font-size:12.5px">${esc(label)}</div>`;
+}
+
+// ---------------------------------------------------------------- live values and chart
+const SERIES = ["--s1", "--s2", "--s3", "--s4"];
+function seriesColor(i) { return getComputedStyle(document.documentElement).getPropertyValue(SERIES[i % SERIES.length]).trim(); }
+
+function renderLive() {
+  const live = state.live || {};
+  const names = state.sampleNames || [];
+  $("live").innerHTML = Object.entries(live).map(([k, v]) => {
+    const i = names.indexOf(k);
+    const sw = i >= 0 && i < SERIES.length ? `<span class="swatch" style="background:${seriesColor(i)}"></span>` : "";
+    return `<div><div class="k">${sw}${esc(k)}</div><div class="v">${esc(fmt(v))}</div></div>`;
+  }).join("");
+}
+
+let chartGeom = null;
+function drawChart() {
+  const c = $("chart");
+  if (!state || $("liveArea").hidden) return;
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  const g = c.getContext("2d");
+  g.scale(dpr, dpr);
+  g.clearRect(0, 0, w, h);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const pts = state.samples || [], names = (state.sampleNames || []).slice(0, SERIES.length);
+  if (pts.length < 2 || !names.length) {
+    g.fillStyle = css("--muted"); g.font = "13px system-ui"; g.fillText("The chart fills in while a run is active.", 12, 24);
+    chartGeom = null; return;
+  }
+  const L = 48, R = 70, T = 12, B = 24;
+  const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+  let lo = Infinity, hi = -Infinity;
+  for (const p of pts) for (let i = 1; i <= names.length; i++) { const v = p[i]; if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+  if (!isFinite(lo)) return;
+  if (lo > 0) lo = 0; if (hi < 0) hi = 0;
+  if (hi - lo < 1e-9) { hi += 1; lo -= 1; }
+  const X = t => L + (t - t0) / Math.max(t1 - t0, 1e-6) * (w - L - R);
+  const Y = v => T + (hi - v) / (hi - lo) * (h - T - B);
+  // grid and axes: recessive
+  g.strokeStyle = css("--grid"); g.lineWidth = 1; g.fillStyle = css("--muted"); g.font = "11px system-ui";
+  for (let k = 0; k <= 4; k++) {
+    const v = lo + (hi - lo) * k / 4, y = Y(v);
+    g.beginPath(); g.moveTo(L, y); g.lineTo(w - R, y); g.stroke();
+    g.textAlign = "right"; g.fillText(fmt(v), L - 6, y + 4);
+  }
+  g.textAlign = "left"; g.fillText(t0.toFixed(1) + " s", L, h - 6); g.textAlign = "right"; g.fillText(t1.toFixed(1) + " s", w - R, h - 6);
+  // lines, 2px, with a direct label at the end
+  names.forEach((n, i) => {
+    g.strokeStyle = seriesColor(i); g.lineWidth = 2; g.lineJoin = "round"; g.beginPath();
+    let started = false, last = null;
+    for (const p of pts) {
+      const v = p[i + 1];
+      if (v == null || !isFinite(v)) { started = false; continue; }
+      const x = X(p[0]), y = Y(v);
+      if (!started) { g.moveTo(x, y); started = true; } else g.lineTo(x, y);
+      last = [x, y];
+    }
+    g.stroke();
+    if (last) { g.fillStyle = css("--text-2"); g.textAlign = "left"; g.font = "11px system-ui"; g.fillText(n, last[0] + 6, last[1] + 4); }
+  });
+  chartGeom = {X, Y, pts, names, L, R, w, h, T, B, t0, t1};
+}
+
+$("chart").addEventListener("mousemove", ev => {
+  const tip = $("tip");
+  if (!chartGeom) { tip.style.display = "none"; return; }
+  const r = ev.target.getBoundingClientRect(), x = ev.clientX - r.left;
+  const {pts, names, L, R, w, t0, t1} = chartGeom;
+  const t = t0 + (x - L) / (w - L - R) * (t1 - t0);
+  let best = pts[0];
+  for (const p of pts) if (Math.abs(p[0] - t) < Math.abs(best[0] - t)) best = p;
+  tip.innerHTML = `<b>${best[0].toFixed(2)} s</b><br>` + names.map((n, i) =>
+    `<span class="swatch" style="background:${seriesColor(i)}"></span> ${esc(n)}: ${esc(fmt(best[i + 1]))}`).join("<br>");
+  tip.style.display = "block";
+  tip.style.left = Math.min(x + 12, r.width - 160) + "px";
+  tip.style.top = "10px";
+});
+$("chart").addEventListener("mouseleave", () => $("tip").style.display = "none");
+window.addEventListener("resize", drawChart);
+
+// ---------------------------------------------------------------- values table
+function sourceChip(v) {
+  if (v.source === "measured") return v.needsConfirm && !v.confirmed
+    ? `<span class="chip warn">measured once</span>` : `<span class="chip good">measured</span>`;
+  if (v.source === "committed") return `<span class="chip info">committed</span>`;
+  return `<span class="chip plain">default</span>`;
+}
+
+function renderValues() {
+  let html = `<tr><th>Value</th><th class="num">Current</th><th>Unit</th><th>From</th><th class="num">Default</th><th class="num">Committed</th><th>Measured (newest last)</th><th></th></tr>`;
+  let group = null;
+  for (const v of values) {
+    if (v.group !== group) { group = v.group; html += `<tr class="group-row"><td colspan="8">${esc(group)}</td></tr>`; }
+    const hist = v.history.map(h => `${esc(fmt(h.value))} <span class="hist">(${esc(h.at)})</span>`).join("<br>");
+    html += `<tr>
+      <td title="${esc(v.help)}">${esc(v.label)}<div class="hist">${esc(v.id)}</div></td>
+      <td class="num"><b>${esc(fmt(v.value))}</b></td><td>${esc(v.unit)}</td><td>${sourceChip(v)}</td>
+      <td class="num">${esc(fmt(v.default))}</td><td class="num">${v.hasCommitted ? esc(fmt(v.committed)) : "—"}</td>
+      <td>${hist || '<span class="muted">—</span>'}</td>
+      <td><div class="edit"><button class="small" data-edit="${esc(v.id)}">Edit</button>${v.source === "measured" ? `<button class="small" data-revert="${esc(v.id)}">Revert</button>` : ""}</div></td>
+    </tr>`;
+  }
+  $("values").innerHTML = html;
+  document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+    const v = valueById(b.dataset.edit);
+    const nv = prompt(`New value for "${v.label}"${v.unit ? " (" + v.unit + ")" : ""}.`
+      + (v.choices ? `\nOne of: ${v.choices.join(", ")}` : "")
+      + `\nIt is saved on the Control Hub as a measured value.`, v.value);
+    if (nv != null && nv !== "") act({action: "set", key: v.id, value: nv});
+  });
+  document.querySelectorAll("[data-revert]").forEach(b => b.onclick = () => {
+    const v = valueById(b.dataset.revert);
+    if (confirm(`Forget the measured values of "${v.label}"? The ${v.hasCommitted ? "committed" : "default"} value applies again.`))
+      act({action: "revert", key: v.id});
+  });
+}
+</script>
+</body>
+</html>

@@ -31,7 +31,7 @@ allprojects {
         // --- Added for Panels (FTControl) ---
         maven { url = uri("https://mymaven.bylazar.com/releases") }
 
-        // --- Added for Pedro Pathing: its AutoTune library needs Sloth from Dairy ---
+        // --- Added for Pedro Pathing (was needed by its AutoTune library; kept for Pedro's other packages) ---
         maven { url = uri("https://repo.dairy.foundation/releases/") }
     }
 }

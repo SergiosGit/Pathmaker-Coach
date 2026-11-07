@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedro.procedures;
+package org.firstinspires.ftc.teamcode.calibration.steps;
 
 import com.pedropathing.algorithm.Algorithm;
 import com.pedropathing.drivetrain.DrivePowers;
@@ -8,10 +8,10 @@ import com.pedropathing.localization.Localizer;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.interpolator.Interpolator;
-import com.pedropathing.tuning.autotune.DisplayName;
-import com.pedropathing.tuning.autotune.Inputs;
-import com.pedropathing.tuning.autotune.Procedure;
-import com.pedropathing.tuning.autotune.TuningOpMode;
+import org.firstinspires.ftc.teamcode.calibration.runner.DisplayName;
+import org.firstinspires.ftc.teamcode.calibration.runner.Inputs;
+import org.firstinspires.ftc.teamcode.calibration.runner.Procedure;
+import org.firstinspires.ftc.teamcode.calibration.runner.TuningOpMode;
 import com.pedropathing.utils.Angle;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;

@@ -1,7 +1,8 @@
-package org.firstinspires.ftc.teamcode.pedro.procedures;
+package org.firstinspires.ftc.teamcode.calibration.steps;
 
-import com.pedropathing.tuning.autotune.*;
-import com.pedropathing.tuning.autotune.Display.FourWheelBot.Wheel;
+import org.firstinspires.ftc.teamcode.calibration.Calibration;
+import org.firstinspires.ftc.teamcode.calibration.runner.*;
+import org.firstinspires.ftc.teamcode.calibration.runner.Display.FourWheelBot.Wheel;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 enum Direction {
@@ -17,10 +18,10 @@ public class MecanumTuner extends Procedure {
     @Override
     public void run() throws InterruptedException {
         Inputs motorNames = inputs("Mecanum Motor Names", "Enter the names in HardwareMap of your drivetrain motors.");
-        Inputs.Field<String> frontLeftName = motorNames.s("Front Left Name");
-        Inputs.Field<String> frontRightName = motorNames.s("Front Right Name");
-        Inputs.Field<String> backLeftName = motorNames.s("Back Left Name");
-        Inputs.Field<String> backRightName = motorNames.s("Back Right Name");
+        Inputs.Field<String> frontLeftName = motorNames.s("Front Left Name").withDefault(Calibration.getString("mecanum.frontLeftName"));
+        Inputs.Field<String> frontRightName = motorNames.s("Front Right Name").withDefault(Calibration.getString("mecanum.frontRightName"));
+        Inputs.Field<String> backLeftName = motorNames.s("Back Left Name").withDefault(Calibration.getString("mecanum.backLeftName"));
+        Inputs.Field<String> backRightName = motorNames.s("Back Right Name").withDefault(Calibration.getString("mecanum.backRightName"));
         awaitInputs(motorNames);
 
         confirmation("Motor Directions", "Each drivetrain motor will spin, one at a time. After each one, you will enter whether it spun forward or reversed. You may use the interactive diagram to see which wheel should be spinning and which direction is forward.");

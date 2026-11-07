@@ -6,6 +6,8 @@
 
 Sources: our TeamCode, the bay-b bot code (then in `BabyBot/teamcode`, now imported into TeamCode's `pedro/` and `babybot/` packages), and Pedro's library source, Quickstart and documentation as of 3 Nov 2026 (`com.pedropathing:revhub:3.0.2`, `com.pedropathing:tuning:1.0.3`, `com.pedropathing.ivy:pedro:1.1.1`). Nothing in this document has been built or run.
 
+> **Update 6 Nov 2026:** Pedro's AutoTune page has been replaced by our own calibration page (port 8090, see [CALIBRATION.md](CALIBRATION.md)). It runs Pedro's tuning procedures unchanged, saves results on the Control Hub and also measures PathMaker's constants. The review below describes the state before that change.
+
 ## The short version
 
 - **The plan is sound, with one change of order.** Before merging, move to **FTC SDK 12.0**, since Pedro 3 is built against it. That means redoing PR #6, which upgrades to 11.2.1. SDK 12.0 also breaks our AprilTag code at compile time.
@@ -253,7 +255,7 @@ For a robot that starts at Pedro pose (X₀, Y₀) facing up the field (90°), a
 | Live tuning of PathMaker, shooter and route parameters | Panels Configurables |
 | Graphs (errors, powers, RPM, loop time) | Panels Graph |
 | Field view of the pose | Panels field plugin, drawing from `follower.pose()` for both engines |
-| Pedro tuning | AutoTune page (port 10158). Panels can't replace it |
+| Pedro tuning | Our calibration page (port 8090), which replaced AutoTune on 6 Nov 2026 |
 | Benchmark logs | CSV on the Control Hub (`/sdcard/FIRST/bench/`), downloaded afterwards. Panels is for watching live, not for keeping data |
 
 ---
@@ -292,4 +294,4 @@ The goal: keep PathMaker's simple model of "go here, start each axis when told",
 | PathMaker localizer on the bay-b bot | The OctoQuad's built-in localizer, the same as Pedro's | Fair comparison, and better than integrating once per 40 ms |
 | PathMaker in the benchmark | As a Pedro `Algorithm` adapter | Isolates the control law |
 | Shooter encoder channel | Channel 2 or higher | Ports 0 and 1 are the odometry pods |
-| Where tuned constants live | `pedro/Constants.java` and `configuration/*Config.java`, committed after every tuning session | AutoTune results otherwise exist only in the browser |
+| Where tuned constants live | On the Control Hub (`calibration.json`), exported to `calibration/RobotCalibration.java` and committed after every calibration session | Done 6 Nov 2026 with the calibration page |

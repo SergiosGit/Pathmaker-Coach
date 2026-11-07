@@ -1,11 +1,12 @@
-package org.firstinspires.ftc.teamcode.pedro.procedures;
+package org.firstinspires.ftc.teamcode.calibration.steps;
 
 import com.pedropathing.math.Pose;
 import com.pedropathing.revhub.localizers.OctoQuadConfig;
 import com.pedropathing.revhub.localizers.OctoQuadLocalizer;
-import com.pedropathing.tuning.autotune.Inputs;
-import com.pedropathing.tuning.autotune.Procedure;
-import com.pedropathing.tuning.autotune.TuningOpMode;
+import org.firstinspires.ftc.teamcode.calibration.Calibration;
+import org.firstinspires.ftc.teamcode.calibration.runner.Inputs;
+import org.firstinspires.ftc.teamcode.calibration.runner.Procedure;
+import org.firstinspires.ftc.teamcode.calibration.runner.TuningOpMode;
 import com.pedropathing.utils.Angle;
 import com.qualcomm.hardware.digitalchickenlabs.OctoQuad;
 
@@ -30,11 +31,11 @@ public class OctoQuadTuner extends Procedure {
     @Override
     public void run() throws InterruptedException {
         Inputs inputs = inputs("Setup", "Set OctoQuad HardwareMap Name and Odometry Pod Type");
-        Inputs.Field<String> octoquadName = inputs.s("HardwareMap Name").withDefault("octoquad");
-        Inputs.Field<Integer> xPort =  inputs.i("Forward Pod Port").withDefault(0);
-        Inputs.Field<Integer> yPort =  inputs.i("Strafe Pod Port").withDefault(1);
+        Inputs.Field<String> octoquadName = inputs.s("HardwareMap Name").withDefault(Calibration.getString("octoquad.name"));
+        Inputs.Field<Integer> xPort =  inputs.i("Forward Pod Port").withDefault(Calibration.getInt("octoquad.xPodPort"));
+        Inputs.Field<Integer> yPort =  inputs.i("Strafe Pod Port").withDefault(Calibration.getInt("octoquad.yPodPort"));
         Inputs.Field<OctoQuadTuner.PodType> podType = inputs.e("Odometry Pod Type", OctoQuadTuner.PodType.class).withDefault(OctoQuadTuner.PodType.FOUR_BAR);
-        Inputs.Field<OctoQuad.I2cRecoveryMode> recoveryMode = inputs.e("Recovery Mode", OctoQuad.I2cRecoveryMode.class).withDefault(OctoQuad.I2cRecoveryMode.MODE_1_PERIPH_RST_ON_FRAME_ERR);
+        Inputs.Field<OctoQuad.I2cRecoveryMode> recoveryMode = inputs.e("Recovery Mode", OctoQuad.I2cRecoveryMode.class).withDefault(Calibration.getEnum("octoquad.i2cRecoveryMode", OctoQuad.I2cRecoveryMode.class));
         awaitInputs(inputs);
 
         double customPodScalar = 0;
@@ -57,11 +58,16 @@ public class OctoQuadTuner extends Procedure {
         List<Double> offsets = runOpMode(new OctoQuadOffsets(octoquadName.get(), podType.get(), customPodScalar, forwardPodReversed, strafePodReversed, headingScalar, xPort.get(), yPort.get()));
 
         result("name", octoquadName.get());
+        // Added for the calibration page: save the ports and ticks per inch too, not only print them.
+        result("xPodPort", xPort.get());
+        result("yPodPort", yPort.get());
+        result("i2cRecoveryMode", recoveryMode.get());
+        result("ticksPerUnit", podType.get() == PodType.CUSTOM ? customPodScalar
+                : podType.get() == PodType.SWING_ARM ? SWING_ARM : FOUR_BAR);
         result("headingScalar", headingScalar);
 
         if (podType.get() == PodType.CUSTOM) {
             result("podType", "Custom");
-            result("ticksPerUnit", customPodScalar);
         } else {
             result("podType", podType.get() == PodType.SWING_ARM ? SWING_ARM : FOUR_BAR);
         }

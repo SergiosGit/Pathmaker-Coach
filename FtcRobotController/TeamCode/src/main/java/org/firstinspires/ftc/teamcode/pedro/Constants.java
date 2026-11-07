@@ -1,5 +1,10 @@
 package org.firstinspires.ftc.teamcode.pedro;
 
+import static org.firstinspires.ftc.teamcode.calibration.Calibration.getDouble;
+import static org.firstinspires.ftc.teamcode.calibration.Calibration.getEnum;
+import static org.firstinspires.ftc.teamcode.calibration.Calibration.getInt;
+import static org.firstinspires.ftc.teamcode.calibration.Calibration.getString;
+
 import com.pedropathing.algorithm.Foresight;
 import com.pedropathing.algorithm.ForesightConfig;
 import com.pedropathing.controllers.Controller;
@@ -15,88 +20,89 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.calibration.Calibration;
 
 /**
- * Pedro Pathing 3 setup for the bay-b bot.
- *
- * Each config block below is replaced by the code that AutoTune (http://192.168.43.1:10158)
- * prints at the end of a procedure. Run them in this order, paste each result over the
- * matching block, set its *Tuned flag to true, and redeploy before the next procedure:
- *   1. Mecanum Tuner   -> drivetrainConfig
- *   2. OctoQuad Tuner  -> localizerConfig
- *   3. Foresight Tuner -> foresightConfig (needs 1 and 2, so it is enabled in Tuning.java)
+ * Pedro Pathing 3 setup for the bay-b bot. All values come from the calibration
+ * (http://192.168.43.1:8090 and calibration/RobotCalibration.java); nothing is set here.
+ * Each method builds a fresh config, so a value measured a moment ago is used at the next OpMode init.
  */
 public class Constants {
 
-    // Set each flag to true after pasting that block's AutoTune result.
-    public static boolean drivetrainTuned = true;
-    public static boolean localizerTuned = true;
-    public static boolean foresightTuned = true;
+    private Constants() { }
 
-    // AutoTune Mecanum Tuner result (6 Nov 2026).
-    public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
-        c.frontLeftName.set("front_left");
-        c.frontRightName.set("front_right");
-        c.backLeftName.set("back_left");
-        c.backRightName.set("back_right");
-        c.frontLeftDirection.set(DcMotorSimple.Direction.REVERSE);
-        c.frontRightDirection.set(DcMotorSimple.Direction.FORWARD);
-        c.backLeftDirection.set(DcMotorSimple.Direction.REVERSE);
-        c.backRightDirection.set(DcMotorSimple.Direction.FORWARD);
-    });
+    public static MecanumConfig drivetrainConfig() {
+        return new MecanumConfig(c -> {
+            c.frontLeftName.set(getString("mecanum.frontLeftName"));
+            c.frontRightName.set(getString("mecanum.frontRightName"));
+            c.backLeftName.set(getString("mecanum.backLeftName"));
+            c.backRightName.set(getString("mecanum.backRightName"));
+            c.frontLeftDirection.set(getEnum("mecanum.frontLeftDirection", DcMotorSimple.Direction.class));
+            c.frontRightDirection.set(getEnum("mecanum.frontRightDirection", DcMotorSimple.Direction.class));
+            c.backLeftDirection.set(getEnum("mecanum.backLeftDirection", DcMotorSimple.Direction.class));
+            c.backRightDirection.set(getEnum("mecanum.backRightDirection", DcMotorSimple.Direction.class));
+        });
+    }
 
-    // AutoTune OctoQuad Tuner result, third run (6 Nov 2026): goBILDA four-bar pods. The forward
-    // pod is plugged into port 1 and the strafe pod into port 0. Earlier runs assumed the
-    // opposite and measured the wrong pod in each step.
-    public static OctoQuadConfig localizerConfig = new OctoQuadConfig(c -> {
-        c.name.set("octoquad");
-        c.xPodPort.set(1);
-        c.yPodPort.set(0);
-        c.ticksPerUnit.set(505.316944406);
-        c.xPodOffset.set(4.468503937007874);
-        c.yPodOffset.set(6.850393700787401);
-        c.xPodDirection.set(OctoQuad.EncoderDirection.REVERSE);
-        c.yPodDirection.set(OctoQuad.EncoderDirection.FORWARD);
-        c.globalDistanceUnit.set(DistanceUnit.INCH);
-        c.offsetUnits.set(DistanceUnit.INCH);
-        c.i2cRecoveryMode.set(OctoQuad.I2cRecoveryMode.MODE_1_PERIPH_RST_ON_FRAME_ERR);
-        c.headingScalar.set(1.0521839720139383);
-    });
+    public static OctoQuadConfig localizerConfig() {
+        return new OctoQuadConfig(c -> {
+            c.name.set(getString("octoquad.name"));
+            c.xPodPort.set(getInt("octoquad.xPodPort"));
+            c.yPodPort.set(getInt("octoquad.yPodPort"));
+            c.ticksPerUnit.set(getDouble("octoquad.ticksPerUnit"));
+            c.xPodOffset.set(getDouble("octoquad.xPodOffset"));
+            c.yPodOffset.set(getDouble("octoquad.yPodOffset"));
+            c.xPodDirection.set(getEnum("octoquad.xPodDirection", OctoQuad.EncoderDirection.class));
+            c.yPodDirection.set(getEnum("octoquad.yPodDirection", OctoQuad.EncoderDirection.class));
+            c.globalDistanceUnit.set(DistanceUnit.INCH);
+            c.offsetUnits.set(DistanceUnit.INCH);
+            c.i2cRecoveryMode.set(getEnum("octoquad.i2cRecoveryMode", OctoQuad.I2cRecoveryMode.class));
+            c.headingScalar.set(getDouble("octoquad.headingScalar"));
+        });
+    }
 
-    // AutoTune Foresight Tuner result (6 Nov 2026).
-    public static ForesightConfig foresightConfig = new ForesightConfig(c -> {
-        Controller primaryTranslationalForward = Controller.proportional(0.1912510589131322);
-        Controller secondaryTranslationalForward = Controller.proportional(0.07066215594599003);
-        Controller primaryTranslationalLateral = Controller.proportional(0.22345115371010554);
-        Controller secondaryTranslationalLateral = Controller.proportional(0.08255923057109245);
+    /** Defaults have zero gains: Pedro can't drive a path or hold position until this is calibrated. */
+    public static ForesightConfig foresightConfig() {
+        return new ForesightConfig(c -> {
+            Controller primaryForward = Controller.proportional(getDouble("foresight.forwardTranslational Primary kP"));
+            Controller secondaryForward = Controller.proportional(getDouble("foresight.forwardTranslational Secondary kP"));
+            Controller primaryLateral = Controller.proportional(getDouble("foresight.strafeTranslational Primary kP"));
+            Controller secondaryLateral = Controller.proportional(getDouble("foresight.strafeTranslational Secondary kP"));
 
-        c.forwardTranslational.set(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward));
-        c.strafeTranslational.set(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral));
+            c.forwardTranslational.set(Controller.piecewise(secondaryForward).put(2.5, primaryForward));
+            c.strafeTranslational.set(Controller.piecewise(secondaryLateral).put(2.5, primaryLateral));
 
-        c.coast.set(Controller.proportionalFeedforward(0.016068837025916338));
-        c.brake.set(Controller.proportionalFeedforward(0.013658511472028886));
+            c.coast.set(Controller.proportionalFeedforward(getDouble("foresight.coast kV")));
+            c.brake.set(Controller.proportionalFeedforward(getDouble("foresight.brake kV")));
 
-        c.headingFeedback.set(Controller.proportional(2.427462770182534));
-        c.headingBrakeCoefficients.set(Vector2D.cartesian(0.028103842539870735, 0.005619561123838429));
+            c.headingFeedback.set(Controller.proportional(getDouble("foresight.heading kP")));
+            c.headingBrakeCoefficients.set(Vector2D.cartesian(
+                    getDouble("foresight.headingBrakingLinearCoefficient"),
+                    getDouble("foresight.headingBrakingQuadraticCoefficient")));
 
-        c.linearBrakeCoefficients.set(Matrix.diag(0.030382513987097765, 0.04831570754977478));
-        c.quadraticBrakeCoefficients.set(Matrix.diag(0.002088581762850105, 0.0016405745909135573));
+            c.linearBrakeCoefficients.set(Matrix.diag(
+                    getDouble("foresight.forwardBrakingLinearCoefficient"),
+                    getDouble("foresight.strafeBrakingLinearCoefficient")));
+            c.quadraticBrakeCoefficients.set(Matrix.diag(
+                    getDouble("foresight.forwardBrakingQuadraticCoefficient"),
+                    getDouble("foresight.strafeBrakingQuadraticCoefficient")));
 
-        c.maxAchievableForwardVelocity.set(62.05122551694287);
-        c.maxAchievableStrafeVelocity.set(47.99371093640487);
-        c.naturalForwardDeceleration.set(30.74715869191283);
-        c.naturalStrafeDeceleration.set(56.511232824202615);
-    });
+            c.maxAchievableForwardVelocity.set(getDouble("foresight.maxAchievableForwardVelocity"));
+            c.maxAchievableStrafeVelocity.set(getDouble("foresight.maxAchievableStrafeVelocity"));
+            c.naturalForwardDeceleration.set(getDouble("foresight.naturalForwardDeceleration"));
+            c.naturalStrafeDeceleration.set(getDouble("foresight.naturalStrafeDeceleration"));
+        });
+    }
+
+    /** True once Pedro's Foresight values are committed or measured, not defaults. */
+    public static boolean foresightTuned() {
+        return Calibration.groupCalibrated("Pedro Foresight");
+    }
 
     public static Follower create(HardwareMap hardwareMap) {
-        if (!drivetrainTuned || !localizerTuned) {
-            throw new IllegalStateException("Pedro is not tuned yet. Run the Mecanum and OctoQuad "
-                    + "procedures in AutoTune (http://192.168.43.1:10158), paste the results into "
-                    + "pedro/Constants.java and set drivetrainTuned and localizerTuned to true.");
-        }
         return new Follower(
-                new OctoQuadLocalizer(hardwareMap, localizerConfig),
-                new Mecanum(hardwareMap, drivetrainConfig),
-                new Foresight(foresightConfig));
+                new OctoQuadLocalizer(hardwareMap, localizerConfig()),
+                new Mecanum(hardwareMap, drivetrainConfig()),
+                new Foresight(foresightConfig()));
     }
 }
