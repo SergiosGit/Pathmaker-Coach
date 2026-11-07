@@ -10,7 +10,7 @@ A coach's FTC robot software workspace for the 2026–27 **BIOBUZZ** season. It 
 
 It is used to prepare and explain changes that the students then bring into their team repo ([bayrobotics/3rd-Gear-26-27](https://github.com/bayrobotics/3rd-Gear-26-27)).
 
-> **Status (6 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ), with the bay-b bot's Pedro Pathing code imported and tuned. The app builds and deploys, Panels connects, and the bay-b bot's Drive test reports the expected pose. New: our own calibration page (http://192.168.43.1:8090) replaces Pedro's AutoTune, saves results on the Control Hub and also measures PathMaker's constants. It has been tested on a laptop, not yet on the robot. Next: the refactor that lets PathMaker and Pedro drive the same routes, then the benchmark.
+> **Status (6 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ), with the bay-b bot's Pedro Pathing code imported and tuned. The app builds and deploys, Panels connects, and the bay-b bot's Drive test reports the expected pose. New: our own calibration page (http://192.168.43.1:8090) replaces Pedro's AutoTune, saves results on the Control Hub and also measures PathMaker's constants. Every step has been run on the bay-b bot (6 Nov 2026). Next: the refactor that lets PathMaker and Pedro drive the same routes, then the benchmark.
 
 ## Layout
 
@@ -84,7 +84,7 @@ java -cp out TrajectorySim          # takes a few minutes
 
 1. ~~Move to **FTC SDK 12.0**~~ (done 3 Nov 2026: `VisionSystem` updated for the new single-tag and cluster detection types). After deploying, also update the Driver Hub app to 12.0.
 2. ~~Merge the bay-b bot code and tune Pedro~~ (done 6 Nov 2026: imported into `pedro/` and `babybot/`; AutoTune results are committed in `calibration/RobotCalibration.java`; the shooter encoder moved to OctoQuad channel 2).
-3. ~~Own calibration page~~ (done 6 Nov 2026, robot test pending): all steps on one page, results saved on the Control Hub, defaults for everything, swapped-pod detection, PathMaker drive measurements.
+3. ~~Own calibration page~~ (done and tested on the bay-b bot 6 Nov 2026): all steps on one page, results saved on the Control Hub, defaults for everything, swapped-pod detection, PathMaker drive measurements.
 4. Allow either PathMaker or Pedro Pathing to drive the same routes, and run the benchmark plan.
 5. PathMaker 2: non-blocking update, pluggable localizer, paths as data with alliance mirroring, braking from measured stopping distance, and a short self-measuring tuning OpMode.
 
