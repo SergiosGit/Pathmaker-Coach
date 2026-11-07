@@ -57,7 +57,7 @@ It is used to prepare and explain changes that the students then bring into thei
 1. Install Android Studio **Narwhal 3 Feature Drop or later** (required by AGP 8.13.2).
 2. Clone this repo and open the `FtcRobotController/` folder in Android Studio. Let Gradle sync. If Android Studio offers to "upgrade" or "downgrade" the Android Gradle Plugin, **decline**.
 3. Connect to the Control Hub's Wi-Fi and run the `TeamCode` configuration.
-4. Open Panels at http://192.168.43.1:8001 while connected to the robot.
+4. Open Panels at http://192.168.43.1:8001 while connected to the robot. Views such as **Configurables** (live-editable settings) are not shown by default: add them with the **+** button on the Panels page.
 
 Versions: FTC SDK 12.0, Gradle 9.1.0, AGP 8.13.2, Kotlin plugin 2.4.10, Panels `com.bylazar:fullpanels:1.0.12`, Pedro Pathing `revhub` 3.0.2 and Ivy 1.1.1 (Pedro's AutoTune library is not used).
 
