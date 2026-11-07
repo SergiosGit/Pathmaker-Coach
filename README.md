@@ -48,6 +48,8 @@ It is used to prepare and explain changes that the students then bring into thei
 | [docs/SHOOTER-PID.md](docs/SHOOTER-PID.md) | Why the shooter needs closed-loop speed control. Feedforward + PID, measuring speed with a REV Through Bore Encoder on the OctoQuad, tuning steps, and simulated four-ball bursts |
 | [docs/SHOOTER-TRAJECTORY.md](docs/SHOOTER-TRAJECTORY.md) | Best launch angle and ball speed for the leaning triangular goal, how much error a shot can tolerate, fixed vs adjustable hood, ball speed → wheel RPM |
 | [docs/PATHING-PEDRO-VS-PATHMAKER.md](docs/PATHING-PEDRO-VS-PATHMAKER.md) | Review of the bay-b bot merge plan, how PathMaker and Pedro Pathing 3 work, pros and cons, and a roadmap for PathMaker 2 |
+| [docs/PATHMAKER2-WHITEPAPER.md](docs/PATHMAKER2-WHITEPAPER.md) | White paper: what PathMaker 2 is, its user interface and control law, the upgrades over PathMaker 1, and how it compares with Pedro Pathing |
+| [docs/PATHMAKER2-PATHS.md](docs/PATHMAKER2-PATHS.md) | Student guide to writing autonomous routes with PathMaker 2 |
 | [docs/PATHING-BENCHMARK-PLAN.md](docs/PATHING-BENCHMARK-PLAN.md) | Test plan for comparing the two pathing libraries on the bay-b bot |
 | [docs/CALIBRATION.md](docs/CALIBRATION.md) | The calibration page: steps, where values are stored, keeping them in git |
 | [docs/PANELS-SETUP.md](docs/PANELS-SETUP.md) | How Panels and Kotlin were added to the Gradle build, and why these versions |
