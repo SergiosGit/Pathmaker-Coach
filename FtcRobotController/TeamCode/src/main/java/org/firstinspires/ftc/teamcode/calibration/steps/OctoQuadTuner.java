@@ -34,7 +34,11 @@ public class OctoQuadTuner extends Procedure {
         Inputs.Field<String> octoquadName = inputs.s("HardwareMap Name").withDefault(Calibration.getString("octoquad.name"));
         Inputs.Field<Integer> xPort =  inputs.i("Forward Pod Port").withDefault(Calibration.getInt("octoquad.xPodPort"));
         Inputs.Field<Integer> yPort =  inputs.i("Strafe Pod Port").withDefault(Calibration.getInt("octoquad.yPodPort"));
-        Inputs.Field<OctoQuadTuner.PodType> podType = inputs.e("Odometry Pod Type", OctoQuadTuner.PodType.class).withDefault(OctoQuadTuner.PodType.FOUR_BAR);
+        // Default to the pod already set (RobotCalibration or an earlier run), so pressing on
+        // with the defaults never swaps a swing-arm robot's ticks per inch for the 4-bar value.
+        boolean swingArmSet = Math.abs(Calibration.getDouble("octoquad.ticksPerUnit") - SWING_ARM) < 1;
+        Inputs.Field<OctoQuadTuner.PodType> podType = inputs.e("Odometry Pod Type", OctoQuadTuner.PodType.class)
+                .withDefault(swingArmSet ? OctoQuadTuner.PodType.SWING_ARM : OctoQuadTuner.PodType.FOUR_BAR);
         Inputs.Field<OctoQuad.I2cRecoveryMode> recoveryMode = inputs.e("Recovery Mode", OctoQuad.I2cRecoveryMode.class).withDefault(Calibration.getEnum("octoquad.i2cRecoveryMode", OctoQuad.I2cRecoveryMode.class));
         awaitInputs(inputs);
 
