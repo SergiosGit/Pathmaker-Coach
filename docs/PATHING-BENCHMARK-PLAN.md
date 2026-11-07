@@ -42,7 +42,21 @@ The localizer can't be used to judge itself, because both engines use it. Measur
 
 Before all other tests, run **L0** to measure localizer error. The end-position results then separate "the engine stopped in the wrong place" from "the localizer was wrong about where it was".
 
-## 4. Tools to build first
+## 4. Tools
+
+> **Built 6 Nov 2026** (tested in the laptop simulation, not yet on the robot). How to run them is in section 4.1 below.
+>
+> | Tool | Where |
+> |---|---|
+> | Routes A1–A6 and HOLD, in Pedro coordinates | `TeamCode/.../bench/Route.java`, `BenchRoutes.java` |
+> | Three engines through Pedro's Follower (same localizer, motors, loop) | `bench/BenchEngine.java` |
+> | PathMaker 1 control law with fixes W1, W3, W5, W7 | `bench/PathMaker1Algorithm.java` |
+> | PathMaker 2 control law (plain Java) and its adapter | `pathmaker2/PathMaker2.java`, `bench/PathMaker2Algorithm.java` |
+> | Benchmark OpMode and CSV logger | `bench/BenchOpMode.java` ("Bench"), `bench/BenchLogger.java` |
+> | Laptop simulation of all routes, engines and speeds | `bench/sim/SimRobot.java`, `docs/bench_sim/BenchSim.java` |
+> | Analysis of the logs and the hand-measured sheet | `docs/bench/analyze.py` |
+
+### 4.0 Original list
 
 | Tool | What it does | Size |
 |---|---|---|
@@ -65,6 +79,20 @@ busy, at_parametric_end, shooter_target_rpm, shooter_rpm
 Coordinates in the logs are Pedro's (inches, field-corner origin, counterclockwise heading), whichever engine is running. The conversion is in the companion document, Section 4.2.
 
 Start pose for all tests: **(72, 24, 90°)** in Pedro coordinates. That is the middle of the field width, one tile from the near wall, facing up the field, leaving 96 in of clear floor ahead and 72 in either side. Adjust it to the practice field's actual clear space, and keep it the same for every run.
+
+### 4.1 Running a test on the robot
+
+1. Calibrate first (docs/CALIBRATION.md). Both PathMaker engines take their constants from it.
+2. On the Driver Hub, choose **Bench** (Autonomous, group "bench") and press INIT.
+3. In Panels → Configurables → `BenchOpMode.Settings`, set `engine` (PEDRO, PATHMAKER1, PATHMAKER2), `test` (A1–A6, HOLD), `speed` (MAX, MATCHED) and `run`. The Driver Hub shows them, the pose (it must read 72, 24, 90) and the battery voltage.
+4. Press ▶. The route runs, then the robot keeps holding for `afterSeconds` (PathMaker 1 lets go: it has no hold). A route that takes longer than `timeoutSeconds` is stopped.
+5. The log is `/sdcard/FIRST/bench/<test>_<engine>_<speed>_<run>.csv`. Copy the folder to a laptop (Android Studio → Device Explorer, or `adb pull /sdcard/FIRST/bench`), then run `python3 docs/bench/analyze.py bench sheet.csv`.
+
+PathMaker 1 and 2 settings that are choices rather than measurements are in Panels as `PathMaker1Algorithm.Settings` and `PathMaker2Algorithm.Settings`. Rule 7 applies: freeze them before test A1.
+
+**What the simulation said** (crude model; only good for catching mistakes, not for conclusions). Every engine finished every route at both speeds. Two predictions to check on the robot:
+- PathMaker 1 overshoots at full speed (7.6 in on A1), because its 5 in ramp is shorter than the robot's measured stopping distance of about 13 in. That is weakness W4. It drives diagonals in an L-shape (up to 9 in off the line on A3), which is weakness W2.
+- PathMaker 2 stays on the line, has no overshoot, and finishes A1 in 1.4 s, against 0.9 s for Pedro in the simulation.
 
 ## 5. Tests
 

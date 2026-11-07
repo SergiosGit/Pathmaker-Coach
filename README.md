@@ -10,7 +10,7 @@ A coach's FTC robot software workspace for the 2026–27 **BIOBUZZ** season. It 
 
 It is used to prepare and explain changes that the students then bring into their team repo ([bayrobotics/3rd-Gear-26-27](https://github.com/bayrobotics/3rd-Gear-26-27)).
 
-> **Status (6 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ), with the bay-b bot's Pedro Pathing code imported and tuned. The app builds and deploys, Panels connects, and the bay-b bot's Drive test reports the expected pose. New: our own calibration page (http://192.168.43.1:8090) replaces Pedro's AutoTune, saves results on the Control Hub and also measures PathMaker's constants. Every step has been run on the bay-b bot (6 Nov 2026). Next: the refactor that lets PathMaker and Pedro drive the same routes, then the benchmark.
+> **Status (6 Nov 2026):** On FTC SDK 12.0 (BIOBUZZ). The bay-b bot's Pedro Pathing code is imported, and the bay-b bot is calibrated with our own calibration page (http://192.168.43.1:8090), which replaced Pedro's AutoTune. The benchmark tools are built: Pedro, PathMaker 1 (with the review's fixes) and the new PathMaker 2 drive the same routes through the same localizer and motors. They have been tested in a laptop simulation, not yet on the robot. Next: robot runs of the benchmark.
 
 ## Layout
 
@@ -27,12 +27,17 @@ It is used to prepare and explain changes that the students then bring into thei
 │   │   ├── configuration/       RobotConfig, GameConfig, ShooterConfig (all live-editable in Panels)
 │   │   ├── calibration/         Calibration page and steps; every calibrated value (see docs/CALIBRATION.md)
 │   │   ├── pedro/               Pedro Pathing 3 setup: Constants builds the Follower from the calibration
+│   │   ├── bench/               Benchmark: routes, the three engines (Pedro, PathMaker 1, PathMaker 2)
+│   │   │                        through Pedro's Follower, the Bench OpMode and CSV logger; sim/
+│   │   ├── pathmaker2/          PathMaker 2's control law (plain Java)
 │   │   ├── babybot/             Bay-b bot code as imported (Ivy TeleOp skeleton, test OpModes).
 │   │   │                        Drives with the calibrated Pedro configuration
 │   │   └── panelsdemo/          Small Java and Kotlin Panels examples
 │   └── _panels_backup/          Gradle files from before Panels was added
 └── docs/                        Studies and guides (see below)
     ├── shooter_sim/             Laptop simulations (plain Java, no Android needed)
+    ├── bench_sim/               Laptop simulation of the benchmark routes and engines
+    ├── bench/                   analyze.py for the benchmark logs
     └── shooter_img/             Figures used by the documents
 ```
 
@@ -85,7 +90,7 @@ java -cp out TrajectorySim          # takes a few minutes
 1. ~~Move to **FTC SDK 12.0**~~ (done 3 Nov 2026: `VisionSystem` updated for the new single-tag and cluster detection types). After deploying, also update the Driver Hub app to 12.0.
 2. ~~Merge the bay-b bot code and tune Pedro~~ (done 6 Nov 2026: imported into `pedro/` and `babybot/`; AutoTune results are committed in `calibration/RobotCalibration.java`; the shooter encoder moved to OctoQuad channel 2).
 3. ~~Own calibration page~~ (done and tested on the bay-b bot 6 Nov 2026): all steps on one page, results saved on the Control Hub, defaults for everything, swapped-pod detection, PathMaker drive measurements.
-4. Allow either PathMaker or Pedro Pathing to drive the same routes, and run the benchmark plan.
+4. Allow either PathMaker or Pedro Pathing to drive the same routes, and run the benchmark plan. **Tools built 6 Nov 2026** (laptop-simulated; robot runs next): the Bench OpMode runs routes A1–A6 with Pedro, PathMaker 1 (with fixes W1, W3, W5, W7) or PathMaker 2 (braking from the measured stopping distance, kS, 2D driving, battery compensation), and logs CSVs for `docs/bench/analyze.py`.
 5. PathMaker 2: non-blocking update, pluggable localizer, paths as data with alliance mirroring, braking from measured stopping distance, and a short self-measuring tuning OpMode.
 
 ## History
