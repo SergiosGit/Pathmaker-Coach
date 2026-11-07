@@ -35,7 +35,7 @@ public class AxesCheck extends Procedure {
         long[] left = runOpModeWithArrow("left", new Push(name, "Push to the left",
                 "Push the robot straight to ITS left about one tile, keeping its heading. Then press Finish."));
 
-        Result r = analyse(forward, left, ticksPerInch);
+        Result r = analyse(forward, left, ticksPerInch, oldX);
         if (r.error != null) abort(r.error);
 
         result("octoquad.xPodPort", r.xPort);
@@ -44,6 +44,7 @@ public class AxesCheck extends Procedure {
         result("octoquad.yPodDirection", r.yDirection);
         result("Forward push", String.format("%.1f in on port %d", r.forwardInches, r.xPort));
         result("Left push", String.format("%.1f in on port %d", r.leftInches, r.yPort));
+        if (r.note != null) result("Second forward pod", r.note);
         if (r.xPort != oldX || r.yPort != oldY) {
             result("Note", "The ports changed (were forward " + oldX + ", strafe " + oldY
                     + "). Run the OctoQuad step again: its offsets depend on the ports.");
@@ -56,8 +57,15 @@ public class AxesCheck extends Procedure {
         return out[0];
     }
 
-    /** What two pushes say about the ports. Pure function, tested on a laptop. */
-    static Result analyse(long[] forward, long[] left, double ticksPerInch) {
+    /**
+     * What two pushes say about the ports. Pure function, tested on a laptop.
+     *
+     * A robot may have two forward pods (three-pod odometry). Both move by about the same amount
+     * in the forward push, so the forward push only has to single out the forward pods from the
+     * strafe pod. The localizer uses one forward pod (heading comes from the OctoQuad's IMU):
+     * the one set before if it is one of them, else the one that moved most.
+     */
+    static Result analyse(long[] forward, long[] left, double ticksPerInch, int preferredXPort) {
         Result r = new Result();
         int f = argmaxAbs(forward), l = argmaxAbs(left);
         r.forwardInches = Math.abs(forward[f]) / ticksPerInch;
@@ -73,15 +81,32 @@ public class AxesCheck extends Procedure {
                     + "or not touching the floor, or the pushes weren't straight.";
             return r;
         }
-        if (Math.abs(forward[f]) < DOMINANCE * secondAbs(forward, f)
-                || Math.abs(left[l]) < DOMINANCE * secondAbs(left, l)) {
+        // The strafe pod must stand out in the left push, and stay nearly still in the forward push.
+        if (Math.abs(left[l]) < DOMINANCE * secondAbs(left, l)
+                || Math.abs(forward[f]) < DOMINANCE * Math.abs(forward[l])) {
             r.error = "Two pods moved by similar amounts in one push. Push straighter, without turning, and try again.";
             return r;
         }
-        r.xPort = f;
+        // Every other port that moved about as much as the largest one is a forward pod.
+        StringBuilder others = new StringBuilder();
+        int x = f;
+        for (int i = 0; i < forward.length; i++) {
+            if (i == l || DOMINANCE * Math.abs(forward[i]) < Math.abs(forward[f])) continue;
+            if (i == preferredXPort) x = i;
+        }
+        for (int i = 0; i < forward.length; i++) {
+            if (i == l || i == x || DOMINANCE * Math.abs(forward[i]) < Math.abs(forward[f])) continue;
+            others.append(others.length() == 0 ? "" : ", ").append(i);
+        }
+        if (others.length() > 0) {
+            r.note = "Port " + others + " also measures forward. It is not used: the localizer uses one "
+                    + "forward pod (port " + x + ") and the OctoQuad's IMU for heading.";
+        }
+        r.xPort = x;
         r.yPort = l;
+        r.forwardInches = Math.abs(forward[x]) / ticksPerInch;
         // Forward motion must count up on the forward pod; motion to the left on the strafe pod.
-        r.xDirection = forward[f] > 0 ? OctoQuad.EncoderDirection.FORWARD : OctoQuad.EncoderDirection.REVERSE;
+        r.xDirection = forward[x] > 0 ? OctoQuad.EncoderDirection.FORWARD : OctoQuad.EncoderDirection.REVERSE;
         r.yDirection = left[l] > 0 ? OctoQuad.EncoderDirection.FORWARD : OctoQuad.EncoderDirection.REVERSE;
         return r;
     }
@@ -91,6 +116,7 @@ public class AxesCheck extends Procedure {
         OctoQuad.EncoderDirection xDirection, yDirection;
         double forwardInches, leftInches;
         String error;
+        String note;
     }
 
     private static int argmaxAbs(long[] a) {
