@@ -51,6 +51,16 @@ public class CalibrationServer extends NanoHTTPD {
         }
     }
 
+    private static long longParam(IHTTPSession session, String name, long otherwise) {
+        java.util.List<String> v = session.getParameters().get(name);
+        if (v == null || v.isEmpty()) return otherwise;
+        try {
+            return Long.parseLong(v.get(0));
+        } catch (NumberFormatException e) {
+            return otherwise;
+        }
+    }
+
     @Override
     public Response serve(IHTTPSession session) {
         try {
@@ -61,7 +71,8 @@ public class CalibrationServer extends NanoHTTPD {
                     case "/index.html":
                         return newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", readPage());
                     case "/api/state":
-                        return json(CalibrationSession.get().state());
+                        return json(CalibrationSession.get().state(
+                                longParam(session, "since", 0), (int) longParam(session, "run", -1)));
                     case "/api/steps":
                         return json(CalibrationSession.get().describeSteps());
                     case "/api/values":

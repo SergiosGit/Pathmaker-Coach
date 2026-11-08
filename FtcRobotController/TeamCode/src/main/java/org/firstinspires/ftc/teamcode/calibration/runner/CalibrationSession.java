@@ -54,7 +54,9 @@ public final class CalibrationSession {
     public enum Phase { IDLE, STARTING, INPUTS, CONFIRM, READY, RUNNING, DONE, FAILED }
 
     private static final CalibrationSession INSTANCE = new CalibrationSession();
-    private static final int LOG_LINES = 80, SAMPLES = 600;
+    private static final int LOG_LINES = 80;
+    /** Chart points kept for the page: about 4 minutes at a 40 ms loop. The page keeps its own copy. */
+    private static final int SAMPLES = 6000;
 
     public static CalibrationSession get() { return INSTANCE; }
 
@@ -70,10 +72,15 @@ public final class CalibrationSession {
     private TuningOpMode<?> run;
     private Map<String, Object> display;
     private Map<String, Object> controls;
+    /** The value boxes of the run that just ended, so they stay editable on the page afterwards. */
+    private List<Object> endedKeys;
     private List<Object> charts;
     private final Deque<String> commands = new ArrayDeque<>();
     private Map<String, Object> live = new LinkedHashMap<>();
-    private final List<double[]> samples = new ArrayList<>();
+    private final java.util.ArrayDeque<double[]> samples = new java.util.ArrayDeque<>();
+    /** Numbers the chart points of a run, so the page only fetches the new ones. A new run gets a new sampleRun. */
+    private long sampleSeq = 0;
+    private int sampleRun = 0;
     private final List<String> sampleNames = new ArrayList<>();
     private long runStartNanos;
     private final List<Object> results = new ArrayList<>();
@@ -256,14 +263,18 @@ public final class CalibrationSession {
             finishPressed = false;
             samples.clear();
             sampleNames.clear();
+            sampleSeq = 0;
+            sampleRun++;
             live = new LinkedHashMap<>();
             controls = null;
+            endedKeys = null;
             commands.clear();
             runStartNanos = System.nanoTime();
             log("Run started: " + op.name);
         }
     }
 
+    @SuppressWarnings("unchecked")
     <R> R runOpMode(TuningOpMode<R> op) throws InterruptedException {
         Host h;
         synchronized (this) {
@@ -283,6 +294,7 @@ public final class CalibrationSession {
             stopMotors();
             synchronized (this) {
                 run = null;
+                if (controls != null) endedKeys = (List<Object>) controls.get("keys");
                 controls = null;
                 commands.clear();
             }
@@ -329,8 +341,9 @@ public final class CalibrationSession {
         double[] point = new double[sampleNames.size() + 1];
         point[0] = t;
         for (int i = 0; i < sampleNames.size(); i++) point[i + 1] = i < row.size() ? row.get(i) : Double.NaN;
-        samples.add(point);
-        if (samples.size() > SAMPLES) samples.remove(0);
+        samples.addLast(point);
+        sampleSeq++;
+        if (samples.size() > SAMPLES) samples.removeFirst();
     }
 
     synchronized void result(String key, String name, Object value) {
@@ -345,7 +358,26 @@ public final class CalibrationSession {
 
     // ------------------------------------------------------------------ page state
 
-    public synchronized Map<String, Object> state() {
+    /** After a run: its value boxes stay, without buttons, so values can still be changed for the next run. */
+    private Map<String, Object> endedControls() {
+        if (endedKeys == null || endedKeys.isEmpty() || (phase != Phase.DONE && phase != Phase.FAILED)) return null;
+        Map<String, Object> c = new LinkedHashMap<>();
+        c.put("buttons", new ArrayList<>());
+        c.put("keys", endedKeys);
+        c.put("status", "The run has ended. You can still change these values; Run the step again to use them.");
+        return c;
+    }
+
+    /** The page state without chart points. */
+    public Map<String, Object> state() {
+        return state(Long.MAX_VALUE, -1);
+    }
+
+    /**
+     * The page state, with the chart points after number {@code since} of run {@code forRun}. A page
+     * that has another run (or none yet) gets every point still kept.
+     */
+    public synchronized Map<String, Object> state(long since, int forRun) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("opModeRunning", host != null);
         m.put("phase", phase.name().toLowerCase(Locale.US));
@@ -356,11 +388,24 @@ public final class CalibrationSession {
         m.put("canFinish", phase == Phase.RUNNING && run != null && run.canStop);
         m.put("inputs", inputsDescription());
         m.put("display", display);
-        m.put("controls", phase == Phase.RUNNING ? controls : null);
+        m.put("controls", phase == Phase.RUNNING ? controls : endedControls());
         m.put("charts", charts);
         m.put("live", live);
         m.put("sampleNames", new ArrayList<>(sampleNames));
-        m.put("samples", new ArrayList<>(samples));
+        if (forRun != sampleRun) since = 0;
+        long first = sampleSeq - samples.size() + 1; // number of the oldest point kept
+        List<double[]> out = new ArrayList<>();
+        if (since < sampleSeq) {
+            long skip = Math.max(0, since - first + 1);
+            java.util.Iterator<double[]> it = samples.iterator();
+            for (long k = 0; it.hasNext(); k++) {
+                double[] pt = it.next();
+                if (k >= skip) out.add(pt);
+            }
+        }
+        m.put("samples", out);
+        m.put("sampleRun", sampleRun);
+        m.put("sampleSeq", sampleSeq);
         m.put("results", new ArrayList<>(results));
         m.put("outcome", outcome);
         m.put("log", new ArrayList<>(log));
