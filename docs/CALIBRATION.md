@@ -25,11 +25,19 @@ Run them in this order the first time; later you can rerun any single step. Step
 
 ## Where values come from
 
-Every value has three layers, and the first one that exists is used:
+Every value has three layers:
 
-1. **Measured**: saved on the Control Hub in `/sdcard/FIRST/settings/calibration.json`. It survives app restarts and redeploys, and keeps the last 5 measurements of each value.
+1. **Measured**: saved on the Control Hub in `/sdcard/FIRST/settings/calibration.json`, the moment a step finishes or you edit a value on the page. It survives app restarts and redeploys, and keeps the last 5 measurements of each value.
 2. **Committed**: `TeamCode/.../calibration/RobotCalibration.java`, in git.
 3. **Default**: in `CalibrationKeys.java`. Defaults are safe, not good. Pedro's gains default to zero, so Pedro cannot follow a path or hold a position until step 4 has run; the bay-b bot's Drive test then drives by hand only.
+
+**Whichever changed last wins.**
+
+- A measured value is used instead of the committed one. Measuring is newer than what is in git.
+- But if someone changes a committed value in Java and deploys, that change is newer: at the next start the robot drops the measured value of that one key and uses the Java value. The page then lists what changed in a blue note under **All values**. The file remembers the committed values it saw at the last start, which is how the robot can tell.
+- Values nobody changed in Java keep their measured value across deploys.
+
+So "I edited RobotCalibration.java, why does the robot ignore it?" can't happen any more, and neither can "I deployed and lost my measurements". The rule starts working at the first start after this version is installed: that start only records the Java values.
 
 The **All values** table shows all three layers for every value. Use **Edit** to type a value in (it counts as measured) and **Revert** to forget the measured value.
 
@@ -37,8 +45,8 @@ The **All values** table shows all three layers for every value. Use **Edit** to
 
 The file on the Control Hub belongs to that one robot. After a calibration session:
 
-1. Click **Export Java**. It downloads `RobotCalibration.java`, containing every measured and committed value with the date it was measured.
-2. Replace `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/calibration/RobotCalibration.java` with it and commit.
+1. At the bottom of the page, open "Java for RobotCalibration.java" and click **Copy**, or click **Export Java** to download it. It holds every measured and committed value with the date it was measured.
+2. Replace `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/calibration/RobotCalibration.java` with it and commit. The next deploy changes nothing on this robot, because the Java values now equal the measured ones.
 
 **Download file** saves `calibration.json` itself, as a backup.
 

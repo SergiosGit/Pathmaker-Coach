@@ -19,13 +19,18 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Every calibrated value the robot uses, with three layers. The first layer that has a value wins:
+ * Every calibrated value the robot uses, with three layers:
  * <ol>
- *   <li><b>measured</b>: written by a calibration step, saved on the Control Hub in
- *       {@code /sdcard/FIRST/settings/calibration.json} the moment the step finishes;</li>
- *   <li><b>committed</b>: {@link RobotCalibration}, in git. The web page exports it;</li>
+ *   <li><b>measured</b>: written by a calibration step or typed on the web page, saved on the
+ *       Control Hub in {@code /sdcard/FIRST/settings/calibration.json} at once;</li>
+ *   <li><b>committed</b>: in git, in {@link RobotCalibration} or, for values bound to a field, in
+ *       that field's initial value (the shooter's are in ShooterConfig.java). The page exports both;</li>
  *   <li><b>default</b>: a safe starting value, defined in {@link CalibrationKeys}.</li>
  * </ol>
+ * <b>Whichever changed last wins.</b> A measured value beats the committed one, unless the
+ * committed value was changed in Java after the measurement: the file remembers the committed
+ * values it saw at the last start, and when one is different now (a deploy changed it), the
+ * measured value of that key is dropped and the Java value applies. The page lists those changes.
  * The file survives app restarts and redeploys, so closing the web page never loses data.
  */
 public final class Calibration {
@@ -68,6 +73,11 @@ public final class Calibration {
     private static final Map<String, Object> committed = new LinkedHashMap<>();
     /** Newest last. The newest entry is the measured value. */
     private static final Map<String, List<Measurement>> measured = new LinkedHashMap<>();
+    /** Keys whose value is also written into a public static field, e.g. ShooterConfig.kP. */
+    private static final Map<String, java.lang.reflect.Field> fields = new LinkedHashMap<>();
+    /** Committed values the file saw at the last start; null if the file predates this. */
+    private static Map<String, Object> committedSeen = null;
+    private static final List<String> javaChanges = new ArrayList<>();
     private static File file = new File(System.getProperty("calibration.file",
             "/sdcard/FIRST/settings/calibration.json"));
     private static int version = 0;
@@ -77,7 +87,11 @@ public final class Calibration {
         CalibrationKeys.defineAll();
         RobotCalibration.apply(committed);
         load();
+        applyFields();
     }
+
+    /** Makes sure the values are loaded and written into their fields (ShooterConfig). */
+    public static void ensureLoaded() { }
 
     private Calibration() { }
 
@@ -90,6 +104,23 @@ public final class Calibration {
     static void define(String group, String id, String label, String unit, Object defaultValue,
                        double confirmTolerance, String help) {
         keys.put(id, new Key(id, group, label, unit, defaultValue, confirmTolerance, help));
+    }
+
+    /**
+     * A value that lives in a public static field (for example ShooterConfig.kP). The field's
+     * initial value, as written in Java, is the committed value; the field is then kept equal to
+     * the current value, so code that reads the field sees what the page shows.
+     */
+    static void bind(String group, String id, String label, String unit, Object defaultValue,
+                     Class<?> owner, String fieldName, String help) {
+        define(group, id, label, unit, defaultValue, help);
+        try {
+            java.lang.reflect.Field f = owner.getField(fieldName);
+            fields.put(id, f);
+            committed.put(id, convert(f.get(null), defaultValue));
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("No public static field " + owner.getSimpleName() + "." + fieldName, e);
+        }
     }
 
     /** Restricts a text setting to the given values (for example FORWARD and REVERSE). */
@@ -160,6 +191,9 @@ public final class Calibration {
 
     public static String loadError() { return loadError; }
 
+    /** Values whose Java version changed since the last start and therefore replaced a measured one. */
+    public static synchronized List<String> javaChanges() { return new ArrayList<>(javaChanges); }
+
     // ---- writing ----
 
     /** Stores a measured value (converted to the key's type) and saves the file. */
@@ -175,6 +209,7 @@ public final class Calibration {
         while (h.size() > HISTORY) h.remove(0);
         version++;
         save();
+        applyField(id);
     }
 
     /** Forgets the measured value (and its history), so the committed or default value applies again. */
@@ -183,6 +218,7 @@ public final class Calibration {
         measured.remove(id);
         version++;
         save();
+        applyField(id);
     }
 
     /** For tests: use another file and reload it. */
@@ -190,7 +226,13 @@ public final class Calibration {
         file = f;
         measured.clear();
         load();
+        applyFields();
         version++;
+    }
+
+    /** For tests: what a deploy does to a committed value. */
+    static synchronized void setCommittedForTest(String id, Object value) {
+        committed.put(id, convert(value, key(id).defaultValue));
     }
 
     // ---- web page and export ----
@@ -208,6 +250,8 @@ public final class Calibration {
             m.put("default", k.defaultValue);
             m.put("committed", committed.get(k.id));
             m.put("hasCommitted", committed.containsKey(k.id));
+            java.lang.reflect.Field f = fields.get(k.id);
+            m.put("home", f == null ? "RobotCalibration.java" : f.getDeclaringClass().getSimpleName() + ".java");
             List<Measurement> h = measured.get(k.id);
             List<Object> hist = new ArrayList<>();
             if (h != null) {
@@ -244,7 +288,7 @@ public final class Calibration {
           .append("    static void apply(Map<String, Object> v) {\n");
         String group = null;
         for (Key k : keys.values()) {
-            if (source(k.id) == Source.DEFAULT) continue;
+            if (source(k.id) == Source.DEFAULT || fields.containsKey(k.id)) continue;
             if (!k.group.equals(group)) {
                 group = k.group;
                 sb.append("        // ").append(group).append('\n');
@@ -257,6 +301,35 @@ public final class Calibration {
             sb.append('\n');
         }
         sb.append("    }\n}\n");
+        return sb.toString();
+    }
+
+    /**
+     * Java lines for the fields of one class (e.g. ShooterConfig), with the current values, to
+     * paste over the matching lines in that file.
+     */
+    public static synchronized String exportFields(String className) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("    // ===== BEGIN calibration page values (").append(now()).append(") =====\n")
+          .append("    // Copied from the calibration page (Copy on the page, or /api/export/shooter).\n")
+          .append("    // To update: replace everything from BEGIN to END with a new copy.\n");
+        String group = null;
+        for (Map.Entry<String, java.lang.reflect.Field> e : fields.entrySet()) {
+            java.lang.reflect.Field f = e.getValue();
+            if (!f.getDeclaringClass().getSimpleName().equals(className)) continue;
+            Key k = keys.get(e.getKey());
+            if (!k.group.equals(group)) {
+                group = k.group;
+                sb.append("\n    // ---- ").append(group).append('\n');
+            }
+            String type = f.getType() == double.class ? "double" : f.getType() == int.class ? "int"
+                    : f.getType() == boolean.class ? "boolean" : "String";
+            sb.append("    public static ").append(type).append(' ').append(f.getName()).append(" = ")
+              .append(javaLiteral(get(k.id))).append(";  // ");
+            if (!k.unit.isEmpty()) sb.append(k.unit).append(". ");
+            sb.append(k.help).append('\n');
+        }
+        sb.append("    // ===== END calibration page values =====\n");
         return sb.toString();
     }
 
@@ -314,6 +387,8 @@ public final class Calibration {
             values.put(e.getKey(), hist);
         }
         root.put("measured", values);
+        // The committed values as of now: at the next start, a difference means Java changed them.
+        root.put("committedSeen", new LinkedHashMap<>(committed));
         return root;
     }
 
@@ -325,6 +400,7 @@ public final class Calibration {
             String text = readFile(file);
             Map<String, Object> root = Json.parseObject(text);
             Map<String, Object> values = (Map<String, Object>) root.get("measured");
+            committedSeen = (Map<String, Object>) root.get("committedSeen");
             if (values == null) return;
             for (Map.Entry<String, Object> e : values.entrySet()) {
                 Key k = keys.get(e.getKey());
@@ -336,6 +412,7 @@ public final class Calibration {
                 }
                 if (!h.isEmpty()) measured.put(k.id, h);
             }
+            applyJavaChanges();
         } catch (Exception ex) {
             // Keep running on committed and default values; the page shows the problem. Keep the
             // unreadable file as .bad so the next save doesn't destroy it.
@@ -344,6 +421,49 @@ public final class Calibration {
             loadError = "Could not read " + file + ": " + ex.getMessage()
                     + (kept ? ". It was renamed to " + bad.getName() + "." : "");
             measured.clear();
+        }
+    }
+
+    /** A committed value that changed since the last start (a deploy) is newer than any measurement. */
+    private static void applyJavaChanges() {
+        javaChanges.clear();
+        if (committedSeen == null) { // first start with this format: just remember what Java says
+            save();
+            return;
+        }
+        boolean changed = !committedSeen.keySet().equals(committed.keySet());
+        for (Map.Entry<String, Object> e : committed.entrySet()) {
+            Key k = keys.get(e.getKey());
+            Object seen = committedSeen.containsKey(k.id) ? convert(committedSeen.get(k.id), k.defaultValue) : null;
+            if (e.getValue().equals(seen)) continue;
+            changed = true;
+            List<Measurement> h = measured.get(k.id);
+            if (h == null || h.isEmpty()) continue;
+            Measurement m = h.get(h.size() - 1);
+            if (!m.value.equals(e.getValue())) {
+                javaChanges.add(k.label + " (" + k.id + "): the Java value " + e.getValue() + " replaced the measured "
+                        + m.value + " from " + m.at + ", because the Java value changed since the last start.");
+            }
+            measured.remove(k.id);
+        }
+        if (changed) save();
+    }
+
+    private static void applyFields() {
+        for (String id : fields.keySet()) applyField(id);
+    }
+
+    private static void applyField(String id) {
+        java.lang.reflect.Field f = fields.get(id);
+        if (f == null) return;
+        try {
+            Object v = get(id);
+            if (f.getType() == double.class) f.setDouble(null, ((Number) v).doubleValue());
+            else if (f.getType() == int.class) f.setInt(null, ((Number) v).intValue());
+            else if (f.getType() == boolean.class) f.setBoolean(null, (Boolean) v);
+            else f.set(null, String.valueOf(v));
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
         }
     }
 

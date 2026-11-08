@@ -69,6 +69,9 @@ public final class CalibrationSession {
     private boolean confirmed, startPressed, finishPressed, abortRequested;
     private TuningOpMode<?> run;
     private Map<String, Object> display;
+    private Map<String, Object> controls;
+    private List<Object> charts;
+    private final Deque<String> commands = new ArrayDeque<>();
     private Map<String, Object> live = new LinkedHashMap<>();
     private final List<double[]> samples = new ArrayList<>();
     private final List<String> sampleNames = new ArrayList<>();
@@ -137,6 +140,13 @@ public final class CalibrationSession {
                 if (phase != Phase.RUNNING || run == null || !run.canStop) return "This run can't be finished by hand.";
                 finishPressed = true;
                 break;
+            case "control": {
+                if (phase != Phase.RUNNING || controls == null) return "Nothing to control right now.";
+                Object c = values == null ? null : values.get("id");
+                if (c == null) return "No control given.";
+                if (commands.size() < 20) commands.addLast(String.valueOf(c));
+                break;
+            }
             default:
                 return "Unknown action " + action;
         }
@@ -247,6 +257,8 @@ public final class CalibrationSession {
             samples.clear();
             sampleNames.clear();
             live = new LinkedHashMap<>();
+            controls = null;
+            commands.clear();
             runStartNanos = System.nanoTime();
             log("Run started: " + op.name);
         }
@@ -258,6 +270,7 @@ public final class CalibrationSession {
             checkAbort();
             run = op;
             h = host;
+            charts = null; // a run sets its own, before waitForStart()
         }
         try {
             R r = op.execute(h);
@@ -270,12 +283,27 @@ public final class CalibrationSession {
             stopMotors();
             synchronized (this) {
                 run = null;
+                controls = null;
+                commands.clear();
             }
         }
     }
 
     synchronized boolean runStopRequested() {
         return finishPressed || abortRequested || host == null || host.stopRequested();
+    }
+
+    synchronized void setControls(Controls c) {
+        controls = c == null ? null : c.data;
+    }
+
+    /** Which live values to plot together, one chart per group. Null: the first four numbers. */
+    synchronized void setCharts(List<Object> groups) {
+        charts = groups;
+    }
+
+    synchronized String nextControl() {
+        return commands.pollFirst();
     }
 
     synchronized void setDisplay(Display d) {
@@ -328,6 +356,8 @@ public final class CalibrationSession {
         m.put("canFinish", phase == Phase.RUNNING && run != null && run.canStop);
         m.put("inputs", inputsDescription());
         m.put("display", display);
+        m.put("controls", phase == Phase.RUNNING ? controls : null);
+        m.put("charts", charts);
         m.put("live", live);
         m.put("sampleNames", new ArrayList<>(sampleNames));
         m.put("samples", new ArrayList<>(samples));
@@ -337,6 +367,7 @@ public final class CalibrationSession {
         m.put("valuesVersion", Calibration.version());
         m.put("file", Calibration.filePath());
         m.put("fileError", Calibration.loadError());
+        m.put("javaChanges", Calibration.javaChanges());
         return m;
     }
 

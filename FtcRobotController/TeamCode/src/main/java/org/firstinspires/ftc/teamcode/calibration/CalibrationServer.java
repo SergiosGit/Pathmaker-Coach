@@ -68,6 +68,8 @@ public class CalibrationServer extends NanoHTTPD {
                         return json(Calibration.describeAll());
                     case "/api/export/java":
                         return download(Calibration.exportJava(), "text/x-java; charset=utf-8", "RobotCalibration.java");
+                    case "/api/export/shooter":
+                        return download(Calibration.exportFields("ShooterConfig"), "text/x-java; charset=utf-8", "ShooterConfig-values.java");
                     case "/api/export/json":
                         return download(Calibration.exportJson(), "application/json; charset=utf-8", "calibration.json");
                     default:
@@ -129,7 +131,8 @@ public class CalibrationServer extends NanoHTTPD {
             case "inputs":
             case "confirm":
             case "start":
-            case "finish": {
+            case "finish":
+            case "control": {
                 Object id = a.get("promptId");
                 long promptId = id instanceof Number ? ((Number) id).longValue() : -1;
                 Object values = a.get("values");

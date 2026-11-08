@@ -129,6 +129,14 @@
   svg.robot .arrow { stroke: var(--wheel-on); stroke-width: 6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
   svg.robot text { fill: var(--text-2); font-size: 12px; }
   .sr { position: absolute; left: -9999px; }
+  .ctl-status { margin: 4px 0 8px; font-weight: 550; }
+  .ctl-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .ctl-keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 12px; margin-bottom: 8px; }
+  .ctl-keys label { display: grid; gap: 2px; font-size: 12.5px; color: var(--text-2); }
+  .ctl-keys .unit { color: var(--muted); font-size: 11.5px; }
+  .ctl-keys input.saved { border-color: var(--good); }
+  .charts { display: grid; gap: 10px; }
+  .copy-row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -151,11 +159,9 @@
     <h2 id="panel-h" class="sr">Current step</h2>
     <div id="panel"></div>
     <div id="liveArea" hidden>
+      <div id="controls"></div>
       <div class="live" id="live"></div>
-      <div class="chart" id="chartWrap">
-        <canvas id="chart" aria-label="Live values over time"></canvas>
-        <div class="tip" id="tip"></div>
-      </div>
+      <div class="charts" id="charts"></div>
     </div>
     <details>
       <summary>Log</summary>
@@ -167,10 +173,21 @@
     <h2 id="values-h">All values</h2>
     <p class="muted" id="fileInfo" style="margin-top:0"></p>
     <div class="table-wrap"><table id="values"></table></div>
+    <div id="javaChanges"></div>
+    <h3>Keep the values in git</h3>
+    <p class="muted" style="margin-top:0">Values measured here are already saved on the Control Hub. To keep them in git as well,
+      copy them into the Java files below and commit. After that deploy, the robot uses the Java values until something is measured again.</p>
     <details>
-      <summary>Java for <code>calibration/RobotCalibration.java</code> (commit this to keep the values in git)</summary>
-      <p class="muted">Download it with <b>Export Java</b> and replace the file in Android Studio, or copy it from here.</p>
+      <summary>Java for <code>calibration/RobotCalibration.java</code>: drive, odometry and PathMaker</summary>
+      <div class="copy-row"><button class="small primary" type="button" data-copy="java">Copy</button>
+        <span class="muted">Replace the whole file. Or download it with <b>Export Java</b>.</span></div>
       <textarea class="code" id="java" readonly></textarea>
+    </details>
+    <details id="shooterJavaBox" hidden>
+      <summary>Java for <code>configuration/ShooterConfig.java</code>: shooter</summary>
+      <div class="copy-row"><button class="small primary" type="button" data-copy="shooterJava">Copy</button>
+        <span class="muted">In ShooterConfig.java, replace everything from the <b>BEGIN</b> line to the <b>END</b> line.</span></div>
+      <textarea class="code" id="shooterJava" readonly></textarea>
     </details>
   </section>
 </main>
@@ -192,7 +209,7 @@ const POLL_MS = 400;
     const next = dark ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem("calTheme", next); } catch (e) {}
-    drawChart();
+    drawCharts();
   };
 })();
 
@@ -227,7 +244,9 @@ async function poll() {
       values = await getJson("/api/values");
       valuesVersion = s.valuesVersion;
       renderValues();
+      $("shooterJavaBox").hidden = !values.some(v => v.home === "ShooterConfig.java");
       $("java").value = await (await fetch("/api/export/java", {cache: "no-store"})).text();
+      $("shooterJava").value = await (await fetch("/api/export/shooter", {cache: "no-store"})).text();
     }
     render();
   } catch (e) {
@@ -295,10 +314,19 @@ function render() {
 
   const showLive = state.phase === "running" || (state.samples && state.samples.length && ["done", "failed"].includes(state.phase));
   $("liveArea").hidden = !showLive;
-  if (showLive) { renderLive(); drawChart(); }
+  renderControls();
+  if (showLive) { renderLive(); drawCharts(); }
+  const jc = state.javaChanges || [];
+  const jcKey = JSON.stringify(jc);
+  if ($("javaChanges").dataset.k !== jcKey) {
+    $("javaChanges").dataset.k = jcKey;
+    $("javaChanges").innerHTML = jc.length ? `<div class="notice info"><b>Changed in Java since the last start, so the Java value now applies:</b><ul>${
+      jc.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>` : "";
+  }
   $("log").textContent = (state.log || []).join("\n");
-  $("fileInfo").textContent = "Measured values are saved on the Control Hub in " + state.file + " the moment a step finishes. "
-    + "A value comes from the first of: measured, committed (RobotCalibration.java), default.";
+  $("fileInfo").textContent = "Measured values are saved on the Control Hub in " + state.file + " the moment a step finishes or you edit them. "
+    + "Whichever changed last wins: a measured value is used, unless its committed value (in RobotCalibration.java or ShooterConfig.java) was changed after it and deployed. "
+    + "With neither, the default applies.";
   if (state.fileError) $("fileInfo").innerHTML += `<br><span class="chip bad">${esc(state.fileError)}</span>`;
 }
 
@@ -414,42 +442,113 @@ function displayHtml(d) {
   return `<svg class="robot" viewBox="0 0 170 170" role="img" aria-label="${esc(label)}">${inner}</svg><div class="muted" style="font-size:12.5px">${esc(label)}</div>`;
 }
 
-// ---------------------------------------------------------------- live values and chart
+// ---------------------------------------------------------------- controls of a run steered from the page
+let renderedControls = null, renderedKeys = null;
+function renderControls() {
+  const c = state.controls, box = $("controls");
+  if (!c) {
+    if (renderedKeys !== null || renderedControls !== null) { box.innerHTML = ""; renderedKeys = renderedControls = null; }
+    return;
+  }
+  const keysKey = JSON.stringify(c.keys);
+  if (keysKey !== renderedKeys) {
+    renderedKeys = keysKey;
+    renderedControls = null;
+    box.innerHTML = `<p class="ctl-status" id="ctlStatus"></p><div class="ctl-buttons" id="ctlButtons"></div>
+      <div class="ctl-keys">${c.keys.map(id => {
+        const v = valueById(id) || {label: id, unit: ""};
+        return `<label title="${esc(v.help || "")}">${esc(v.label)}<input type="number" step="any" data-key="${esc(id)}">
+          <span class="unit">${esc(v.unit || "")}</span></label>`;
+      }).join("")}</div>`;
+    box.querySelectorAll("input[data-key]").forEach(inp => {
+      inp.onchange = () => { if (inp.value !== "") act({action: "set", key: inp.dataset.key, value: inp.value}); };
+      inp.onkeydown = ev => { if (ev.key === "Enter") inp.blur(); };
+    });
+  }
+  const btnKey = JSON.stringify([c.buttons, c.status]);
+  if (btnKey !== renderedControls) {
+    renderedControls = btnKey;
+    $("ctlStatus").textContent = c.status || "";
+    $("ctlButtons").innerHTML = c.buttons.map(b =>
+      `<button type="button" class="${b.primary ? "primary" : ""}" data-ctl="${esc(b.id)}" ${b.enabled ? "" : "disabled"}>${esc(b.label)}</button>`).join("");
+    $("ctlButtons").querySelectorAll("[data-ctl]").forEach(btn =>
+      btn.onclick = () => act({action: "control", promptId: state.promptId, values: {id: btn.dataset.ctl}}));
+  }
+  // Show the saved values, but never overwrite a box while someone is typing in it.
+  box.querySelectorAll("input[data-key]").forEach(inp => {
+    const v = valueById(inp.dataset.key);
+    if (!v || document.activeElement === inp) return;
+    const shown = String(v.value);
+    if (inp.value !== shown) inp.value = shown;
+    inp.classList.toggle("saved", v.source === "measured");
+  });
+}
+
+// ---------------------------------------------------------------- live values and charts
 const SERIES = ["--s1", "--s2", "--s3", "--s4"];
 function seriesColor(i) { return getComputedStyle(document.documentElement).getPropertyValue(SERIES[i % SERIES.length]).trim(); }
 
+/** Groups of names plotted together, one chart each: from the run, or the first four numbers. */
+function chartGroups() {
+  const names = state.sampleNames || [];
+  const g = state.charts && state.charts.length ? state.charts : [names.slice(0, SERIES.length)];
+  return g.map(grp => grp.slice(0, SERIES.length));
+}
+
 function renderLive() {
   const live = state.live || {};
-  const names = state.sampleNames || [];
+  const groups = chartGroups();
   $("live").innerHTML = Object.entries(live).map(([k, v]) => {
-    const i = names.indexOf(k);
-    const sw = i >= 0 && i < SERIES.length ? `<span class="swatch" style="background:${seriesColor(i)}"></span>` : "";
+    let sw = "";
+    groups.forEach(g => { const i = g.indexOf(k); if (i >= 0) sw = `<span class="swatch" style="background:${seriesColor(i)}"></span>`; });
     return `<div><div class="k">${sw}${esc(k)}</div><div class="v">${esc(fmt(v))}</div></div>`;
   }).join("");
 }
 
-let chartGeom = null;
-function drawChart() {
-  const c = $("chart");
+let renderedCharts = null;
+const chartGeoms = [];
+function drawCharts() {
   if (!state || $("liveArea").hidden) return;
+  const groups = chartGroups(), key = JSON.stringify(groups);
+  if (key !== renderedCharts) {
+    renderedCharts = key;
+    $("charts").innerHTML = groups.map((g, i) =>
+      `<div class="chart"><canvas data-chart="${i}" aria-label="${esc(g.join(", "))} over time"></canvas><div class="tip"></div></div>`).join("");
+    $("charts").querySelectorAll("canvas").forEach(c => {
+      c.addEventListener("mousemove", ev => showTip(c, ev));
+      c.addEventListener("mouseleave", () => c.nextElementSibling.style.display = "none");
+    });
+  }
+  $("charts").querySelectorAll("canvas").forEach((c, i) => chartGeoms[i] = drawChart(c, groups[i] || []));
+}
+
+function drawChart(c, names) {
   const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
   c.width = w * dpr; c.height = h * dpr;
   const g = c.getContext("2d");
   g.scale(dpr, dpr);
   g.clearRect(0, 0, w, h);
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const pts = state.samples || [], names = (state.sampleNames || []).slice(0, SERIES.length);
-  if (pts.length < 2 || !names.length) {
+  const pts = state.samples || [], all = state.sampleNames || [];
+  const idx = names.map(n => all.indexOf(n) + 1).filter(i => i > 0);
+  const shown = names.filter(n => all.indexOf(n) >= 0);
+  if (pts.length < 2 || !idx.length) {
     g.fillStyle = css("--muted"); g.font = "13px system-ui"; g.fillText("The chart fills in while a run is active.", 12, 24);
-    chartGeom = null; return;
+    return null;
   }
-  const L = 48, R = 70, T = 12, B = 24;
+  const L = 52, R = 96, T = 12, B = 24;
   const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
   let lo = Infinity, hi = -Infinity;
-  for (const p of pts) for (let i = 1; i <= names.length; i++) { const v = p[i]; if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
-  if (!isFinite(lo)) return;
-  if (lo > 0) lo = 0; if (hi < 0) hi = 0;
+  for (const p of pts) for (const i of idx) { const v = p[i]; if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+  if (!isFinite(lo)) return null;
+  // Zoom to the data, so a 100 RPM wobble at 4500 RPM stays visible; keep 0 in view when it is near.
+  const span = hi - lo;
+  if (lo > 0 && lo < span) lo = 0;
+  if (hi < 0 && -hi < span) hi = 0;
   if (hi - lo < 1e-9) { hi += 1; lo -= 1; }
+  const pad = (hi - lo) * 0.06;
+  if (lo !== 0) lo -= pad;
+  if (hi !== 0) hi += pad;
   const X = t => L + (t - t0) / Math.max(t1 - t0, 1e-6) * (w - L - R);
   const Y = v => T + (hi - v) / (hi - lo) * (h - T - B);
   // grid and axes: recessive
@@ -460,39 +559,57 @@ function drawChart() {
     g.textAlign = "right"; g.fillText(fmt(v), L - 6, y + 4);
   }
   g.textAlign = "left"; g.fillText(t0.toFixed(1) + " s", L, h - 6); g.textAlign = "right"; g.fillText(t1.toFixed(1) + " s", w - R, h - 6);
-  // lines, 2px, with a direct label at the end
-  names.forEach((n, i) => {
+  // lines, 2px, with a direct label at the end (labels pushed apart so they don't overlap)
+  const ends = [];
+  idx.forEach((col, i) => {
     g.strokeStyle = seriesColor(i); g.lineWidth = 2; g.lineJoin = "round"; g.beginPath();
     let started = false, last = null;
     for (const p of pts) {
-      const v = p[i + 1];
+      const v = p[col];
       if (v == null || !isFinite(v)) { started = false; continue; }
       const x = X(p[0]), y = Y(v);
       if (!started) { g.moveTo(x, y); started = true; } else g.lineTo(x, y);
       last = [x, y];
     }
     g.stroke();
-    if (last) { g.fillStyle = css("--text-2"); g.textAlign = "left"; g.font = "11px system-ui"; g.fillText(n, last[0] + 6, last[1] + 4); }
+    if (last) ends.push({x: last[0], y: last[1] + 4, text: shown[i]});
   });
-  chartGeom = {X, Y, pts, names, L, R, w, h, T, B, t0, t1};
+  ends.sort((a, b) => a.y - b.y);
+  for (let k = 1; k < ends.length; k++) ends[k].y = Math.max(ends[k].y, ends[k - 1].y + 13);
+  const over = ends.length ? ends[ends.length - 1].y - (h - B) : 0;
+  if (over > 0) ends.forEach(e => e.y -= over);
+  g.fillStyle = css("--text-2"); g.textAlign = "left"; g.font = "11px system-ui";
+  ends.forEach(e => g.fillText(e.text, e.x + 6, e.y));
+  return {pts, idx, shown, L, R, w, t0, t1};
 }
 
-$("chart").addEventListener("mousemove", ev => {
-  const tip = $("tip");
-  if (!chartGeom) { tip.style.display = "none"; return; }
-  const r = ev.target.getBoundingClientRect(), x = ev.clientX - r.left;
-  const {pts, names, L, R, w, t0, t1} = chartGeom;
+function showTip(c, ev) {
+  const tip = c.nextElementSibling, geom = chartGeoms[+c.dataset.chart];
+  if (!geom) { tip.style.display = "none"; return; }
+  const r = c.getBoundingClientRect(), x = ev.clientX - r.left;
+  const {pts, idx, shown, L, R, w, t0, t1} = geom;
   const t = t0 + (x - L) / (w - L - R) * (t1 - t0);
   let best = pts[0];
   for (const p of pts) if (Math.abs(p[0] - t) < Math.abs(best[0] - t)) best = p;
-  tip.innerHTML = `<b>${best[0].toFixed(2)} s</b><br>` + names.map((n, i) =>
-    `<span class="swatch" style="background:${seriesColor(i)}"></span> ${esc(n)}: ${esc(fmt(best[i + 1]))}`).join("<br>");
+  tip.innerHTML = `<b>${best[0].toFixed(2)} s</b><br>` + idx.map((col, i) =>
+    `<span class="swatch" style="background:${seriesColor(i)}"></span> ${esc(shown[i])}: ${esc(fmt(best[col]))}`).join("<br>");
   tip.style.display = "block";
-  tip.style.left = Math.min(x + 12, r.width - 160) + "px";
+  tip.style.left = Math.min(x + 12, r.width - 170) + "px";
   tip.style.top = "10px";
+}
+window.addEventListener("resize", drawCharts);
+
+// ---------------------------------------------------------------- copy Java (works on the robot's plain http page)
+document.querySelectorAll("[data-copy]").forEach(btn => btn.onclick = () => {
+  const ta = $(btn.dataset.copy);
+  ta.focus(); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) {}
+  const done = text => { const old = btn.textContent; btn.textContent = text; setTimeout(() => btn.textContent = old, 1500); };
+  if (ok) done("Copied");
+  else if (navigator.clipboard) navigator.clipboard.writeText(ta.value).then(() => done("Copied"), () => done("Press Ctrl+C"));
+  else done("Press Ctrl+C");
 });
-$("chart").addEventListener("mouseleave", () => $("tip").style.display = "none");
-window.addEventListener("resize", drawChart);
 
 // ---------------------------------------------------------------- values table
 function sourceChip(v) {
@@ -509,7 +626,7 @@ function renderValues() {
     if (v.group !== group) { group = v.group; html += `<tr class="group-row"><td colspan="8">${esc(group)}</td></tr>`; }
     const hist = v.history.map(h => `${esc(fmt(h.value))} <span class="hist">(${esc(h.at)})</span>`).join("<br>");
     html += `<tr>
-      <td title="${esc(v.help)}">${esc(v.label)}<div class="hist">${esc(v.id)}</div></td>
+      <td title="${esc(v.help)}">${esc(v.label)}<div class="hist">${esc(v.id)} · ${esc(v.home || "")}</div></td>
       <td class="num"><b>${esc(fmt(v.value))}</b></td><td>${esc(v.unit)}</td><td>${sourceChip(v)}</td>
       <td class="num">${esc(fmt(v.default))}</td><td class="num">${v.hasCommitted ? esc(fmt(v.committed)) : "—"}</td>
       <td>${hist || '<span class="muted">—</span>'}</td>

@@ -49,6 +49,23 @@ public abstract class TuningOpMode<R> {
         return CalibrationSession.get().runStopRequested();
     }
 
+    /** Buttons and editable values on the page while this run is active (see {@link Controls}). */
+    protected final void setControls(Controls controls) {
+        CalibrationSession.get().setControls(controls);
+    }
+
+    /** The next button pressed on the page, or null. */
+    protected final String nextControl() {
+        return CalibrationSession.get().nextControl();
+    }
+
+    /** Plots these live values together, one chart per group, so values of very different size get their own scale. */
+    protected final void setCharts(String[]... groups) {
+        java.util.List<Object> out = new java.util.ArrayList<>();
+        for (String[] g : groups) out.add(new java.util.ArrayList<Object>(java.util.Arrays.asList((Object[]) g)));
+        CalibrationSession.get().setCharts(out);
+    }
+
     protected final boolean opModeIsActive() {
         return !isStopRequested();
     }
