@@ -138,7 +138,11 @@
   .charts { display: grid; gap: 10px; }
   .timebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; font-size: 13px; }
   .timebar input[type=range] { flex: 1; min-width: 140px; accent-color: var(--accent, currentColor); }
-  .timebar select { font: inherit; }
+  .timebar .zoom { display: inline-flex; align-items: center; gap: 6px; }
+  .timebar .zoom button { min-width: 34px; font-size: 16px; line-height: 1; }
+  .timebar .span-label { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+  .chart canvas { cursor: grab; touch-action: pan-y; }
+  .chart canvas.dragging { cursor: grabbing; }
   .copy-row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
 </style>
 </head>
@@ -166,10 +170,12 @@
       <div class="live" id="live"></div>
       <div class="charts" id="charts"></div>
       <div class="timebar" id="timebar">
-        <label>Show <select id="tspan">
-          <option value="10">10 s</option><option value="20" selected>20 s</option>
-          <option value="60">1 min</option><option value="0">everything</option></select></label>
-        <input type="range" id="tslider" min="0" max="1000" value="1000" aria-label="Time shown in the charts">
+        <span class="zoom" role="group" aria-label="Zoom">
+          <button type="button" class="small" id="tzoomout" title="Zoom out: show more time" aria-label="Zoom out">−</button>
+          <span id="tspanLabel" class="span-label"></span>
+          <button type="button" class="small" id="tzoomin" title="Zoom in: show less time" aria-label="Zoom in">+</button>
+        </span>
+        <input type="range" id="tslider" min="0" max="1000" value="1000" aria-label="Go back in time">
         <button type="button" class="small" id="tlive">Live</button>
         <span class="muted" id="tinfo"></span>
       </div>
@@ -530,38 +536,82 @@ function mergeSamples(s) {
   if (buf.rows.length > MAX_ROWS) buf.rows.splice(0, buf.rows.length - MAX_ROWS);
   buf.seq = s.sampleSeq;
 }
+// A rolling window of fixed width: zoom changes the width, panning (slider or dragging a chart)
+// moves it back in time. Before the window is full, the data starts part way across.
+const SPANS = [2, 5, 10, 20, 30, 60, 120, 240];
 function timeRange() {
   const r = buf.rows;
   if (!r.length) return null;
-  const first = r[0][0], last = r[r.length - 1][0];
-  const span = view.span ? Math.min(view.span, last - first) : last - first;
-  const lo = first + span, end = view.follow || !view.span ? last : Math.min(Math.max(view.end, lo), last);
-  return {first, last, lo, start: end - span, end};
+  const first = r[0][0], last = r[r.length - 1][0], span = view.span;
+  const lo = Math.min(first + span, last); // the earliest the window's right edge can go
+  const end = view.follow ? last : Math.min(Math.max(view.end, lo), last);
+  return {first, last, lo, start: end - span, end, span};
 }
 function visibleRows() {
   const t = timeRange();
-  return t ? buf.rows.filter(p => p[0] >= t.start && p[0] <= t.end) : [];
+  if (!t) return [];
+  // one point either side of the window, so lines run to the edges
+  let a = 0, b = buf.rows.length - 1;
+  while (a < b && buf.rows[a + 1][0] < t.start) a++;
+  while (b > a && buf.rows[b - 1][0] > t.end) b--;
+  return buf.rows.slice(a, b + 1);
 }
-function renderTimebar() {
-  const t = timeRange(), slider = $("tslider");
-  slider.disabled = !t || !view.span || t.last - t.lo < 0.05;
-  if (t && document.activeElement !== slider) {
-    slider.value = view.follow || t.last <= t.lo ? 1000 : Math.round((t.end - t.lo) / (t.last - t.lo) * 1000);
-  }
-  $("tlive").disabled = view.follow;
-  $("tinfo").textContent = !t ? "" : `${t.start.toFixed(1)} to ${t.end.toFixed(1)} s of ${t.last.toFixed(1)} s`
-    + (view.follow ? (state.phase === "running" ? " · live" : "") : " · held");
-}
-$("tspan").onchange = () => { view.span = +$("tspan").value; drawCharts(); };
-$("tslider").oninput = () => {
+function setEnd(end) {
   const t = timeRange();
   if (!t) return;
-  const v = +$("tslider").value;
-  view.follow = v >= 1000;
-  view.end = t.lo + (t.last - t.lo) * v / 1000;
+  view.end = Math.min(Math.max(end, t.lo), t.last);
+  view.follow = view.end >= t.last - 1e-6 && state.phase === "running";
   drawCharts();
+}
+function zoom(dir) {
+  const k = SPANS.indexOf(view.span) + dir;
+  if (k < 0 || k >= SPANS.length) return;
+  const t = timeRange();
+  if (t && !view.follow) view.end = t.end; // keep the right edge where it is
+  view.span = SPANS[k];
+  try { localStorage.setItem("calChartSpan", String(view.span)); } catch (e) {}
+  drawCharts();
+}
+function spanText(v) { return v >= 60 ? (v / 60) + " min" : v + " s"; }
+function renderTimebar() {
+  const t = timeRange(), slider = $("tslider");
+  $("tspanLabel").textContent = spanText(view.span);
+  $("tzoomin").disabled = view.span <= SPANS[0];
+  $("tzoomout").disabled = view.span >= SPANS[SPANS.length - 1];
+  const canPan = t && t.last - t.lo > 0.05;
+  slider.disabled = !canPan;
+  if (document.activeElement !== slider) {
+    slider.value = !canPan || view.follow ? 1000 : Math.round((t.end - t.lo) / (t.last - t.lo) * 1000);
+  }
+  $("tlive").disabled = view.follow || !t || (t.end >= t.last - 1e-6);
+  $("tinfo").textContent = !t ? "" : (view.follow && state.phase === "running" ? "live"
+    : t.end >= t.last - 1e-6 ? "latest" : `${(t.last - t.end).toFixed(1)} s back`) + ` · ${t.last.toFixed(1)} s recorded`;
+}
+try { const v = +localStorage.getItem("calChartSpan"); if (SPANS.includes(v)) view.span = v; } catch (e) {}
+$("tzoomin").onclick = () => zoom(-1);
+$("tzoomout").onclick = () => zoom(+1);
+$("tslider").oninput = () => {
+  const t = timeRange();
+  if (t) setEnd(t.lo + (t.last - t.lo) * +$("tslider").value / 1000);
 };
-$("tlive").onclick = () => { view.follow = true; drawCharts(); };
+$("tlive").onclick = () => { const t = timeRange(); view.follow = state.phase === "running"; if (t) view.end = t.last; drawCharts(); };
+
+// Drag a chart sideways to pan.
+let drag = null;
+function startDrag(c, ev) {
+  const t = timeRange(), geom = chartGeoms[+c.dataset.chart];
+  if (!t || !geom) return;
+  drag = {c, x: ev.clientX, end: t.end, perPx: t.span / (geom.w - geom.L - geom.R), moved: false};
+  c.setPointerCapture(ev.pointerId);
+}
+function moveDrag(ev) {
+  if (!drag) return false;
+  const dx = ev.clientX - drag.x;
+  if (Math.abs(dx) > 3) drag.moved = true;
+  if (drag.moved) { drag.c.classList.add("dragging"); drag.c.nextElementSibling.style.display = "none"; setEnd(drag.end - dx * drag.perPx); }
+  return true;
+}
+function endDrag() { if (drag) drag.c.classList.remove("dragging"); drag = null; }
 
 let renderedCharts = null;
 const chartGeoms = [];
@@ -573,16 +623,19 @@ function drawCharts() {
     $("charts").innerHTML = groups.map((g, i) =>
       `<div class="chart"><canvas data-chart="${i}" aria-label="${esc(g.join(", "))} over time"></canvas><div class="tip"></div></div>`).join("");
     $("charts").querySelectorAll("canvas").forEach(c => {
-      c.addEventListener("mousemove", ev => showTip(c, ev));
+      c.addEventListener("pointerdown", ev => startDrag(c, ev));
+      c.addEventListener("pointermove", ev => { if (!moveDrag(ev) && ev.pointerType === "mouse") showTip(c, ev); });
+      c.addEventListener("pointerup", endDrag);
+      c.addEventListener("pointercancel", endDrag);
       c.addEventListener("mouseleave", () => c.nextElementSibling.style.display = "none");
     });
   }
-  const rows = visibleRows();
-  $("charts").querySelectorAll("canvas").forEach((c, i) => chartGeoms[i] = drawChart(c, groups[i] || [], rows));
+  const rows = visibleRows(), range = timeRange();
+  $("charts").querySelectorAll("canvas").forEach((c, i) => chartGeoms[i] = drawChart(c, groups[i] || [], rows, range));
   renderTimebar();
 }
 
-function drawChart(c, names, pts) {
+function drawChart(c, names, pts, range) {
   const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
   c.width = w * dpr; c.height = h * dpr;
   const g = c.getContext("2d");
@@ -592,14 +645,14 @@ function drawChart(c, names, pts) {
   const all = state.sampleNames || [];
   const idx = names.map(n => all.indexOf(n) + 1).filter(i => i > 0);
   const shown = names.filter(n => all.indexOf(n) >= 0);
-  if (pts.length < 2 || !idx.length) {
+  if (pts.length < 2 || !idx.length || !range) {
     g.fillStyle = css("--muted"); g.font = "13px system-ui"; g.fillText("The chart fills in while a run is active.", 12, 24);
     return null;
   }
   const L = 52, R = 96, T = 12, B = 24;
-  const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+  const t0 = range.start, t1 = range.end;
   let lo = Infinity, hi = -Infinity;
-  for (const p of pts) for (const i of idx) { const v = p[i]; if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+  for (const p of pts) if (p[0] >= t0 && p[0] <= t1) for (const i of idx) { const v = p[i]; if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
   if (!isFinite(lo)) return null;
   // Zoom to the data, so a 100 RPM wobble at 4500 RPM stays visible; keep 0 in view when it is near.
   const span = hi - lo;
@@ -618,9 +671,18 @@ function drawChart(c, names, pts) {
     g.beginPath(); g.moveTo(L, y); g.lineTo(w - R, y); g.stroke();
     g.textAlign = "right"; g.fillText(fmt(v), L - 6, y + 4);
   }
-  g.textAlign = "left"; g.fillText(t0.toFixed(1) + " s", L, h - 6); g.textAlign = "right"; g.fillText(t1.toFixed(1) + " s", w - R, h - 6);
-  // lines, 2px, with a direct label at the end (labels pushed apart so they don't overlap)
+  // time ticks: seconds since the run started, at a round step (about 5 per window)
+  const step = [0.5, 1, 2, 5, 10, 15, 30, 60].find(s => (t1 - t0) / s <= 6) || 60;
+  g.textAlign = "center";
+  for (let t = Math.ceil(t0 / step) * step; t <= t1 + 1e-9; t += step) {
+    if (t < 0) continue;
+    const x = X(t);
+    g.beginPath(); g.moveTo(x, T); g.lineTo(x, h - B); g.stroke();
+    g.fillText((step < 1 ? t.toFixed(1) : Math.round(t)) + " s", x, h - 6);
+  }
+  // lines, 2px, clipped to the plot, with a direct label at the end (pushed apart so they don't overlap)
   const ends = [];
+  g.save(); g.beginPath(); g.rect(L, 0, w - L - R, h); g.clip();
   idx.forEach((col, i) => {
     g.strokeStyle = seriesColor(i); g.lineWidth = 2; g.lineJoin = "round"; g.beginPath();
     let started = false, last = null;
@@ -629,11 +691,12 @@ function drawChart(c, names, pts) {
       if (v == null || !isFinite(v)) { started = false; continue; }
       const x = X(p[0]), y = Y(v);
       if (!started) { g.moveTo(x, y); started = true; } else g.lineTo(x, y);
-      last = [x, y];
+      if (p[0] <= t1) last = [x, y];
     }
     g.stroke();
-    if (last) ends.push({x: last[0], y: last[1] + 4, text: shown[i]});
+    if (last) ends.push({x: Math.min(last[0], w - R), y: last[1] + 4, text: shown[i]});
   });
+  g.restore();
   ends.sort((a, b) => a.y - b.y);
   for (let k = 1; k < ends.length; k++) ends[k].y = Math.max(ends[k].y, ends[k - 1].y + 13);
   const over = ends.length ? ends[ends.length - 1].y - (h - B) : 0;
@@ -651,6 +714,7 @@ function showTip(c, ev) {
   const t = t0 + (x - L) / (w - L - R) * (t1 - t0);
   let best = pts[0];
   for (const p of pts) if (Math.abs(p[0] - t) < Math.abs(best[0] - t)) best = p;
+  if (best[0] < t0 || best[0] > t1 || x < L || x > w - R) { tip.style.display = "none"; return; }
   tip.innerHTML = `<b>${best[0].toFixed(2)} s</b><br>` + idx.map((col, i) =>
     `<span class="swatch" style="background:${seriesColor(i)}"></span> ${esc(shown[i])}: ${esc(fmt(best[col]))}`).join("<br>");
   tip.style.display = "block";
