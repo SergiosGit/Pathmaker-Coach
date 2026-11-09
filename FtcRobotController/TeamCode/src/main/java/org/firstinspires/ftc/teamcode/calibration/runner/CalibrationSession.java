@@ -80,6 +80,7 @@ public final class CalibrationSession {
     private final java.util.ArrayDeque<double[]> samples = new java.util.ArrayDeque<>();
     /** Numbers the chart points of a run, so the page only fetches the new ones. A new run gets a new sampleRun. */
     private long sampleSeq = 0;
+    private boolean recording = true, gapPending = false;
     private int sampleRun = 0;
     private final List<String> sampleNames = new ArrayList<>();
     private long runStartNanos;
@@ -265,6 +266,8 @@ public final class CalibrationSession {
             sampleNames.clear();
             sampleSeq = 0;
             sampleRun++;
+            recording = true;
+            gapPending = false;
             live = new LinkedHashMap<>();
             controls = null;
             endedKeys = null;
@@ -322,6 +325,11 @@ public final class CalibrationSession {
         display = d == null ? null : d.data;
     }
 
+    synchronized void setRecording(boolean on) {
+        if (on && !recording) gapPending = true;
+        recording = on;
+    }
+
     synchronized void live(Map<String, Object> values) {
         live = values;
         // Plot every number. A new name adds a series; earlier points get NaN for it.
@@ -337,10 +345,21 @@ public final class CalibrationSession {
             while (row.size() <= i) row.add(Double.NaN);
             row.set(i, ((Number) e.getValue()).doubleValue());
         }
-        if (row.isEmpty()) return;
+        if (row.isEmpty() || !recording) return;
+        if (gapPending) { // a point with no values, so the lines break across the pause
+            gapPending = false;
+            double[] gap = new double[sampleNames.size() + 1];
+            java.util.Arrays.fill(gap, Double.NaN);
+            gap[0] = t;
+            addSample(gap);
+        }
         double[] point = new double[sampleNames.size() + 1];
         point[0] = t;
         for (int i = 0; i < sampleNames.size(); i++) point[i + 1] = i < row.size() ? row.get(i) : Double.NaN;
+        addSample(point);
+    }
+
+    private void addSample(double[] point) {
         samples.addLast(point);
         sampleSeq++;
         if (samples.size() > SAMPLES) samples.removeFirst();

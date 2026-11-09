@@ -69,10 +69,16 @@ public class CalibrationServer extends NanoHTTPD {
                 switch (uri) {
                     case "/":
                     case "/index.html":
-                        return newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", readPage());
-                    case "/api/state":
-                        return json(CalibrationSession.get().state(
-                                longParam(session, "since", 0), (int) longParam(session, "run", -1)));
+                        Response page = newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8",
+                                readPage().replace("__PAGE_VERSION__", pageVersion()));
+                        page.addHeader("Cache-Control", "no-store");
+                        return page;
+                    case "/api/state": {
+                        Map<String, Object> st = CalibrationSession.get().state(
+                                longParam(session, "since", 0), (int) longParam(session, "run", -1));
+                        st.put("pageVersion", pageVersion()); // an open page reloads itself after a deploy
+                        return json(st);
+                    }
                     case "/api/steps":
                         return json(CalibrationSession.get().describeSteps());
                     case "/api/values":
@@ -157,6 +163,14 @@ public class CalibrationServer extends NanoHTTPD {
         r.put("ok", error == null);
         r.put("error", error);
         return r;
+    }
+
+    private String pageVersion;
+
+    /** Changes whenever a deploy brings a different page. */
+    private synchronized String pageVersion() throws IOException {
+        if (pageVersion == null) pageVersion = Integer.toHexString(readPage().hashCode());
+        return pageVersion;
     }
 
     private String readPage() throws IOException {

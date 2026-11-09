@@ -215,6 +215,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let state = null, steps = [], values = [], valuesVersion = -1, renderedPrompt = null, renderedSteps = null, online = false, busy = false;
 const POLL_MS = 400;
+// Filled in by the robot when it sends the page. After a deploy brings a new page, an open tab reloads itself.
+const PAGE_VERSION = "__PAGE_VERSION__";
 // Chart points of the current run, kept by the page (see "chart history" below).
 const MAX_ROWS = 6000;
 const buf = {run: -1, seq: 0, rows: []};
@@ -260,6 +262,7 @@ async function poll() {
     const s = await getJson("/api/state?since=" + buf.seq + "&run=" + buf.run);
     if (!online) { steps = await getJson("/api/steps"); }
     online = true;
+    if (s.pageVersion && !PAGE_VERSION.startsWith("__") && s.pageVersion !== PAGE_VERSION) { location.reload(); return; }
     state = s;
     mergeSamples(s);
     if (s.valuesVersion !== valuesVersion) {

@@ -59,6 +59,14 @@ public abstract class TuningOpMode<R> {
         return CalibrationSession.get().nextControl();
     }
 
+    /**
+     * Whether the charts record. Off: the live numbers still update, but no chart points are added,
+     * e.g. while the shooter wheel stands still. When recording starts again, the lines show a gap.
+     */
+    protected final void setRecording(boolean on) {
+        CalibrationSession.get().setRecording(on);
+    }
+
     /** Plots these live values together, one chart per group, so values of very different size get their own scale. */
     protected final void setCharts(String[]... groups) {
         java.util.List<Object> out = new java.util.ArrayList<>();
